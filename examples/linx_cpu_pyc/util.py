@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pycircuit import Circuit, Reg, Wire
+from pycircuit import Circuit, Wire
 
 
 @dataclass(frozen=True)
@@ -34,13 +34,3 @@ def make_consts(m: Circuit) -> Consts:
 def masked_eq(m: Circuit, x: Wire, *, width: int, mask: int, match: int) -> Wire:
     c = m.const_wire
     return (x & c(mask, width=width)).eq(c(match, width=width))
-
-
-def latch(m: Circuit, reg: Reg, *, en: Wire, new: Wire) -> None:
-    """Backedge reg latch helper: reg.next := en ? new : reg.q"""
-    reg.set(new, when=en)
-
-
-def latch_many(m: Circuit, en: Wire, pairs: list[tuple[Reg, Wire]]) -> None:
-    for r, v in pairs:
-        latch(m, r, en=en, new=v)

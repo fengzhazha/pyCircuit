@@ -26,7 +26,7 @@ struct MulticlockRegs {
   pyc::cpp::Wire<8> b__next{};
   pyc::cpp::Wire<8> v9{};
   pyc::cpp::Wire<8> b{};
-  pyc::cpp::Wire<8> b__multiclock_regs__L17{};
+  pyc::cpp::Wire<8> b__multiclock_regs__L18{};
   pyc::cpp::Wire<8> v10{};
 
   pyc::cpp::pyc_reg<8> v7_inst;
@@ -55,15 +55,15 @@ struct MulticlockRegs {
     v8 = (a__multiclock_regs__L14 + v4);
     a__next = v8;
     b = v9;
-    b__multiclock_regs__L17 = b;
-    v10 = (b__multiclock_regs__L17 + v4);
+    b__multiclock_regs__L18 = b;
+    v10 = (b__multiclock_regs__L18 + v4);
     b__next = v10;
   }
 
   void eval() {
     eval_comb_pass();
     a_count = a__multiclock_regs__L14;
-    b_count = b__multiclock_regs__L17;
+    b_count = b__multiclock_regs__L18;
   }
 
   void tick() {

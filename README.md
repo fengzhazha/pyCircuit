@@ -57,6 +57,12 @@ In `pycircuit.cli emit`, **JIT mode is enabled by default** when your design def
 bash examples/update_generated.sh
 ```
 
+### Multi-file designs: `@jit_inline`
+
+When splitting a design across multiple Python files (pipeline stages, helper modules), mark helper functions with
+`@pycircuit.jit_inline` so calls from inside `build(...)` are **compiled** (AST/SCF) into the current circuit rather than
+executed as Python at JIT time. This preserves consistent name-mangling with file/line provenance in generated C++/SV.
+
 ## Layout
 
 - `binding/python/pycircuit/`: Python DSL + CLI (emits `.pyc` MLIR)

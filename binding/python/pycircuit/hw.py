@@ -39,6 +39,10 @@ class Wire:
     def __str__(self) -> str:
         return self.sig.ref
 
+    def out(self) -> "Wire":
+        """Stage-friendly sugar: a Wire's value is itself."""
+        return self
+
     def _coerce(self, other: Union["Wire", "Reg", Signal, int]) -> Signal:
         if isinstance(other, Reg):
             if other.q.m is not self.m:
@@ -154,7 +158,11 @@ class Wire:
 
     def named(self, name: str) -> "Wire":
         """Attach a debug name via `pyc.alias` (pure)."""
-        return Wire(self.m, self.m.alias(self.sig, name=name))
+        scoped = str(name)
+        scoped_name = getattr(self.m, "scoped_name", None)
+        if callable(scoped_name):
+            scoped = scoped_name(scoped)
+        return Wire(self.m, self.m.alias(self.sig, name=scoped))
 
 
 @dataclass(frozen=True)
@@ -186,6 +194,10 @@ class Reg:
 
     def __str__(self) -> str:
         return self.q.ref
+
+    def out(self) -> Wire:
+        """Read the current value of the register (q) as a Wire."""
+        return self.q
 
     def __add__(self, other: Union[Wire, Signal, int]) -> Wire:
         return self.q + other

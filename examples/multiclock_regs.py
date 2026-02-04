@@ -12,10 +12,12 @@ def build(m: Circuit) -> None:
     en = m.const_wire(1, width=1)
 
     a = m.out("a", clk=clk_a, rst=rst_a, width=8, init=0, en=en)
-    a <<= a + 1
+    with m.scope("A"):
+        a.set(a.out() + 1)
 
     b = m.out("b", clk=clk_b, rst=rst_b, width=8, init=0, en=en)
-    b <<= b + 1
+    with m.scope("B"):
+        b.set(b.out() + 1)
 
-    m.output("a_count", a)
-    m.output("b_count", b)
+    m.output("a_count", a.out())
+    m.output("b_count", b.out())

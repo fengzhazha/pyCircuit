@@ -21,9 +21,12 @@ def build(m: Circuit, STAGES: int = 3) -> None:
     pkt = m.bundle(tag=tag, data=data, lo8=lo8)
     bus = pkt.pack()
 
-    # Pipeline the packed bus through STAGES registers.
+    # Pipeline the packed bus through STAGES flops (stage-like style).
     for _ in range(STAGES):
-        bus = m.reg_domain(dom, en, bus, 0).q
+        with m.scope("PIPE"):
+            bus_r = m.out("bus", domain=dom, width=bus.width, init=0, en=1)
+            bus_r.set(bus, when=en)
+            bus = bus_r.out()
 
     out = pkt.unpack(bus)
     m.output("tag", out["tag"])

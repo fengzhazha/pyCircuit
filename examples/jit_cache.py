@@ -70,7 +70,7 @@ def _mux_by_index(m: Circuit, idx: Wire, options: list[Wire], *, default: Wire) 
 
 
 def _select_set_way(set_idx: Wire, table: list[list[Reg]], *, way: int) -> Wire:
-    opts = [table[s][int(way)].q for s in range(len(table))]
+    opts = [table[s][int(way)].out() for s in range(len(table))]
     return _mux_by_index(opts[0].m, set_idx, opts, default=opts[0].m.const_wire(0, width=opts[0].width))
 
 
@@ -143,7 +143,7 @@ def _cache_fill_on_miss(
 
 
 def _qs(regs: list[Reg]) -> list[Wire]:
-    return [r.q for r in regs]
+    return [r.out() for r in regs]
 
 
 def build(m: Circuit, SETS: int = 8, WAYS: int = 2) -> None:

@@ -15,6 +15,23 @@ class JitError(RuntimeError):
     pass
 
 
+def jit_inline(fn: Any) -> Any:
+    """Mark a Python helper to be inlined by the AST/SCF JIT compiler.
+
+    When a `@jit_inline` function is called from inside a `jit_compile`'d
+    function, the callee is parsed via `ast` and its body is compiled into the
+    *current* Circuit, instead of being executed as Python at JIT time.
+
+    This enables:
+    - modular designs split across files (stages/modules),
+    - consistent name-mangling with file/line provenance,
+    - future inter-procedural transformations.
+    """
+
+    setattr(fn, "__pycircuit_inline__", True)
+    return fn
+
+
 @dataclass(frozen=True)
 class _IndexValue:
     """Placeholder for an SCF induction variable (index-typed SSA value)."""
@@ -128,6 +145,7 @@ class _Compiler:
         self.globals = globals_
         self.source_stem = source_stem
         self.line_offset = int(line_offset)
+        self._inline_stack: list[Any] = []
 
     def _scoped_name(self, base: str) -> str:
         scoped = base
@@ -365,9 +383,67 @@ class _Compiler:
         args = [self.eval_expr(a) for a in node.args]
         kwargs = {kw.arg: self.eval_expr(kw.value) for kw in node.keywords if kw.arg is not None}
         try:
+            if getattr(fn, "__pycircuit_inline__", False):
+                return self._eval_inline_call(fn, args=args, kwargs=kwargs)
             return fn(*args, **kwargs)
         except TypeError as e:
             raise JitError(f"call failed: {e}") from e
+
+    def _eval_inline_call(self, fn: Any, *, args: list[Any], kwargs: dict[str, Any]) -> Any:
+        if fn in self._inline_stack:
+            raise JitError(f"recursive @jit_inline call is not supported: {getattr(fn, '__name__', fn)!r}")
+
+        try:
+            lines, start_line = inspect.getsourcelines(fn)
+        except OSError as e:
+            raise JitError(f"cannot inline {getattr(fn, '__name__', fn)!r}: failed to read source ({e})") from e
+
+        src = textwrap.dedent("".join(lines))
+        tree = ast.parse(src)
+        fdef = _find_function_def(tree, fn.__name__)
+
+        if not fdef.args.args:
+            raise JitError("@jit_inline function must take at least one argument (the Circuit builder)")
+        builder_arg = fdef.args.args[0].arg
+
+        # Use Python's own binding semantics for args/kwargs/defaults.
+        try:
+            bound = inspect.signature(fn).bind(*args, **kwargs)
+        except TypeError as e:
+            raise JitError(f"inline call failed: {e}") from e
+        bound.apply_defaults()
+
+        if builder_arg not in bound.arguments:
+            raise JitError("internal: failed to bind builder argument for @jit_inline call")
+        if bound.arguments[builder_arg] is not self.m:
+            raise JitError("@jit_inline function must be called with the current Circuit builder")
+
+        src_file = inspect.getsourcefile(fn) or inspect.getfile(fn)
+        src_stem = None
+        try:
+            if src_file:
+                src_stem = Path(src_file).stem
+        except Exception:
+            src_stem = None
+
+        child = _Compiler(
+            self.m,
+            params=dict(bound.arguments),
+            globals_=dict(getattr(fn, "__globals__", {})),
+            source_stem=src_stem,
+            line_offset=int(start_line - 1),
+        )
+        child._inline_stack = [*self._inline_stack, fn]
+
+        for stmt in fdef.body:
+            if isinstance(stmt, ast.Return):
+                if stmt.value is None:
+                    return None
+                return child.eval_expr(stmt.value)
+            child.compile_stmt(stmt)
+
+        # No explicit return => None.
+        return None
 
     # ---- statement compilation ----
     def compile_block(self, stmts: list[ast.stmt]) -> None:

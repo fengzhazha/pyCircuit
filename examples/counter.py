@@ -6,9 +6,13 @@ from pycircuit import Circuit
 def build(m: Circuit) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
-    en = m.in_wire("en", width=1)
+    do = m.in_wire("en", width=1)
 
-    count = m.out("count", clk=clk, rst=rst, width=8, init=0, en=en)
-    count <<= count + 1
+    count = m.out("count", clk=clk, rst=rst, width=8, init=0, en=1)
 
-    m.output("count", count)
+    # Stage-like style: read current flop outputs, compute, then set next.
+    with m.scope("COUNT"):
+        c = count.out()
+        count.set(c + 1, when=do)
+
+    m.output("count", count.out())

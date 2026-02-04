@@ -48,19 +48,31 @@ logic [24:0] v16;
 logic [24:0] v17;
 logic [24:0] v18;
 logic [24:0] bus__jit_pipeline_vec__L22;
+logic [24:0] PIPE__bus__next;
 logic [24:0] v19;
-logic [24:0] bus__jit_pipeline_vec__L26;
+logic [24:0] PIPE__bus;
+logic [24:0] PIPE__bus_r__jit_pipeline_vec__L27;
 logic [24:0] v20;
-logic [24:0] bus__jit_pipeline_vec__L26_2;
+logic [24:0] PIPE__bus__jit_pipeline_vec__L29;
+logic [24:0] PIPE__bus__next_2;
 logic [24:0] v21;
-logic [24:0] bus__jit_pipeline_vec__L26_3;
+logic [24:0] PIPE__bus_2;
+logic [24:0] PIPE__bus_r__jit_pipeline_vec__L27_2;
+logic [24:0] v22;
+logic [24:0] PIPE__bus__jit_pipeline_vec__L29_2;
+logic [24:0] PIPE__bus__next_3;
+logic [24:0] v23;
+logic [24:0] PIPE__bus_3;
+logic [24:0] PIPE__bus_r__jit_pipeline_vec__L27_3;
+logic [24:0] v24;
+logic [24:0] PIPE__bus__jit_pipeline_vec__L29_3;
 logic [24:0] bus__jit_pipeline_vec__L25;
-logic [7:0] v22;
-logic [15:0] v23;
-logic v24;
 logic [7:0] v25;
 logic [15:0] v26;
 logic v27;
+logic [7:0] v28;
+logic [15:0] v29;
+logic v30;
 
 assign v1 = 25'd0;
 assign v2 = 1'd1;
@@ -106,40 +118,67 @@ assign bus__jit_pipeline_vec__L22 = v18;
 pyc_reg #(.WIDTH(25)) v19_inst (
   .clk(sys_clk),
   .rst(sys_rst),
-  .en(en__jit_pipeline_vec__L8),
-  .d(bus__jit_pipeline_vec__L22),
+  .en(v4),
+  .d(PIPE__bus__next),
   .init(v3),
   .q(v19)
 );
-assign bus__jit_pipeline_vec__L26 = v19;
-pyc_reg #(.WIDTH(25)) v20_inst (
-  .clk(sys_clk),
-  .rst(sys_rst),
-  .en(en__jit_pipeline_vec__L8),
-  .d(bus__jit_pipeline_vec__L26),
-  .init(v3),
-  .q(v20)
+assign PIPE__bus = v19;
+assign PIPE__bus_r__jit_pipeline_vec__L27 = PIPE__bus;
+pyc_mux #(.WIDTH(25)) v20_inst (
+  .sel(en__jit_pipeline_vec__L8),
+  .a(bus__jit_pipeline_vec__L22),
+  .b(PIPE__bus_r__jit_pipeline_vec__L27),
+  .y(v20)
 );
-assign bus__jit_pipeline_vec__L26_2 = v20;
+assign PIPE__bus__next = v20;
+assign PIPE__bus__jit_pipeline_vec__L29 = PIPE__bus_r__jit_pipeline_vec__L27;
 pyc_reg #(.WIDTH(25)) v21_inst (
   .clk(sys_clk),
   .rst(sys_rst),
-  .en(en__jit_pipeline_vec__L8),
-  .d(bus__jit_pipeline_vec__L26_2),
+  .en(v4),
+  .d(PIPE__bus__next_2),
   .init(v3),
   .q(v21)
 );
-assign bus__jit_pipeline_vec__L26_3 = v21;
-assign bus__jit_pipeline_vec__L25 = bus__jit_pipeline_vec__L26_3;
-assign v22 = bus__jit_pipeline_vec__L25[7:0];
-assign v23 = bus__jit_pipeline_vec__L25[23:8];
-assign v24 = bus__jit_pipeline_vec__L25[24];
-assign v25 = v22;
-assign v26 = v23;
-assign v27 = v24;
-assign tag = v27;
-assign data = v26;
-assign lo8 = v25;
+assign PIPE__bus_2 = v21;
+assign PIPE__bus_r__jit_pipeline_vec__L27_2 = PIPE__bus_2;
+pyc_mux #(.WIDTH(25)) v22_inst (
+  .sel(en__jit_pipeline_vec__L8),
+  .a(PIPE__bus__jit_pipeline_vec__L29),
+  .b(PIPE__bus_r__jit_pipeline_vec__L27_2),
+  .y(v22)
+);
+assign PIPE__bus__next_2 = v22;
+assign PIPE__bus__jit_pipeline_vec__L29_2 = PIPE__bus_r__jit_pipeline_vec__L27_2;
+pyc_reg #(.WIDTH(25)) v23_inst (
+  .clk(sys_clk),
+  .rst(sys_rst),
+  .en(v4),
+  .d(PIPE__bus__next_3),
+  .init(v3),
+  .q(v23)
+);
+assign PIPE__bus_3 = v23;
+assign PIPE__bus_r__jit_pipeline_vec__L27_3 = PIPE__bus_3;
+pyc_mux #(.WIDTH(25)) v24_inst (
+  .sel(en__jit_pipeline_vec__L8),
+  .a(PIPE__bus__jit_pipeline_vec__L29_2),
+  .b(PIPE__bus_r__jit_pipeline_vec__L27_3),
+  .y(v24)
+);
+assign PIPE__bus__next_3 = v24;
+assign PIPE__bus__jit_pipeline_vec__L29_3 = PIPE__bus_r__jit_pipeline_vec__L27_3;
+assign bus__jit_pipeline_vec__L25 = PIPE__bus__jit_pipeline_vec__L29_3;
+assign v25 = bus__jit_pipeline_vec__L25[7:0];
+assign v26 = bus__jit_pipeline_vec__L25[23:8];
+assign v27 = bus__jit_pipeline_vec__L25[24];
+assign v28 = v25;
+assign v29 = v26;
+assign v30 = v27;
+assign tag = v30;
+assign data = v29;
+assign lo8 = v28;
 
 endmodule
 

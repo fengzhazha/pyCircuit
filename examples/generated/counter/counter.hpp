@@ -11,36 +11,50 @@ struct Counter {
 
   pyc::cpp::Wire<8> v1{};
   pyc::cpp::Wire<8> v2{};
-  pyc::cpp::Wire<8> v3{};
+  pyc::cpp::Wire<1> v3{};
   pyc::cpp::Wire<8> v4{};
-  pyc::cpp::Wire<1> en__counter__L9{};
-  pyc::cpp::Wire<8> count__next{};
   pyc::cpp::Wire<8> v5{};
+  pyc::cpp::Wire<1> v6{};
+  pyc::cpp::Wire<1> do__counter__L9{};
+  pyc::cpp::Wire<8> count__next{};
+  pyc::cpp::Wire<8> v7{};
   pyc::cpp::Wire<8> count{};
   pyc::cpp::Wire<8> count__counter__L11{};
-  pyc::cpp::Wire<8> v6{};
+  pyc::cpp::Wire<8> COUNT__c__counter__L15{};
+  pyc::cpp::Wire<8> v8{};
+  pyc::cpp::Wire<8> v9{};
+  pyc::cpp::Wire<8> v10{};
 
-  pyc::cpp::pyc_reg<8> v5_inst;
+  pyc::cpp::pyc_reg<8> v7_inst;
 
   Counter() :
-      v5_inst(clk, rst, en__counter__L9, count__next, v4, v5) {
+      v7_inst(clk, rst, v6, count__next, v5, v7) {
     eval();
   }
 
   inline void eval_comb_0() {
     v1 = pyc::cpp::Wire<8>(1ull);
     v2 = pyc::cpp::Wire<8>(0ull);
-    v3 = v1;
-    v4 = v2;
+    v3 = pyc::cpp::Wire<1>(1ull);
+    v4 = v1;
+    v5 = v2;
+    v6 = v3;
+  }
+
+  inline void eval_comb_1() {
+    v8 = (COUNT__c__counter__L15 + v4);
+    v9 = (do__counter__L9.toBool() ? v8 : count__counter__L11);
+    v10 = v9;
   }
 
   inline void eval_comb_pass() {
     eval_comb_0();
-    en__counter__L9 = en;
-    count = v5;
+    do__counter__L9 = en;
+    count = v7;
     count__counter__L11 = count;
-    v6 = (count__counter__L11 + v3);
-    count__next = v6;
+    COUNT__c__counter__L15 = count__counter__L11;
+    eval_comb_1();
+    count__next = v10;
   }
 
   void eval() {
@@ -52,9 +66,9 @@ struct Counter {
     // Two-phase update: compute next state for all sequential elements,
     // then commit together. This avoids ordering artifacts between regs.
     // Phase 1: compute.
-    v5_inst.tick_compute();
+    v7_inst.tick_compute();
     // Phase 2: commit.
-    v5_inst.tick_commit();
+    v7_inst.tick_commit();
   }
 };
 

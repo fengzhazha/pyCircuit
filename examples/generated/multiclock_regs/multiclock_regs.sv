@@ -33,7 +33,7 @@ logic [7:0] v8;
 logic [7:0] b__next;
 logic [7:0] v9;
 logic [7:0] b;
-logic [7:0] b__multiclock_regs__L17;
+logic [7:0] b__multiclock_regs__L18;
 logic [7:0] v10;
 
 assign v1 = 8'd1;
@@ -68,15 +68,15 @@ pyc_reg #(.WIDTH(8)) v9_inst (
   .q(v9)
 );
 assign b = v9;
-assign b__multiclock_regs__L17 = b;
+assign b__multiclock_regs__L18 = b;
 pyc_add #(.WIDTH(8)) v10_inst (
-  .a(b__multiclock_regs__L17),
+  .a(b__multiclock_regs__L18),
   .b(v4),
   .y(v10)
 );
 assign b__next = v10;
 assign a_count = a__multiclock_regs__L14;
-assign b_count = b__multiclock_regs__L17;
+assign b_count = b__multiclock_regs__L18;
 
 endmodule
 

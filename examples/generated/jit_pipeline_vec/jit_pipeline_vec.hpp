@@ -41,28 +41,40 @@ struct JitPipelineVec {
   pyc::cpp::Wire<25> v17{};
   pyc::cpp::Wire<25> v18{};
   pyc::cpp::Wire<25> bus__jit_pipeline_vec__L22{};
+  pyc::cpp::Wire<25> PIPE__bus__next{};
   pyc::cpp::Wire<25> v19{};
-  pyc::cpp::Wire<25> bus__jit_pipeline_vec__L26{};
+  pyc::cpp::Wire<25> PIPE__bus{};
+  pyc::cpp::Wire<25> PIPE__bus_r__jit_pipeline_vec__L27{};
   pyc::cpp::Wire<25> v20{};
-  pyc::cpp::Wire<25> bus__jit_pipeline_vec__L26_2{};
+  pyc::cpp::Wire<25> PIPE__bus__jit_pipeline_vec__L29{};
+  pyc::cpp::Wire<25> PIPE__bus__next_2{};
   pyc::cpp::Wire<25> v21{};
-  pyc::cpp::Wire<25> bus__jit_pipeline_vec__L26_3{};
+  pyc::cpp::Wire<25> PIPE__bus_2{};
+  pyc::cpp::Wire<25> PIPE__bus_r__jit_pipeline_vec__L27_2{};
+  pyc::cpp::Wire<25> v22{};
+  pyc::cpp::Wire<25> PIPE__bus__jit_pipeline_vec__L29_2{};
+  pyc::cpp::Wire<25> PIPE__bus__next_3{};
+  pyc::cpp::Wire<25> v23{};
+  pyc::cpp::Wire<25> PIPE__bus_3{};
+  pyc::cpp::Wire<25> PIPE__bus_r__jit_pipeline_vec__L27_3{};
+  pyc::cpp::Wire<25> v24{};
+  pyc::cpp::Wire<25> PIPE__bus__jit_pipeline_vec__L29_3{};
   pyc::cpp::Wire<25> bus__jit_pipeline_vec__L25{};
-  pyc::cpp::Wire<8> v22{};
-  pyc::cpp::Wire<16> v23{};
-  pyc::cpp::Wire<1> v24{};
   pyc::cpp::Wire<8> v25{};
   pyc::cpp::Wire<16> v26{};
   pyc::cpp::Wire<1> v27{};
+  pyc::cpp::Wire<8> v28{};
+  pyc::cpp::Wire<16> v29{};
+  pyc::cpp::Wire<1> v30{};
 
   pyc::cpp::pyc_reg<25> v19_inst;
-  pyc::cpp::pyc_reg<25> v20_inst;
   pyc::cpp::pyc_reg<25> v21_inst;
+  pyc::cpp::pyc_reg<25> v23_inst;
 
   JitPipelineVec() :
-      v19_inst(sys_clk, sys_rst, en__jit_pipeline_vec__L8, bus__jit_pipeline_vec__L22, v3, v19),
-      v20_inst(sys_clk, sys_rst, en__jit_pipeline_vec__L8, bus__jit_pipeline_vec__L26, v3, v20),
-      v21_inst(sys_clk, sys_rst, en__jit_pipeline_vec__L8, bus__jit_pipeline_vec__L26_2, v3, v21) {
+      v19_inst(sys_clk, sys_rst, v4, PIPE__bus__next, v3, v19),
+      v21_inst(sys_clk, sys_rst, v4, PIPE__bus__next_2, v3, v21),
+      v23_inst(sys_clk, sys_rst, v4, PIPE__bus__next_3, v3, v23) {
     eval();
   }
 
@@ -86,12 +98,12 @@ struct JitPipelineVec {
   }
 
   inline void eval_comb_2() {
-    v22 = pyc::cpp::extract<8, 25>(bus__jit_pipeline_vec__L25, 0u);
-    v23 = pyc::cpp::extract<16, 25>(bus__jit_pipeline_vec__L25, 8u);
-    v24 = pyc::cpp::extract<1, 25>(bus__jit_pipeline_vec__L25, 24u);
-    v25 = v22;
-    v26 = v23;
-    v27 = v24;
+    v25 = pyc::cpp::extract<8, 25>(bus__jit_pipeline_vec__L25, 0u);
+    v26 = pyc::cpp::extract<16, 25>(bus__jit_pipeline_vec__L25, 8u);
+    v27 = pyc::cpp::extract<1, 25>(bus__jit_pipeline_vec__L25, 24u);
+    v28 = v25;
+    v29 = v26;
+    v30 = v27;
   }
 
   inline void eval_comb_pass() {
@@ -112,18 +124,30 @@ struct JitPipelineVec {
     lo8__jit_pipeline_vec__L19 = v9;
     eval_comb_1();
     bus__jit_pipeline_vec__L22 = v18;
-    bus__jit_pipeline_vec__L26 = v19;
-    bus__jit_pipeline_vec__L26_2 = v20;
-    bus__jit_pipeline_vec__L26_3 = v21;
-    bus__jit_pipeline_vec__L25 = bus__jit_pipeline_vec__L26_3;
+    PIPE__bus = v19;
+    PIPE__bus_r__jit_pipeline_vec__L27 = PIPE__bus;
+    v20 = (en__jit_pipeline_vec__L8.toBool() ? bus__jit_pipeline_vec__L22 : PIPE__bus_r__jit_pipeline_vec__L27);
+    PIPE__bus__next = v20;
+    PIPE__bus__jit_pipeline_vec__L29 = PIPE__bus_r__jit_pipeline_vec__L27;
+    PIPE__bus_2 = v21;
+    PIPE__bus_r__jit_pipeline_vec__L27_2 = PIPE__bus_2;
+    v22 = (en__jit_pipeline_vec__L8.toBool() ? PIPE__bus__jit_pipeline_vec__L29 : PIPE__bus_r__jit_pipeline_vec__L27_2);
+    PIPE__bus__next_2 = v22;
+    PIPE__bus__jit_pipeline_vec__L29_2 = PIPE__bus_r__jit_pipeline_vec__L27_2;
+    PIPE__bus_3 = v23;
+    PIPE__bus_r__jit_pipeline_vec__L27_3 = PIPE__bus_3;
+    v24 = (en__jit_pipeline_vec__L8.toBool() ? PIPE__bus__jit_pipeline_vec__L29_2 : PIPE__bus_r__jit_pipeline_vec__L27_3);
+    PIPE__bus__next_3 = v24;
+    PIPE__bus__jit_pipeline_vec__L29_3 = PIPE__bus_r__jit_pipeline_vec__L27_3;
+    bus__jit_pipeline_vec__L25 = PIPE__bus__jit_pipeline_vec__L29_3;
     eval_comb_2();
   }
 
   void eval() {
     eval_comb_pass();
-    tag = v27;
-    data = v26;
-    lo8 = v25;
+    tag = v30;
+    data = v29;
+    lo8 = v28;
   }
 
   void tick() {
@@ -131,12 +155,12 @@ struct JitPipelineVec {
     // then commit together. This avoids ordering artifacts between regs.
     // Phase 1: compute.
     v19_inst.tick_compute();
-    v20_inst.tick_compute();
     v21_inst.tick_compute();
+    v23_inst.tick_compute();
     // Phase 2: commit.
     v19_inst.tick_commit();
-    v20_inst.tick_commit();
     v21_inst.tick_commit();
+    v23_inst.tick_commit();
   }
 };
 

@@ -1,32 +1,44 @@
 from __future__ import annotations
 
-from pycircuit import Circuit, Wire
+from pycircuit import Circuit, Wire, jit_inline
 
 from ..decode import decode_window
 from ..pipeline import IdExRegs, IfIdRegs, RegFiles
 from ..regfile import read_reg
-from ..util import Consts, latch_many
+from ..util import Consts
 
 
+@jit_inline
 def build_id_stage(m: Circuit, *, do_id: Wire, ifid: IfIdRegs, idex: IdExRegs, rf: RegFiles, consts: Consts) -> None:
-    dec = decode_window(m, ifid.window)
+    with m.scope("ID"):
+        # Stage inputs.
+        window = ifid.window.out()
 
-    latch_many(
-        m,
-        do_id,
-        [
-            (idex.op, dec.op),
-            (idex.len_bytes, dec.len_bytes),
-            (idex.regdst, dec.regdst),
-            (idex.srcl, dec.srcl),
-            (idex.srcr, dec.srcr),
-            (idex.srcp, dec.srcp),
-            (idex.imm, dec.imm),
-        ],
-    )
+        # Combinational decode.
+        dec = decode_window(m, window)
 
-    srcl_val_new = read_reg(m, dec.srcl, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
-    srcr_val_new = read_reg(m, dec.srcr, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
-    srcp_val_new = read_reg(m, dec.srcp, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
-    latch_many(m, do_id, [(idex.srcl_val, srcl_val_new), (idex.srcr_val, srcr_val_new), (idex.srcp_val, srcp_val_new)])
+        # Pipeline regs: ID/EX.
+        op = dec.op
+        len_bytes = dec.len_bytes
+        regdst = dec.regdst
+        srcl = dec.srcl
+        srcr = dec.srcr
+        srcp = dec.srcp
+        imm = dec.imm
 
+        idex.op.set(op, when=do_id)
+        idex.len_bytes.set(len_bytes, when=do_id)
+        idex.regdst.set(regdst, when=do_id)
+        idex.srcl.set(srcl, when=do_id)
+        idex.srcr.set(srcr, when=do_id)
+        idex.srcp.set(srcp, when=do_id)
+        idex.imm.set(imm, when=do_id)
+
+        # Read register file values (mux-based, strict defaulting).
+        srcl_val = read_reg(m, srcl, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
+        srcr_val = read_reg(m, srcr, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
+        srcp_val = read_reg(m, srcp, gpr=rf.gpr, t=rf.t, u=rf.u, default=consts.zero64)
+
+        idex.srcl_val.set(srcl_val, when=do_id)
+        idex.srcr_val.set(srcr_val, when=do_id)
+        idex.srcp_val.set(srcp_val, when=do_id)

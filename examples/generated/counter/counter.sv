@@ -18,36 +18,42 @@ module Counter (
 
 logic [7:0] v1;
 logic [7:0] v2;
-logic [7:0] v3;
+logic v3;
 logic [7:0] v4;
-logic en__counter__L9;
-logic [7:0] count__next;
 logic [7:0] v5;
+logic v6;
+logic do__counter__L9;
+logic [7:0] count__next;
+logic [7:0] v7;
 logic [7:0] count;
 logic [7:0] count__counter__L11;
-logic [7:0] v6;
+logic [7:0] COUNT__c__counter__L15;
+logic [7:0] v8;
+logic [7:0] v9;
+logic [7:0] v10;
 
 assign v1 = 8'd1;
 assign v2 = 8'd0;
-assign v3 = v1;
-assign v4 = v2;
-assign en__counter__L9 = en;
-pyc_reg #(.WIDTH(8)) v5_inst (
+assign v3 = 1'd1;
+assign v4 = v1;
+assign v5 = v2;
+assign v6 = v3;
+assign do__counter__L9 = en;
+pyc_reg #(.WIDTH(8)) v7_inst (
   .clk(clk),
   .rst(rst),
-  .en(en__counter__L9),
+  .en(v6),
   .d(count__next),
-  .init(v4),
-  .q(v5)
+  .init(v5),
+  .q(v7)
 );
-assign count = v5;
+assign count = v7;
 assign count__counter__L11 = count;
-pyc_add #(.WIDTH(8)) v6_inst (
-  .a(count__counter__L11),
-  .b(v3),
-  .y(v6)
-);
-assign count__next = v6;
+assign COUNT__c__counter__L15 = count__counter__L11;
+assign v8 = (COUNT__c__counter__L15 + v4);
+assign v9 = (do__counter__L9 ? v8 : count__counter__L11);
+assign v10 = v9;
+assign count__next = v10;
 assign count = count__counter__L11;
 
 endmodule

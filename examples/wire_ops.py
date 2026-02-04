@@ -10,9 +10,12 @@ def build(m: Circuit) -> None:
     b = m.in_wire("b", width=8)
     sel = m.in_wire("sel", width=1)
 
-    y = sel.select(a & b, a ^ b)
+    with m.scope("COMB"):
+        y = sel.select(a & b, a ^ b)
 
     en = m.const_wire(1, width=1)
-    r = m.reg_domain(dom, en, y, 0)
+    r = m.out("y_reg", domain=dom, width=8, init=0, en=1)
+    with m.scope("REG"):
+        r.set(y, when=en)
 
-    m.output("y", r)
+    m.output("y", r.out())

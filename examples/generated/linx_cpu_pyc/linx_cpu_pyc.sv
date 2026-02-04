@@ -457,6 +457,7 @@ logic [7:0] mem_wstrb__linx_cpu_pyc__L116;
 logic [63:0] v274;
 logic [63:0] mem_rdata__linx_cpu_pyc__L118;
 logic [63:0] v275;
+logic [63:0] ID__window__id_stage__L15;
 logic [15:0] v276;
 logic [31:0] v277;
 logic [47:0] v278;
@@ -762,6 +763,13 @@ logic [5:0] v577;
 logic [5:0] v578;
 logic [5:0] v579;
 logic [63:0] v580;
+logic [5:0] ID__op__id_stage__L21;
+logic [2:0] ID__len_bytes__id_stage__L22;
+logic [5:0] ID__regdst__id_stage__L23;
+logic [5:0] ID__srcl__id_stage__L24;
+logic [5:0] ID__srcr__id_stage__L25;
+logic [5:0] ID__srcp__id_stage__L26;
+logic [63:0] ID__imm__id_stage__L27;
 logic [5:0] v581;
 logic [2:0] v582;
 logic [5:0] v583;
@@ -833,72 +841,74 @@ logic v648;
 logic [63:0] v649;
 logic v650;
 logic [63:0] v651;
-logic v652;
-logic [63:0] v653;
-logic v654;
-logic [63:0] v655;
-logic v656;
-logic [63:0] v657;
-logic v658;
-logic [63:0] v659;
-logic v660;
-logic [63:0] v661;
-logic v662;
-logic [63:0] v663;
-logic v664;
-logic [63:0] v665;
-logic v666;
-logic [63:0] v667;
-logic v668;
-logic [63:0] v669;
-logic v670;
-logic [63:0] v671;
-logic v672;
-logic [63:0] v673;
-logic v674;
-logic [63:0] v675;
-logic v676;
-logic [63:0] v677;
-logic v678;
-logic [63:0] v679;
-logic v680;
-logic [63:0] v681;
-logic v682;
-logic [63:0] v683;
-logic v684;
-logic [63:0] v685;
-logic v686;
-logic [63:0] v687;
-logic v688;
-logic [63:0] v689;
-logic v690;
-logic [63:0] v691;
-logic v692;
-logic [63:0] v693;
-logic v694;
-logic [63:0] v695;
-logic v696;
-logic [63:0] v697;
-logic v698;
-logic [63:0] v699;
-logic v700;
-logic [63:0] v701;
-logic v702;
-logic [63:0] v703;
-logic v704;
-logic [63:0] v705;
-logic v706;
-logic [63:0] v707;
-logic v708;
-logic [63:0] v709;
-logic v710;
-logic [63:0] v711;
-logic v712;
-logic [63:0] v713;
-logic v714;
-logic [63:0] v715;
-logic v716;
+logic [63:0] v652;
+logic [63:0] ID__srcl_val__id_stage__L38;
+logic v653;
+logic [63:0] v654;
+logic v655;
+logic [63:0] v656;
+logic v657;
+logic [63:0] v658;
+logic v659;
+logic [63:0] v660;
+logic v661;
+logic [63:0] v662;
+logic v663;
+logic [63:0] v664;
+logic v665;
+logic [63:0] v666;
+logic v667;
+logic [63:0] v668;
+logic v669;
+logic [63:0] v670;
+logic v671;
+logic [63:0] v672;
+logic v673;
+logic [63:0] v674;
+logic v675;
+logic [63:0] v676;
+logic v677;
+logic [63:0] v678;
+logic v679;
+logic [63:0] v680;
+logic v681;
+logic [63:0] v682;
+logic v683;
+logic [63:0] v684;
+logic v685;
+logic [63:0] v686;
+logic v687;
+logic [63:0] v688;
+logic v689;
+logic [63:0] v690;
+logic v691;
+logic [63:0] v692;
+logic v693;
+logic [63:0] v694;
+logic v695;
+logic [63:0] v696;
+logic v697;
+logic [63:0] v698;
+logic v699;
+logic [63:0] v700;
+logic v701;
+logic [63:0] v702;
+logic v703;
+logic [63:0] v704;
+logic v705;
+logic [63:0] v706;
+logic v707;
+logic [63:0] v708;
+logic v709;
+logic [63:0] v710;
+logic v711;
+logic [63:0] v712;
+logic v713;
+logic [63:0] v714;
+logic v715;
+logic [63:0] v716;
 logic [63:0] v717;
+logic [63:0] ID__srcr_val__id_stage__L39;
 logic v718;
 logic [63:0] v719;
 logic v720;
@@ -961,37 +971,71 @@ logic v776;
 logic [63:0] v777;
 logic v778;
 logic [63:0] v779;
-logic [63:0] v780;
+logic v780;
 logic [63:0] v781;
 logic [63:0] v782;
+logic [63:0] ID__srcp_val__id_stage__L40;
 logic [63:0] v783;
 logic [63:0] v784;
 logic [63:0] v785;
+logic [63:0] EX__pc__ex_stage__L64;
+logic [5:0] EX__op__ex_stage__L65;
+logic [2:0] EX__len_bytes__ex_stage__L66;
+logic [5:0] EX__regdst__ex_stage__L67;
+logic [63:0] EX__srcl_val__ex_stage__L68;
+logic [63:0] EX__srcr_val__ex_stage__L69;
+logic [63:0] EX__srcp_val__ex_stage__L70;
+logic [63:0] EX__imm__ex_stage__L71;
 logic v786;
+logic EX__op_c_bstart_std__ex_stage__L73;
 logic v787;
+logic EX__op_c_bstart_cond__ex_stage__L74;
 logic v788;
+logic EX__op_bstart_std_call__ex_stage__L75;
 logic v789;
+logic EX__op_c_movr__ex_stage__L76;
 logic v790;
+logic EX__op_c_movi__ex_stage__L77;
 logic v791;
+logic EX__op_c_setret__ex_stage__L78;
 logic v792;
+logic EX__op_c_setc_eq__ex_stage__L79;
 logic v793;
+logic EX__op_c_setc_tgt__ex_stage__L80;
 logic v794;
+logic EX__op_addtpc__ex_stage__L81;
 logic v795;
+logic EX__op_addi__ex_stage__L82;
 logic v796;
+logic EX__op_subi__ex_stage__L83;
 logic v797;
+logic EX__op_addiw__ex_stage__L84;
 logic v798;
+logic EX__op_addw__ex_stage__L85;
 logic v799;
+logic EX__op_orw__ex_stage__L86;
 logic v800;
+logic EX__op_andw__ex_stage__L87;
 logic v801;
+logic EX__op_xorw__ex_stage__L88;
 logic v802;
+logic EX__op_cmp_eq__ex_stage__L89;
 logic v803;
+logic EX__op_csel__ex_stage__L90;
 logic v804;
+logic EX__op_hl_lui__ex_stage__L91;
 logic v805;
+logic EX__op_lwi__ex_stage__L92;
 logic v806;
+logic EX__op_c_lwi__ex_stage__L93;
 logic v807;
+logic EX__op_swi__ex_stage__L94;
 logic v808;
+logic EX__op_c_swi__ex_stage__L95;
 logic v809;
+logic EX__op_sdi__ex_stage__L96;
 logic [63:0] v810;
+logic [63:0] EX__off__ex_stage__L98;
 logic v811;
 logic v812;
 logic [63:0] v813;
@@ -1018,341 +1062,496 @@ logic v833;
 logic [2:0] v834;
 logic [63:0] v835;
 logic [63:0] v836;
-logic v837;
-logic [2:0] v838;
-logic [63:0] v839;
+logic [63:0] EX__setc_eq__ex_stage__L115;
+logic [63:0] v837;
+logic v838;
+logic [2:0] v839;
 logic [63:0] v840;
 logic [63:0] v841;
-logic [63:0] v842;
-logic v843;
-logic [2:0] v844;
+logic v842;
+logic [2:0] v843;
+logic [63:0] v844;
 logic [63:0] v845;
 logic [63:0] v846;
-logic [63:0] v847;
-logic v848;
-logic [2:0] v849;
+logic v847;
+logic [2:0] v848;
+logic [63:0] v849;
 logic [63:0] v850;
+logic [63:0] EX__pc_page__ex_stage__L120;
 logic [63:0] v851;
 logic [63:0] v852;
-logic [63:0] v853;
-logic [63:0] v854;
-logic v855;
-logic [2:0] v856;
+logic v853;
+logic [2:0] v854;
+logic [63:0] v855;
+logic [63:0] v856;
 logic [63:0] v857;
-logic [31:0] v858;
-logic [31:0] v859;
-logic [31:0] v860;
+logic v858;
+logic [2:0] v859;
+logic [63:0] v860;
 logic [63:0] v861;
 logic [63:0] v862;
-logic v863;
-logic [2:0] v864;
-logic [63:0] v865;
-logic [31:0] v866;
-logic [31:0] v867;
+logic [63:0] v863;
+logic [63:0] v864;
+logic v865;
+logic [2:0] v866;
+logic [63:0] v867;
 logic [63:0] v868;
-logic [31:0] v869;
-logic [63:0] v870;
-logic [31:0] v871;
+logic [63:0] EX__subi__ex_stage__L125;
+logic [63:0] v869;
+logic v870;
+logic [2:0] v871;
 logic [63:0] v872;
 logic [31:0] v873;
-logic [63:0] v874;
-logic [63:0] v875;
-logic v876;
-logic [2:0] v877;
-logic [63:0] v878;
-logic [63:0] v879;
-logic v880;
-logic [2:0] v881;
+logic [31:0] v874;
+logic [31:0] v875;
+logic [63:0] v876;
+logic [63:0] v877;
+logic v878;
+logic [2:0] v879;
+logic [63:0] v880;
+logic [31:0] v881;
 logic [63:0] v882;
+logic [63:0] EX__addiw__ex_stage__L127;
 logic [63:0] v883;
 logic v884;
 logic [2:0] v885;
 logic [63:0] v886;
-logic [63:0] v887;
-logic v888;
-logic [2:0] v889;
+logic [31:0] v887;
+logic [31:0] v888;
+logic [63:0] v889;
 logic [63:0] v890;
-logic [63:0] v891;
-logic v892;
-logic [2:0] v893;
-logic [63:0] v894;
+logic v891;
+logic [2:0] v892;
+logic [63:0] v893;
+logic [31:0] v894;
 logic [63:0] v895;
-logic v896;
-logic [2:0] v897;
+logic [63:0] EX__addw__ex_stage__L131;
+logic [31:0] v896;
+logic [63:0] v897;
 logic [63:0] v898;
-logic v899;
-logic v900;
+logic [63:0] EX__orw__ex_stage__L132;
+logic [31:0] v899;
+logic [63:0] v900;
 logic [63:0] v901;
-logic [63:0] v902;
-logic v903;
-logic [2:0] v904;
+logic [63:0] EX__andw__ex_stage__L133;
+logic [31:0] v902;
+logic [63:0] v903;
+logic [63:0] v904;
+logic [63:0] EX__xorw__ex_stage__L134;
 logic [63:0] v905;
 logic v906;
-logic [63:0] v907;
+logic [2:0] v907;
 logic [63:0] v908;
-logic v909;
+logic [63:0] v909;
 logic v910;
 logic [2:0] v911;
 logic [63:0] v912;
 logic [63:0] v913;
-logic [63:0] v914;
-logic [63:0] v915;
+logic v914;
+logic [2:0] v915;
 logic [63:0] v916;
-logic v917;
-logic [63:0] v918;
-logic v919;
-logic v920;
-logic [2:0] v921;
-logic [63:0] v922;
-logic [63:0] v923;
+logic [63:0] v917;
+logic v918;
+logic [2:0] v919;
+logic [63:0] v920;
+logic [63:0] v921;
+logic v922;
+logic [2:0] v923;
 logic [63:0] v924;
+logic [63:0] EX__cmp__ex_stage__L141;
 logic [63:0] v925;
-logic [63:0] v926;
-logic v927;
-logic v928;
-logic [2:0] v929;
-logic [63:0] v930;
-logic [63:0] v931;
-logic [5:0] v932;
-logic [63:0] v933;
+logic v926;
+logic [2:0] v927;
+logic [63:0] v928;
+logic [63:0] v929;
+logic v930;
+logic [2:0] v931;
+logic [63:0] v932;
+logic v933;
 logic v934;
-logic v935;
-logic [2:0] v936;
-logic [63:0] v937;
+logic [63:0] v935;
+logic v936;
+logic [2:0] v937;
 logic [63:0] v938;
-logic [5:0] v939;
-logic [2:0] v940;
-logic [5:0] v941;
-logic [63:0] v942;
-logic v943;
-logic v944;
-logic [2:0] v945;
+logic v939;
+logic EX__srcp_nz__ex_stage__L148;
+logic [63:0] v940;
+logic [63:0] EX__csel_val__ex_stage__L149;
+logic [63:0] v941;
+logic v942;
+logic [2:0] v943;
+logic [63:0] v944;
+logic v945;
 logic [63:0] v946;
-logic [63:0] v947;
-logic [31:0] v948;
+logic v947;
+logic [2:0] v948;
 logic [63:0] v949;
-logic [63:0] v950;
+logic v950;
+logic EX__is_lwi__ex_stage__L153;
 logic [63:0] v951;
-logic [5:0] v952;
-logic [63:0] v953;
-logic [5:0] v954;
+logic [63:0] EX__lwi_addr__ex_stage__L154;
+logic [63:0] v952;
+logic v953;
+logic v954;
 logic [2:0] v955;
-logic [5:0] v956;
+logic [63:0] v956;
 logic [63:0] v957;
-logic v958;
-logic v959;
-logic v960;
+logic [63:0] v958;
+logic [63:0] v959;
+logic [63:0] v960;
 logic v961;
 logic v962;
-logic v963;
-logic v964;
-logic v965;
-logic v966;
-logic v967;
+logic [2:0] v963;
+logic [63:0] v964;
+logic [63:0] v965;
+logic [63:0] v966;
+logic [63:0] EX__store_addr__ex_stage__L158;
+logic [63:0] v967;
+logic [63:0] EX__store_data__ex_stage__L159;
 logic v968;
 logic [63:0] v969;
-logic [63:0] v970;
+logic v970;
 logic v971;
-logic v972;
-logic v973;
+logic [2:0] v972;
+logic [63:0] v973;
 logic [63:0] v974;
 logic [63:0] v975;
 logic [63:0] v976;
-logic [63:0] v977;
-logic [63:0] v978;
-logic v979;
-logic v980;
-logic v981;
-logic v982;
-logic v983;
-logic v984;
+logic v977;
+logic v978;
+logic [2:0] v979;
+logic [63:0] v980;
+logic [63:0] v981;
+logic [63:0] v982;
+logic [63:0] EX__sdi_off__ex_stage__L163;
+logic [63:0] v983;
+logic [63:0] EX__sdi_addr__ex_stage__L164;
+logic [63:0] v984;
 logic v985;
-logic [63:0] v986;
+logic v986;
 logic [2:0] v987;
-logic [2:0] v988;
-logic [2:0] v989;
-logic [2:0] v990;
-logic [2:0] v991;
-logic [2:0] v992;
-logic [2:0] v993;
-logic [63:0] v994;
-logic v995;
-logic v996;
-logic v997;
-logic v998;
-logic [63:0] v999;
-logic v1000;
+logic [63:0] v988;
+logic [63:0] v989;
+logic [5:0] v990;
+logic [63:0] v991;
+logic v992;
+logic v993;
+logic [2:0] v994;
+logic [63:0] v995;
+logic [63:0] v996;
+logic [5:0] v997;
+logic [2:0] v998;
+logic [5:0] v999;
+logic [63:0] v1000;
 logic v1001;
 logic v1002;
-logic v1003;
+logic [2:0] v1003;
 logic [63:0] v1004;
-logic v1005;
-logic v1006;
+logic [63:0] v1005;
+logic [5:0] MEM__op__mem_stage__L13;
+logic [2:0] MEM__len_bytes__mem_stage__L14;
+logic [5:0] MEM__regdst__mem_stage__L15;
+logic [63:0] MEM__alu__mem_stage__L16;
+logic MEM__is_load__mem_stage__L17;
+logic MEM__is_store__mem_stage__L18;
+logic [31:0] v1006;
+logic [31:0] MEM__load32__mem_stage__L21;
 logic [63:0] v1007;
-logic v1008;
-logic [1:0] v1009;
-logic [63:0] v1010;
-logic [63:0] v1011;
-logic v1012;
-logic v1013;
+logic [63:0] MEM__load64__mem_stage__L22;
+logic [63:0] v1008;
+logic [63:0] MEM__mem_val__mem_stage__L23;
+logic [63:0] v1009;
+logic [63:0] MEM__mem_val__mem_stage__L24;
+logic [5:0] v1010;
+logic [2:0] v1011;
+logic [5:0] v1012;
+logic [63:0] v1013;
+logic [2:0] WB__stage__wb_stage__L52;
+logic [63:0] WB__pc__wb_stage__L53;
+logic [1:0] WB__br_kind__wb_stage__L54;
+logic [63:0] WB__br_base_pc__wb_stage__L55;
+logic [63:0] WB__br_off__wb_stage__L56;
+logic WB__commit_cond__wb_stage__L57;
+logic [63:0] WB__commit_tgt__wb_stage__L58;
+logic [5:0] WB__op__wb_stage__L60;
+logic [2:0] WB__len_bytes__wb_stage__L61;
+logic [5:0] WB__regdst__wb_stage__L62;
+logic [63:0] WB__value__wb_stage__L63;
 logic v1014;
 logic v1015;
-logic [1:0] v1016;
-logic [63:0] v1017;
-logic [63:0] v1018;
+logic WB__op_c_bstart_std__wb_stage__L69;
+logic v1016;
+logic WB__op_c_bstart_cond__wb_stage__L70;
+logic v1017;
+logic WB__op_bstart_call__wb_stage__L71;
+logic v1018;
+logic WB__op_c_bstop__wb_stage__L72;
 logic v1019;
-logic [1:0] v1020;
-logic [63:0] v1021;
-logic [63:0] v1022;
-logic [2:0] v1023;
+logic v1020;
+logic v1021;
+logic WB__op_is_start_marker__wb_stage__L74;
+logic v1022;
+logic WB__op_is_boundary__wb_stage__L75;
+logic v1023;
+logic WB__br_is_cond__wb_stage__L78;
 logic v1024;
-logic [1:0] v1025;
-logic v1026;
-logic [1:0] v1027;
-logic [63:0] v1028;
-logic [63:0] v1029;
+logic WB__br_is_call__wb_stage__L79;
+logic v1025;
+logic WB__br_is_ret__wb_stage__L80;
+logic [63:0] v1026;
+logic [63:0] WB__br_target_pc__wb_stage__L82;
+logic [63:0] v1027;
+logic [63:0] WB__br_target_pc__wb_stage__L83;
+logic v1028;
+logic v1029;
 logic v1030;
-logic [1:0] v1031;
+logic v1031;
+logic WB__br_take__wb_stage__L85;
 logic [63:0] v1032;
 logic [63:0] v1033;
-logic v1034;
-logic [1:0] v1035;
+logic [63:0] v1034;
+logic [63:0] WB__pc_inc__wb_stage__L87;
+logic [63:0] v1035;
 logic [63:0] v1036;
 logic [63:0] v1037;
-logic v1038;
-logic v1039;
-logic v1040;
-logic v1041;
-logic v1042;
-logic v1043;
-logic v1044;
-logic v1045;
+logic [63:0] WB__pc_next__wb_stage__L88;
+logic [63:0] v1038;
+logic [2:0] v1039;
+logic [2:0] WB__stage_seq__wb_stage__L92;
+logic [2:0] v1040;
+logic [2:0] WB__stage_seq__wb_stage__L93;
+logic [2:0] v1041;
+logic [2:0] WB__stage_seq__wb_stage__L94;
+logic [2:0] v1042;
+logic [2:0] WB__stage_seq__wb_stage__L95;
+logic [2:0] v1043;
+logic [2:0] WB__stage_seq__wb_stage__L96;
+logic [2:0] v1044;
+logic [63:0] v1045;
 logic v1046;
+logic WB__op_c_setc_eq__wb_stage__L104;
 logic v1047;
+logic WB__op_c_setc_tgt__wb_stage__L105;
+logic WB__commit_cond_next__wb_stage__L107;
+logic [63:0] WB__commit_tgt_next__wb_stage__L108;
 logic v1048;
 logic v1049;
 logic v1050;
 logic v1051;
-logic v1052;
+logic WB__commit_cond_next__wb_stage__L110;
+logic [63:0] v1052;
+logic [63:0] WB__commit_tgt_next__wb_stage__L111;
 logic v1053;
 logic v1054;
 logic v1055;
 logic v1056;
+logic WB__commit_cond_next__wb_stage__L112;
 logic v1057;
 logic [63:0] v1058;
 logic [63:0] v1059;
+logic [63:0] WB__commit_tgt_next__wb_stage__L113;
+logic [1:0] WB__br_kind_next__wb_stage__L120;
+logic [63:0] WB__br_base_next__wb_stage__L121;
+logic [63:0] WB__br_off_next__wb_stage__L122;
 logic v1060;
-logic v1061;
-logic [63:0] v1062;
-logic [63:0] v1063;
-logic v1064;
-logic v1065;
-logic [63:0] v1066;
-logic [63:0] v1067;
+logic [1:0] v1061;
+logic v1062;
+logic [1:0] v1063;
+logic [1:0] WB__br_kind_next__wb_stage__L125;
+logic [63:0] v1064;
+logic [63:0] WB__br_base_next__wb_stage__L126;
+logic [63:0] v1065;
+logic [63:0] WB__br_off_next__wb_stage__L127;
+logic v1066;
+logic v1067;
 logic v1068;
 logic v1069;
-logic [63:0] v1070;
-logic [63:0] v1071;
-logic v1072;
+logic v1070;
+logic WB__enter_new_block__wb_stage__L129;
+logic v1071;
+logic [1:0] v1072;
 logic v1073;
-logic [63:0] v1074;
+logic [1:0] v1074;
+logic [1:0] WB__br_kind_next__wb_stage__L132;
 logic [63:0] v1075;
-logic v1076;
+logic [63:0] WB__br_base_next__wb_stage__L133;
+logic [63:0] v1076;
+logic [63:0] WB__br_off_next__wb_stage__L134;
 logic v1077;
-logic [63:0] v1078;
-logic [63:0] v1079;
-logic v1080;
-logic v1081;
+logic [1:0] v1078;
+logic v1079;
+logic [1:0] v1080;
+logic [1:0] WB__br_kind_next__wb_stage__L137;
+logic [63:0] v1081;
+logic [63:0] WB__br_base_next__wb_stage__L138;
 logic [63:0] v1082;
-logic [63:0] v1083;
+logic [63:0] WB__br_off_next__wb_stage__L139;
+logic [2:0] v1083;
+logic [2:0] WB__brtype__wb_stage__L142;
 logic v1084;
-logic v1085;
-logic [63:0] v1086;
-logic [63:0] v1087;
-logic v1088;
+logic [1:0] v1085;
+logic [1:0] v1086;
+logic [1:0] WB__kind_from_brtype__wb_stage__L143;
+logic v1087;
+logic [1:0] v1088;
 logic v1089;
-logic [63:0] v1090;
+logic [1:0] v1090;
+logic [1:0] WB__br_kind_next__wb_stage__L144;
 logic [63:0] v1091;
-logic v1092;
+logic [63:0] WB__br_base_next__wb_stage__L145;
+logic [63:0] v1092;
+logic [63:0] WB__br_off_next__wb_stage__L146;
 logic v1093;
-logic [63:0] v1094;
-logic [63:0] v1095;
-logic v1096;
-logic v1097;
+logic [1:0] v1094;
+logic v1095;
+logic [1:0] v1096;
+logic [1:0] WB__br_kind_next__wb_stage__L149;
+logic [63:0] v1097;
+logic [63:0] WB__br_base_next__wb_stage__L150;
 logic [63:0] v1098;
-logic [63:0] v1099;
+logic [63:0] WB__br_off_next__wb_stage__L151;
+logic v1099;
 logic v1100;
 logic v1101;
-logic [63:0] v1102;
-logic [63:0] v1103;
+logic v1102;
+logic WB__wb_is_store__wb_stage__L158;
+logic v1103;
 logic v1104;
 logic v1105;
-logic [63:0] v1106;
-logic [63:0] v1107;
+logic v1106;
+logic v1107;
 logic v1108;
+logic WB__do_reg_write__wb_stage__L159;
+logic WB__do_clear_hands__wb_stage__L161;
 logic v1109;
-logic [63:0] v1110;
-logic [63:0] v1111;
+logic v1110;
+logic v1111;
+logic WB__do_push_t__wb_stage__L162;
 logic v1112;
 logic v1113;
-logic [63:0] v1114;
-logic [63:0] v1115;
+logic v1114;
+logic v1115;
+logic WB__do_push_t__wb_stage__L164;
 logic v1116;
 logic v1117;
-logic [63:0] v1118;
-logic [63:0] v1119;
+logic v1118;
+logic WB__do_push_u__wb_stage__L165;
+logic v1119;
 logic v1120;
-logic v1121;
+logic [63:0] v1121;
 logic [63:0] v1122;
-logic [63:0] v1123;
+logic v1123;
 logic v1124;
-logic v1125;
+logic [63:0] v1125;
 logic [63:0] v1126;
-logic [63:0] v1127;
+logic v1127;
 logic v1128;
-logic v1129;
+logic [63:0] v1129;
 logic [63:0] v1130;
-logic [63:0] v1131;
+logic v1131;
 logic v1132;
-logic v1133;
+logic [63:0] v1133;
 logic [63:0] v1134;
-logic [63:0] v1135;
+logic v1135;
 logic v1136;
-logic v1137;
+logic [63:0] v1137;
 logic [63:0] v1138;
-logic [63:0] v1139;
+logic v1139;
 logic v1140;
-logic v1141;
+logic [63:0] v1141;
 logic [63:0] v1142;
-logic [63:0] v1143;
+logic v1143;
 logic v1144;
-logic v1145;
+logic [63:0] v1145;
 logic [63:0] v1146;
-logic [63:0] v1147;
-logic [63:0] v1148;
+logic v1147;
+logic v1148;
 logic [63:0] v1149;
 logic [63:0] v1150;
-logic [63:0] v1151;
-logic [63:0] v1152;
+logic v1151;
+logic v1152;
 logic [63:0] v1153;
 logic [63:0] v1154;
-logic [63:0] v1155;
-logic [63:0] v1156;
+logic v1155;
+logic v1156;
 logic [63:0] v1157;
 logic [63:0] v1158;
-logic [63:0] v1159;
-logic [63:0] v1160;
+logic v1159;
+logic v1160;
 logic [63:0] v1161;
 logic [63:0] v1162;
-logic [63:0] v1163;
-logic [63:0] v1164;
+logic v1163;
+logic v1164;
 logic [63:0] v1165;
 logic [63:0] v1166;
-logic [63:0] v1167;
-logic [63:0] v1168;
+logic v1167;
+logic v1168;
 logic [63:0] v1169;
 logic [63:0] v1170;
-logic [63:0] v1171;
+logic v1171;
+logic v1172;
+logic [63:0] v1173;
+logic [63:0] v1174;
+logic v1175;
+logic v1176;
+logic [63:0] v1177;
+logic [63:0] v1178;
+logic v1179;
+logic v1180;
+logic [63:0] v1181;
+logic [63:0] v1182;
+logic v1183;
+logic v1184;
+logic [63:0] v1185;
+logic [63:0] v1186;
+logic v1187;
+logic v1188;
+logic [63:0] v1189;
+logic [63:0] v1190;
+logic v1191;
+logic v1192;
+logic [63:0] v1193;
+logic [63:0] v1194;
+logic v1195;
+logic v1196;
+logic [63:0] v1197;
+logic [63:0] v1198;
+logic v1199;
+logic v1200;
+logic [63:0] v1201;
+logic [63:0] v1202;
+logic v1203;
+logic v1204;
+logic [63:0] v1205;
+logic [63:0] v1206;
+logic v1207;
+logic v1208;
+logic [63:0] v1209;
+logic [63:0] v1210;
+logic [63:0] v1211;
+logic [63:0] v1212;
+logic [63:0] v1213;
+logic [63:0] v1214;
+logic [63:0] v1215;
+logic [63:0] v1216;
+logic [63:0] v1217;
+logic [63:0] v1218;
+logic [63:0] v1219;
+logic [63:0] v1220;
+logic [63:0] v1221;
+logic [63:0] v1222;
+logic [63:0] v1223;
+logic [63:0] v1224;
+logic [63:0] v1225;
+logic [63:0] v1226;
+logic [63:0] v1227;
+logic [63:0] v1228;
+logic [63:0] v1229;
+logic [63:0] v1230;
+logic [63:0] v1231;
+logic [63:0] v1232;
+logic [63:0] v1233;
+logic [63:0] v1234;
 
 assign v1 = 3'd7;
 assign v2 = 2'd3;
@@ -2216,9 +2415,10 @@ pyc_mux #(.WIDTH(64)) v275_inst (
   .y(v275)
 );
 assign ifid__window__next = v275;
-assign v276 = ifid__window[15:0];
-assign v277 = ifid__window[31:0];
-assign v278 = ifid__window[47:0];
+assign ID__window__id_stage__L15 = ifid__window;
+assign v276 = ID__window__id_stage__L15[15:0];
+assign v277 = ID__window__id_stage__L15[31:0];
+assign v278 = ID__window__id_stage__L15[47:0];
 assign v279 = v276[3:0];
 assign v280 = (v279 == v162);
 assign v281 = v276[0];
@@ -2514,772 +2714,1116 @@ assign v570 = (v566 ? v170 : v560);
 assign v571 = (v566 ? v170 : v561);
 assign v572 = (v566 ? v170 : v562);
 assign v573 = (v566 ? v315 : v563);
-assign v574 = (do_id__linx_cpu_pyc__L105 ? v567 : idex__op);
+assign v574 = v567;
 assign v575 = v568;
 assign v576 = v569;
 assign v577 = v570;
 assign v578 = v571;
 assign v579 = v572;
 assign v580 = v573;
-assign v581 = v574;
+assign ID__op__id_stage__L21 = v574;
+assign ID__len_bytes__id_stage__L22 = v575;
+assign ID__regdst__id_stage__L23 = v576;
+assign ID__srcl__id_stage__L24 = v577;
+assign ID__srcr__id_stage__L25 = v578;
+assign ID__srcp__id_stage__L26 = v579;
+assign ID__imm__id_stage__L27 = v580;
+pyc_mux #(.WIDTH(6)) v581_inst (
+  .sel(do_id__linx_cpu_pyc__L105),
+  .a(ID__op__id_stage__L21),
+  .b(idex__op),
+  .y(v581)
+);
 assign idex__op__next = v581;
 pyc_mux #(.WIDTH(3)) v582_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v575),
+  .a(ID__len_bytes__id_stage__L22),
   .b(idex__len_bytes),
   .y(v582)
 );
 assign idex__len_bytes__next = v582;
 pyc_mux #(.WIDTH(6)) v583_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v576),
+  .a(ID__regdst__id_stage__L23),
   .b(idex__regdst),
   .y(v583)
 );
 assign idex__regdst__next = v583;
 pyc_mux #(.WIDTH(6)) v584_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v577),
+  .a(ID__srcl__id_stage__L24),
   .b(idex__srcl),
   .y(v584)
 );
 assign idex__srcl__next = v584;
 pyc_mux #(.WIDTH(6)) v585_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v578),
+  .a(ID__srcr__id_stage__L25),
   .b(idex__srcr),
   .y(v585)
 );
 assign idex__srcr__next = v585;
 pyc_mux #(.WIDTH(6)) v586_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v579),
+  .a(ID__srcp__id_stage__L26),
   .b(idex__srcp),
   .y(v586)
 );
 assign idex__srcp__next = v586;
 pyc_mux #(.WIDTH(64)) v587_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v580),
+  .a(ID__imm__id_stage__L27),
   .b(idex__imm),
   .y(v587)
 );
 assign idex__imm__next = v587;
-assign v588 = (v577 == v175);
+assign v588 = (ID__srcl__id_stage__L24 == v175);
 assign v589 = (v588 ? v173 : v173);
-assign v590 = (v577 == v139);
+assign v590 = (ID__srcl__id_stage__L24 == v139);
 assign v591 = (v590 ? gpr__r1 : v589);
-assign v592 = (v577 == v137);
+assign v592 = (ID__srcl__id_stage__L24 == v137);
 assign v593 = (v592 ? gpr__r2 : v591);
-assign v594 = (v577 == v148);
+assign v594 = (ID__srcl__id_stage__L24 == v148);
 assign v595 = (v594 ? gpr__r3 : v593);
-assign v596 = (v577 == v150);
+assign v596 = (ID__srcl__id_stage__L24 == v150);
 assign v597 = (v596 ? gpr__r4 : v595);
-assign v598 = (v577 == v152);
+assign v598 = (ID__srcl__id_stage__L24 == v152);
 assign v599 = (v598 ? gpr__r5 : v597);
-assign v600 = (v577 == v115);
+assign v600 = (ID__srcl__id_stage__L24 == v115);
 assign v601 = (v600 ? gpr__r6 : v599);
-assign v602 = (v577 == v117);
+assign v602 = (ID__srcl__id_stage__L24 == v117);
 assign v603 = (v602 ? gpr__r7 : v601);
-assign v604 = (v577 == v119);
+assign v604 = (ID__srcl__id_stage__L24 == v119);
 assign v605 = (v604 ? gpr__r8 : v603);
-assign v606 = (v577 == v121);
+assign v606 = (ID__srcl__id_stage__L24 == v121);
 assign v607 = (v606 ? gpr__r9 : v605);
-assign v608 = (v577 == v156);
+assign v608 = (ID__srcl__id_stage__L24 == v156);
 assign v609 = (v608 ? gpr__r10 : v607);
-assign v610 = (v577 == v128);
+assign v610 = (ID__srcl__id_stage__L24 == v128);
 assign v611 = (v610 ? gpr__r11 : v609);
-assign v612 = (v577 == v130);
+assign v612 = (ID__srcl__id_stage__L24 == v130);
 assign v613 = (v612 ? gpr__r12 : v611);
-assign v614 = (v577 == v132);
+assign v614 = (ID__srcl__id_stage__L24 == v132);
 assign v615 = (v614 ? gpr__r13 : v613);
-assign v616 = (v577 == v134);
+assign v616 = (ID__srcl__id_stage__L24 == v134);
 assign v617 = (v616 ? gpr__r14 : v615);
-assign v618 = (v577 == v112);
+assign v618 = (ID__srcl__id_stage__L24 == v112);
 assign v619 = (v618 ? gpr__r15 : v617);
-assign v620 = (v577 == v126);
+assign v620 = (ID__srcl__id_stage__L24 == v126);
 assign v621 = (v620 ? gpr__r16 : v619);
-assign v622 = (v577 == v101);
+assign v622 = (ID__srcl__id_stage__L24 == v101);
 assign v623 = (v622 ? gpr__r17 : v621);
-assign v624 = (v577 == v165);
+assign v624 = (ID__srcl__id_stage__L24 == v165);
 assign v625 = (v624 ? gpr__r18 : v623);
-assign v626 = (v577 == v142);
+assign v626 = (ID__srcl__id_stage__L24 == v142);
 assign v627 = (v626 ? gpr__r19 : v625);
-assign v628 = (v577 == v104);
+assign v628 = (ID__srcl__id_stage__L24 == v104);
 assign v629 = (v628 ? gpr__r20 : v627);
-assign v630 = (v577 == v159);
+assign v630 = (ID__srcl__id_stage__L24 == v159);
 assign v631 = (v630 ? gpr__r21 : v629);
-assign v632 = (v577 == v155);
+assign v632 = (ID__srcl__id_stage__L24 == v155);
 assign v633 = (v632 ? gpr__r22 : v631);
-assign v634 = (v577 == v146);
+assign v634 = (ID__srcl__id_stage__L24 == v146);
 assign v635 = (v634 ? gpr__r23 : v633);
-assign v636 = (v577 == v153);
+assign v636 = (ID__srcl__id_stage__L24 == v153);
 assign v637 = (v636 ? t__r0 : v635);
-assign v638 = (v577 == v107);
+assign v638 = (ID__srcl__id_stage__L24 == v107);
 assign v639 = (v638 ? t__r1 : v637);
-assign v640 = (v577 == v123);
+assign v640 = (ID__srcl__id_stage__L24 == v123);
 assign v641 = (v640 ? t__r2 : v639);
-assign v642 = (v577 == v99);
+assign v642 = (ID__srcl__id_stage__L24 == v99);
 assign v643 = (v642 ? t__r3 : v641);
-assign v644 = (v577 == v98);
+assign v644 = (ID__srcl__id_stage__L24 == v98);
 assign v645 = (v644 ? u__r0 : v643);
-assign v646 = (v577 == v97);
+assign v646 = (ID__srcl__id_stage__L24 == v97);
 assign v647 = (v646 ? u__r1 : v645);
-assign v648 = (v577 == v96);
+assign v648 = (ID__srcl__id_stage__L24 == v96);
 assign v649 = (v648 ? u__r2 : v647);
-assign v650 = (v577 == v95);
+assign v650 = (ID__srcl__id_stage__L24 == v95);
 assign v651 = (v650 ? u__r3 : v649);
-assign v652 = (v578 == v175);
-assign v653 = (v652 ? v173 : v173);
-assign v654 = (v578 == v139);
-assign v655 = (v654 ? gpr__r1 : v653);
-assign v656 = (v578 == v137);
-assign v657 = (v656 ? gpr__r2 : v655);
-assign v658 = (v578 == v148);
-assign v659 = (v658 ? gpr__r3 : v657);
-assign v660 = (v578 == v150);
-assign v661 = (v660 ? gpr__r4 : v659);
-assign v662 = (v578 == v152);
-assign v663 = (v662 ? gpr__r5 : v661);
-assign v664 = (v578 == v115);
-assign v665 = (v664 ? gpr__r6 : v663);
-assign v666 = (v578 == v117);
-assign v667 = (v666 ? gpr__r7 : v665);
-assign v668 = (v578 == v119);
-assign v669 = (v668 ? gpr__r8 : v667);
-assign v670 = (v578 == v121);
-assign v671 = (v670 ? gpr__r9 : v669);
-assign v672 = (v578 == v156);
-assign v673 = (v672 ? gpr__r10 : v671);
-assign v674 = (v578 == v128);
-assign v675 = (v674 ? gpr__r11 : v673);
-assign v676 = (v578 == v130);
-assign v677 = (v676 ? gpr__r12 : v675);
-assign v678 = (v578 == v132);
-assign v679 = (v678 ? gpr__r13 : v677);
-assign v680 = (v578 == v134);
-assign v681 = (v680 ? gpr__r14 : v679);
-assign v682 = (v578 == v112);
-assign v683 = (v682 ? gpr__r15 : v681);
-assign v684 = (v578 == v126);
-assign v685 = (v684 ? gpr__r16 : v683);
-assign v686 = (v578 == v101);
-assign v687 = (v686 ? gpr__r17 : v685);
-assign v688 = (v578 == v165);
-assign v689 = (v688 ? gpr__r18 : v687);
-assign v690 = (v578 == v142);
-assign v691 = (v690 ? gpr__r19 : v689);
-assign v692 = (v578 == v104);
-assign v693 = (v692 ? gpr__r20 : v691);
-assign v694 = (v578 == v159);
-assign v695 = (v694 ? gpr__r21 : v693);
-assign v696 = (v578 == v155);
-assign v697 = (v696 ? gpr__r22 : v695);
-assign v698 = (v578 == v146);
-assign v699 = (v698 ? gpr__r23 : v697);
-assign v700 = (v578 == v153);
-assign v701 = (v700 ? t__r0 : v699);
-assign v702 = (v578 == v107);
-assign v703 = (v702 ? t__r1 : v701);
-assign v704 = (v578 == v123);
-assign v705 = (v704 ? t__r2 : v703);
-assign v706 = (v578 == v99);
-assign v707 = (v706 ? t__r3 : v705);
-assign v708 = (v578 == v98);
-assign v709 = (v708 ? u__r0 : v707);
-assign v710 = (v578 == v97);
-assign v711 = (v710 ? u__r1 : v709);
-assign v712 = (v578 == v96);
-assign v713 = (v712 ? u__r2 : v711);
-assign v714 = (v578 == v95);
-assign v715 = (v714 ? u__r3 : v713);
-assign v716 = (v579 == v175);
-assign v717 = (v716 ? v173 : v173);
-assign v718 = (v579 == v139);
-assign v719 = (v718 ? gpr__r1 : v717);
-assign v720 = (v579 == v137);
-assign v721 = (v720 ? gpr__r2 : v719);
-assign v722 = (v579 == v148);
-assign v723 = (v722 ? gpr__r3 : v721);
-assign v724 = (v579 == v150);
-assign v725 = (v724 ? gpr__r4 : v723);
-assign v726 = (v579 == v152);
-assign v727 = (v726 ? gpr__r5 : v725);
-assign v728 = (v579 == v115);
-assign v729 = (v728 ? gpr__r6 : v727);
-assign v730 = (v579 == v117);
-assign v731 = (v730 ? gpr__r7 : v729);
-assign v732 = (v579 == v119);
-assign v733 = (v732 ? gpr__r8 : v731);
-assign v734 = (v579 == v121);
-assign v735 = (v734 ? gpr__r9 : v733);
-assign v736 = (v579 == v156);
-assign v737 = (v736 ? gpr__r10 : v735);
-assign v738 = (v579 == v128);
-assign v739 = (v738 ? gpr__r11 : v737);
-assign v740 = (v579 == v130);
-assign v741 = (v740 ? gpr__r12 : v739);
-assign v742 = (v579 == v132);
-assign v743 = (v742 ? gpr__r13 : v741);
-assign v744 = (v579 == v134);
-assign v745 = (v744 ? gpr__r14 : v743);
-assign v746 = (v579 == v112);
-assign v747 = (v746 ? gpr__r15 : v745);
-assign v748 = (v579 == v126);
-assign v749 = (v748 ? gpr__r16 : v747);
-assign v750 = (v579 == v101);
-assign v751 = (v750 ? gpr__r17 : v749);
-assign v752 = (v579 == v165);
-assign v753 = (v752 ? gpr__r18 : v751);
-assign v754 = (v579 == v142);
-assign v755 = (v754 ? gpr__r19 : v753);
-assign v756 = (v579 == v104);
-assign v757 = (v756 ? gpr__r20 : v755);
-assign v758 = (v579 == v159);
-assign v759 = (v758 ? gpr__r21 : v757);
-assign v760 = (v579 == v155);
-assign v761 = (v760 ? gpr__r22 : v759);
-assign v762 = (v579 == v146);
-assign v763 = (v762 ? gpr__r23 : v761);
-assign v764 = (v579 == v153);
-assign v765 = (v764 ? t__r0 : v763);
-assign v766 = (v579 == v107);
-assign v767 = (v766 ? t__r1 : v765);
-assign v768 = (v579 == v123);
-assign v769 = (v768 ? t__r2 : v767);
-assign v770 = (v579 == v99);
-assign v771 = (v770 ? t__r3 : v769);
-assign v772 = (v579 == v98);
-assign v773 = (v772 ? u__r0 : v771);
-assign v774 = (v579 == v97);
-assign v775 = (v774 ? u__r1 : v773);
-assign v776 = (v579 == v96);
-assign v777 = (v776 ? u__r2 : v775);
-assign v778 = (v579 == v95);
-assign v779 = (v778 ? u__r3 : v777);
-assign v780 = (do_id__linx_cpu_pyc__L105 ? v651 : idex__srcl_val);
-assign v781 = v715;
-assign v782 = v779;
-assign v783 = v780;
+assign v652 = v651;
+assign ID__srcl_val__id_stage__L38 = v652;
+assign v653 = (ID__srcr__id_stage__L25 == v175);
+assign v654 = (v653 ? v173 : v173);
+assign v655 = (ID__srcr__id_stage__L25 == v139);
+assign v656 = (v655 ? gpr__r1 : v654);
+assign v657 = (ID__srcr__id_stage__L25 == v137);
+assign v658 = (v657 ? gpr__r2 : v656);
+assign v659 = (ID__srcr__id_stage__L25 == v148);
+assign v660 = (v659 ? gpr__r3 : v658);
+assign v661 = (ID__srcr__id_stage__L25 == v150);
+assign v662 = (v661 ? gpr__r4 : v660);
+assign v663 = (ID__srcr__id_stage__L25 == v152);
+assign v664 = (v663 ? gpr__r5 : v662);
+assign v665 = (ID__srcr__id_stage__L25 == v115);
+assign v666 = (v665 ? gpr__r6 : v664);
+assign v667 = (ID__srcr__id_stage__L25 == v117);
+assign v668 = (v667 ? gpr__r7 : v666);
+assign v669 = (ID__srcr__id_stage__L25 == v119);
+assign v670 = (v669 ? gpr__r8 : v668);
+assign v671 = (ID__srcr__id_stage__L25 == v121);
+assign v672 = (v671 ? gpr__r9 : v670);
+assign v673 = (ID__srcr__id_stage__L25 == v156);
+assign v674 = (v673 ? gpr__r10 : v672);
+assign v675 = (ID__srcr__id_stage__L25 == v128);
+assign v676 = (v675 ? gpr__r11 : v674);
+assign v677 = (ID__srcr__id_stage__L25 == v130);
+assign v678 = (v677 ? gpr__r12 : v676);
+assign v679 = (ID__srcr__id_stage__L25 == v132);
+assign v680 = (v679 ? gpr__r13 : v678);
+assign v681 = (ID__srcr__id_stage__L25 == v134);
+assign v682 = (v681 ? gpr__r14 : v680);
+assign v683 = (ID__srcr__id_stage__L25 == v112);
+assign v684 = (v683 ? gpr__r15 : v682);
+assign v685 = (ID__srcr__id_stage__L25 == v126);
+assign v686 = (v685 ? gpr__r16 : v684);
+assign v687 = (ID__srcr__id_stage__L25 == v101);
+assign v688 = (v687 ? gpr__r17 : v686);
+assign v689 = (ID__srcr__id_stage__L25 == v165);
+assign v690 = (v689 ? gpr__r18 : v688);
+assign v691 = (ID__srcr__id_stage__L25 == v142);
+assign v692 = (v691 ? gpr__r19 : v690);
+assign v693 = (ID__srcr__id_stage__L25 == v104);
+assign v694 = (v693 ? gpr__r20 : v692);
+assign v695 = (ID__srcr__id_stage__L25 == v159);
+assign v696 = (v695 ? gpr__r21 : v694);
+assign v697 = (ID__srcr__id_stage__L25 == v155);
+assign v698 = (v697 ? gpr__r22 : v696);
+assign v699 = (ID__srcr__id_stage__L25 == v146);
+assign v700 = (v699 ? gpr__r23 : v698);
+assign v701 = (ID__srcr__id_stage__L25 == v153);
+assign v702 = (v701 ? t__r0 : v700);
+assign v703 = (ID__srcr__id_stage__L25 == v107);
+assign v704 = (v703 ? t__r1 : v702);
+assign v705 = (ID__srcr__id_stage__L25 == v123);
+assign v706 = (v705 ? t__r2 : v704);
+assign v707 = (ID__srcr__id_stage__L25 == v99);
+assign v708 = (v707 ? t__r3 : v706);
+assign v709 = (ID__srcr__id_stage__L25 == v98);
+assign v710 = (v709 ? u__r0 : v708);
+assign v711 = (ID__srcr__id_stage__L25 == v97);
+assign v712 = (v711 ? u__r1 : v710);
+assign v713 = (ID__srcr__id_stage__L25 == v96);
+assign v714 = (v713 ? u__r2 : v712);
+assign v715 = (ID__srcr__id_stage__L25 == v95);
+assign v716 = (v715 ? u__r3 : v714);
+assign v717 = v716;
+assign ID__srcr_val__id_stage__L39 = v717;
+assign v718 = (ID__srcp__id_stage__L26 == v175);
+assign v719 = (v718 ? v173 : v173);
+assign v720 = (ID__srcp__id_stage__L26 == v139);
+assign v721 = (v720 ? gpr__r1 : v719);
+assign v722 = (ID__srcp__id_stage__L26 == v137);
+assign v723 = (v722 ? gpr__r2 : v721);
+assign v724 = (ID__srcp__id_stage__L26 == v148);
+assign v725 = (v724 ? gpr__r3 : v723);
+assign v726 = (ID__srcp__id_stage__L26 == v150);
+assign v727 = (v726 ? gpr__r4 : v725);
+assign v728 = (ID__srcp__id_stage__L26 == v152);
+assign v729 = (v728 ? gpr__r5 : v727);
+assign v730 = (ID__srcp__id_stage__L26 == v115);
+assign v731 = (v730 ? gpr__r6 : v729);
+assign v732 = (ID__srcp__id_stage__L26 == v117);
+assign v733 = (v732 ? gpr__r7 : v731);
+assign v734 = (ID__srcp__id_stage__L26 == v119);
+assign v735 = (v734 ? gpr__r8 : v733);
+assign v736 = (ID__srcp__id_stage__L26 == v121);
+assign v737 = (v736 ? gpr__r9 : v735);
+assign v738 = (ID__srcp__id_stage__L26 == v156);
+assign v739 = (v738 ? gpr__r10 : v737);
+assign v740 = (ID__srcp__id_stage__L26 == v128);
+assign v741 = (v740 ? gpr__r11 : v739);
+assign v742 = (ID__srcp__id_stage__L26 == v130);
+assign v743 = (v742 ? gpr__r12 : v741);
+assign v744 = (ID__srcp__id_stage__L26 == v132);
+assign v745 = (v744 ? gpr__r13 : v743);
+assign v746 = (ID__srcp__id_stage__L26 == v134);
+assign v747 = (v746 ? gpr__r14 : v745);
+assign v748 = (ID__srcp__id_stage__L26 == v112);
+assign v749 = (v748 ? gpr__r15 : v747);
+assign v750 = (ID__srcp__id_stage__L26 == v126);
+assign v751 = (v750 ? gpr__r16 : v749);
+assign v752 = (ID__srcp__id_stage__L26 == v101);
+assign v753 = (v752 ? gpr__r17 : v751);
+assign v754 = (ID__srcp__id_stage__L26 == v165);
+assign v755 = (v754 ? gpr__r18 : v753);
+assign v756 = (ID__srcp__id_stage__L26 == v142);
+assign v757 = (v756 ? gpr__r19 : v755);
+assign v758 = (ID__srcp__id_stage__L26 == v104);
+assign v759 = (v758 ? gpr__r20 : v757);
+assign v760 = (ID__srcp__id_stage__L26 == v159);
+assign v761 = (v760 ? gpr__r21 : v759);
+assign v762 = (ID__srcp__id_stage__L26 == v155);
+assign v763 = (v762 ? gpr__r22 : v761);
+assign v764 = (ID__srcp__id_stage__L26 == v146);
+assign v765 = (v764 ? gpr__r23 : v763);
+assign v766 = (ID__srcp__id_stage__L26 == v153);
+assign v767 = (v766 ? t__r0 : v765);
+assign v768 = (ID__srcp__id_stage__L26 == v107);
+assign v769 = (v768 ? t__r1 : v767);
+assign v770 = (ID__srcp__id_stage__L26 == v123);
+assign v771 = (v770 ? t__r2 : v769);
+assign v772 = (ID__srcp__id_stage__L26 == v99);
+assign v773 = (v772 ? t__r3 : v771);
+assign v774 = (ID__srcp__id_stage__L26 == v98);
+assign v775 = (v774 ? u__r0 : v773);
+assign v776 = (ID__srcp__id_stage__L26 == v97);
+assign v777 = (v776 ? u__r1 : v775);
+assign v778 = (ID__srcp__id_stage__L26 == v96);
+assign v779 = (v778 ? u__r2 : v777);
+assign v780 = (ID__srcp__id_stage__L26 == v95);
+assign v781 = (v780 ? u__r3 : v779);
+assign v782 = v781;
+assign ID__srcp_val__id_stage__L40 = v782;
+pyc_mux #(.WIDTH(64)) v783_inst (
+  .sel(do_id__linx_cpu_pyc__L105),
+  .a(ID__srcl_val__id_stage__L38),
+  .b(idex__srcl_val),
+  .y(v783)
+);
 assign idex__srcl_val__next = v783;
 pyc_mux #(.WIDTH(64)) v784_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v781),
+  .a(ID__srcr_val__id_stage__L39),
   .b(idex__srcr_val),
   .y(v784)
 );
 assign idex__srcr_val__next = v784;
 pyc_mux #(.WIDTH(64)) v785_inst (
   .sel(do_id__linx_cpu_pyc__L105),
-  .a(v782),
+  .a(ID__srcp_val__id_stage__L40),
   .b(idex__srcp_val),
   .y(v785)
 );
 assign idex__srcp_val__next = v785;
-assign v786 = (idex__op == v139);
-assign v787 = (idex__op == v142);
-assign v788 = (idex__op == v104);
-assign v789 = (idex__op == v148);
-assign v790 = (idex__op == v159);
-assign v791 = (idex__op == v155);
-assign v792 = (idex__op == v146);
-assign v793 = (idex__op == v153);
-assign v794 = (idex__op == v107);
-assign v795 = (idex__op == v117);
-assign v796 = (idex__op == v115);
-assign v797 = (idex__op == v119);
-assign v798 = (idex__op == v128);
-assign v799 = (idex__op == v130);
-assign v800 = (idex__op == v132);
-assign v801 = (idex__op == v134);
-assign v802 = (idex__op == v112);
-assign v803 = (idex__op == v126);
-assign v804 = (idex__op == v101);
-assign v805 = (idex__op == v121);
-assign v806 = (idex__op == v150);
-assign v807 = (idex__op == v156);
-assign v808 = (idex__op == v152);
-assign v809 = (idex__op == v123);
-assign v810 = (idex__imm << 2);
-assign v811 = (v786 | v787);
-assign v812 = (v811 | v788);
-assign v813 = (v812 ? idex__imm : v173);
+assign EX__pc__ex_stage__L64 = state__pc;
+assign EX__op__ex_stage__L65 = idex__op;
+assign EX__len_bytes__ex_stage__L66 = idex__len_bytes;
+assign EX__regdst__ex_stage__L67 = idex__regdst;
+assign EX__srcl_val__ex_stage__L68 = idex__srcl_val;
+assign EX__srcr_val__ex_stage__L69 = idex__srcr_val;
+assign EX__srcp_val__ex_stage__L70 = idex__srcp_val;
+assign EX__imm__ex_stage__L71 = idex__imm;
+assign v786 = (EX__op__ex_stage__L65 == v139);
+assign EX__op_c_bstart_std__ex_stage__L73 = v786;
+assign v787 = (EX__op__ex_stage__L65 == v142);
+assign EX__op_c_bstart_cond__ex_stage__L74 = v787;
+assign v788 = (EX__op__ex_stage__L65 == v104);
+assign EX__op_bstart_std_call__ex_stage__L75 = v788;
+assign v789 = (EX__op__ex_stage__L65 == v148);
+assign EX__op_c_movr__ex_stage__L76 = v789;
+assign v790 = (EX__op__ex_stage__L65 == v159);
+assign EX__op_c_movi__ex_stage__L77 = v790;
+assign v791 = (EX__op__ex_stage__L65 == v155);
+assign EX__op_c_setret__ex_stage__L78 = v791;
+assign v792 = (EX__op__ex_stage__L65 == v146);
+assign EX__op_c_setc_eq__ex_stage__L79 = v792;
+assign v793 = (EX__op__ex_stage__L65 == v153);
+assign EX__op_c_setc_tgt__ex_stage__L80 = v793;
+assign v794 = (EX__op__ex_stage__L65 == v107);
+assign EX__op_addtpc__ex_stage__L81 = v794;
+assign v795 = (EX__op__ex_stage__L65 == v117);
+assign EX__op_addi__ex_stage__L82 = v795;
+assign v796 = (EX__op__ex_stage__L65 == v115);
+assign EX__op_subi__ex_stage__L83 = v796;
+assign v797 = (EX__op__ex_stage__L65 == v119);
+assign EX__op_addiw__ex_stage__L84 = v797;
+assign v798 = (EX__op__ex_stage__L65 == v128);
+assign EX__op_addw__ex_stage__L85 = v798;
+assign v799 = (EX__op__ex_stage__L65 == v130);
+assign EX__op_orw__ex_stage__L86 = v799;
+assign v800 = (EX__op__ex_stage__L65 == v132);
+assign EX__op_andw__ex_stage__L87 = v800;
+assign v801 = (EX__op__ex_stage__L65 == v134);
+assign EX__op_xorw__ex_stage__L88 = v801;
+assign v802 = (EX__op__ex_stage__L65 == v112);
+assign EX__op_cmp_eq__ex_stage__L89 = v802;
+assign v803 = (EX__op__ex_stage__L65 == v126);
+assign EX__op_csel__ex_stage__L90 = v803;
+assign v804 = (EX__op__ex_stage__L65 == v101);
+assign EX__op_hl_lui__ex_stage__L91 = v804;
+assign v805 = (EX__op__ex_stage__L65 == v121);
+assign EX__op_lwi__ex_stage__L92 = v805;
+assign v806 = (EX__op__ex_stage__L65 == v150);
+assign EX__op_c_lwi__ex_stage__L93 = v806;
+assign v807 = (EX__op__ex_stage__L65 == v156);
+assign EX__op_swi__ex_stage__L94 = v807;
+assign v808 = (EX__op__ex_stage__L65 == v152);
+assign EX__op_c_swi__ex_stage__L95 = v808;
+assign v809 = (EX__op__ex_stage__L65 == v123);
+assign EX__op_sdi__ex_stage__L96 = v809;
+assign v810 = (EX__imm__ex_stage__L71 << 2);
+assign EX__off__ex_stage__L98 = v810;
+assign v811 = (EX__op_c_bstart_std__ex_stage__L73 | EX__op_c_bstart_cond__ex_stage__L74);
+assign v812 = (v811 | EX__op_bstart_std_call__ex_stage__L75);
+assign v813 = (v812 ? EX__imm__ex_stage__L71 : v173);
 assign v814 = (v812 ? v177 : v177);
 assign v815 = (v812 ? v176 : v176);
 assign v816 = (v812 ? v173 : v173);
-assign v817 = (v789 ? idex__srcl_val : v813);
-assign v818 = (v789 ? v177 : v814);
-assign v819 = (v789 ? v176 : v815);
-assign v820 = (v789 ? v173 : v816);
-assign v821 = (v790 ? idex__imm : v817);
-assign v822 = (v790 ? v177 : v818);
-assign v823 = (v790 ? v176 : v819);
-assign v824 = (v790 ? v173 : v820);
-assign v825 = (state__pc + idex__imm);
-assign v826 = (v791 ? v825 : v821);
-assign v827 = (v791 ? v177 : v822);
-assign v828 = (v791 ? v176 : v823);
-assign v829 = (v791 ? v173 : v824);
-assign v830 = (idex__srcl_val == idex__srcr_val);
+assign v817 = (EX__op_c_movr__ex_stage__L76 ? EX__srcl_val__ex_stage__L68 : v813);
+assign v818 = (EX__op_c_movr__ex_stage__L76 ? v177 : v814);
+assign v819 = (EX__op_c_movr__ex_stage__L76 ? v176 : v815);
+assign v820 = (EX__op_c_movr__ex_stage__L76 ? v173 : v816);
+assign v821 = (EX__op_c_movi__ex_stage__L77 ? EX__imm__ex_stage__L71 : v817);
+assign v822 = (EX__op_c_movi__ex_stage__L77 ? v177 : v818);
+assign v823 = (EX__op_c_movi__ex_stage__L77 ? v176 : v819);
+assign v824 = (EX__op_c_movi__ex_stage__L77 ? v173 : v820);
+assign v825 = (EX__pc__ex_stage__L64 + EX__imm__ex_stage__L71);
+assign v826 = (EX__op_c_setret__ex_stage__L78 ? v825 : v821);
+assign v827 = (EX__op_c_setret__ex_stage__L78 ? v177 : v822);
+assign v828 = (EX__op_c_setret__ex_stage__L78 ? v176 : v823);
+assign v829 = (EX__op_c_setret__ex_stage__L78 ? v173 : v824);
+assign v830 = (EX__srcl_val__ex_stage__L68 == EX__srcr_val__ex_stage__L69);
 assign v831 = (v830 ? v172 : v173);
-assign v832 = (v792 ? v831 : v826);
-assign v833 = (v792 ? v177 : v827);
-assign v834 = (v792 ? v176 : v828);
-assign v835 = (v792 ? v173 : v829);
-assign v836 = (v793 ? idex__srcl_val : v832);
-assign v837 = (v793 ? v177 : v833);
-assign v838 = (v793 ? v176 : v834);
-assign v839 = (v793 ? v173 : v835);
-assign v840 = (state__pc & v94);
-assign v841 = (v840 + idex__imm);
-assign v842 = (v794 ? v841 : v836);
-assign v843 = (v794 ? v177 : v837);
-assign v844 = (v794 ? v176 : v838);
-assign v845 = (v794 ? v173 : v839);
-assign v846 = (idex__srcl_val + idex__imm);
-assign v847 = (v795 ? v846 : v842);
-assign v848 = (v795 ? v177 : v843);
-assign v849 = (v795 ? v176 : v844);
-assign v850 = (v795 ? v173 : v845);
-assign v851 = (~idex__imm);
-assign v852 = (v851 + v172);
-assign v853 = (idex__srcl_val + v852);
-assign v854 = (v796 ? v853 : v847);
-assign v855 = (v796 ? v177 : v848);
-assign v856 = (v796 ? v176 : v849);
-assign v857 = (v796 ? v173 : v850);
-assign v858 = idex__srcl_val[31:0];
-assign v859 = idex__imm[31:0];
-assign v860 = (v858 + v859);
-assign v861 = {{32{v860[31]}}, v860};
-assign v862 = (v797 ? v861 : v854);
-assign v863 = (v797 ? v177 : v855);
-assign v864 = (v797 ? v176 : v856);
-assign v865 = (v797 ? v173 : v857);
-assign v866 = idex__srcr_val[31:0];
-assign v867 = (v858 + v866);
-assign v868 = {{32{v867[31]}}, v867};
-assign v869 = (v858 | v866);
-assign v870 = {{32{v869[31]}}, v869};
-assign v871 = (v858 & v866);
-assign v872 = {{32{v871[31]}}, v871};
-assign v873 = (v858 ^ v866);
-assign v874 = {{32{v873[31]}}, v873};
-assign v875 = (v798 ? v868 : v862);
-assign v876 = (v798 ? v177 : v863);
-assign v877 = (v798 ? v176 : v864);
-assign v878 = (v798 ? v173 : v865);
-assign v879 = (v799 ? v870 : v875);
-assign v880 = (v799 ? v177 : v876);
-assign v881 = (v799 ? v176 : v877);
-assign v882 = (v799 ? v173 : v878);
-assign v883 = (v800 ? v872 : v879);
-assign v884 = (v800 ? v177 : v880);
-assign v885 = (v800 ? v176 : v881);
-assign v886 = (v800 ? v173 : v882);
-assign v887 = (v801 ? v874 : v883);
-assign v888 = (v801 ? v177 : v884);
-assign v889 = (v801 ? v176 : v885);
-assign v890 = (v801 ? v173 : v886);
-assign v891 = (v802 ? v831 : v887);
-assign v892 = (v802 ? v177 : v888);
-assign v893 = (v802 ? v176 : v889);
-assign v894 = (v802 ? v173 : v890);
-assign v895 = (v804 ? idex__imm : v891);
-assign v896 = (v804 ? v177 : v892);
-assign v897 = (v804 ? v176 : v893);
-assign v898 = (v804 ? v173 : v894);
-assign v899 = (idex__srcp_val == v173);
-assign v900 = (~v899);
-assign v901 = (v900 ? idex__srcr_val : idex__srcl_val);
-assign v902 = (v803 ? v901 : v895);
-assign v903 = (v803 ? v177 : v896);
-assign v904 = (v803 ? v176 : v897);
-assign v905 = (v803 ? v173 : v898);
-assign v906 = (v805 | v806);
-assign v907 = (idex__srcl_val + v810);
-assign v908 = (v906 ? v173 : v902);
-assign v909 = (v906 ? v178 : v903);
-assign v910 = (v906 ? v177 : v903);
-assign v911 = (v906 ? v166 : v904);
-assign v912 = (v906 ? v907 : v905);
-assign v913 = (v906 ? v173 : v905);
-assign v914 = (idex__srcr_val + v810);
-assign v915 = (v807 ? v914 : v907);
-assign v916 = (v807 ? idex__srcl_val : idex__srcr_val);
-assign v917 = (v807 | v808);
-assign v918 = (v917 ? v173 : v908);
-assign v919 = (v917 ? v177 : v909);
-assign v920 = (v917 ? v178 : v910);
-assign v921 = (v917 ? v166 : v911);
-assign v922 = (v917 ? v915 : v912);
-assign v923 = (v917 ? v916 : v913);
-assign v924 = (idex__imm << 3);
-assign v925 = (idex__srcr_val + v924);
-assign v926 = (v809 ? v173 : v918);
-assign v927 = (v809 ? v177 : v919);
-assign v928 = (v809 ? v178 : v920);
-assign v929 = (v809 ? v176 : v921);
-assign v930 = (v809 ? v925 : v922);
-assign v931 = (v809 ? idex__srcl_val : v923);
-assign v932 = (do_ex__linx_cpu_pyc__L106 ? idex__op : exmem__op);
-assign v933 = v926;
-assign v934 = v927;
-assign v935 = v928;
-assign v936 = v929;
-assign v937 = v930;
-assign v938 = v931;
-assign v939 = v932;
-assign exmem__op__next = v939;
-pyc_mux #(.WIDTH(3)) v940_inst (
-  .sel(do_ex__linx_cpu_pyc__L106),
-  .a(idex__len_bytes),
-  .b(exmem__len_bytes),
+assign v832 = v826;
+assign v833 = v827;
+assign v834 = v828;
+assign v835 = v829;
+assign v836 = v831;
+assign EX__setc_eq__ex_stage__L115 = v836;
+assign v837 = (EX__op_c_setc_eq__ex_stage__L79 ? EX__setc_eq__ex_stage__L115 : v832);
+assign v838 = (EX__op_c_setc_eq__ex_stage__L79 ? v177 : v833);
+assign v839 = (EX__op_c_setc_eq__ex_stage__L79 ? v176 : v834);
+assign v840 = (EX__op_c_setc_eq__ex_stage__L79 ? v173 : v835);
+assign v841 = (EX__op_c_setc_tgt__ex_stage__L80 ? EX__srcl_val__ex_stage__L68 : v837);
+assign v842 = (EX__op_c_setc_tgt__ex_stage__L80 ? v177 : v838);
+assign v843 = (EX__op_c_setc_tgt__ex_stage__L80 ? v176 : v839);
+assign v844 = (EX__op_c_setc_tgt__ex_stage__L80 ? v173 : v840);
+assign v845 = (EX__pc__ex_stage__L64 & v94);
+assign v846 = v841;
+assign v847 = v842;
+assign v848 = v843;
+assign v849 = v844;
+assign v850 = v845;
+assign EX__pc_page__ex_stage__L120 = v850;
+assign v851 = (EX__pc_page__ex_stage__L120 + EX__imm__ex_stage__L71);
+assign v852 = (EX__op_addtpc__ex_stage__L81 ? v851 : v846);
+assign v853 = (EX__op_addtpc__ex_stage__L81 ? v177 : v847);
+assign v854 = (EX__op_addtpc__ex_stage__L81 ? v176 : v848);
+assign v855 = (EX__op_addtpc__ex_stage__L81 ? v173 : v849);
+assign v856 = (EX__srcl_val__ex_stage__L68 + EX__imm__ex_stage__L71);
+assign v857 = (EX__op_addi__ex_stage__L82 ? v856 : v852);
+assign v858 = (EX__op_addi__ex_stage__L82 ? v177 : v853);
+assign v859 = (EX__op_addi__ex_stage__L82 ? v176 : v854);
+assign v860 = (EX__op_addi__ex_stage__L82 ? v173 : v855);
+assign v861 = (~EX__imm__ex_stage__L71);
+assign v862 = (v861 + v172);
+assign v863 = (EX__srcl_val__ex_stage__L68 + v862);
+assign v864 = v857;
+assign v865 = v858;
+assign v866 = v859;
+assign v867 = v860;
+assign v868 = v863;
+assign EX__subi__ex_stage__L125 = v868;
+assign v869 = (EX__op_subi__ex_stage__L83 ? EX__subi__ex_stage__L125 : v864);
+assign v870 = (EX__op_subi__ex_stage__L83 ? v177 : v865);
+assign v871 = (EX__op_subi__ex_stage__L83 ? v176 : v866);
+assign v872 = (EX__op_subi__ex_stage__L83 ? v173 : v867);
+assign v873 = EX__srcl_val__ex_stage__L68[31:0];
+assign v874 = EX__imm__ex_stage__L71[31:0];
+assign v875 = (v873 + v874);
+assign v876 = {{32{v875[31]}}, v875};
+assign v877 = v869;
+assign v878 = v870;
+assign v879 = v871;
+assign v880 = v872;
+assign v881 = v873;
+assign v882 = v876;
+assign EX__addiw__ex_stage__L127 = v882;
+assign v883 = (EX__op_addiw__ex_stage__L84 ? EX__addiw__ex_stage__L127 : v877);
+assign v884 = (EX__op_addiw__ex_stage__L84 ? v177 : v878);
+assign v885 = (EX__op_addiw__ex_stage__L84 ? v176 : v879);
+assign v886 = (EX__op_addiw__ex_stage__L84 ? v173 : v880);
+assign v887 = EX__srcr_val__ex_stage__L69[31:0];
+assign v888 = (v881 + v887);
+assign v889 = {{32{v888[31]}}, v888};
+assign v890 = v883;
+assign v891 = v884;
+assign v892 = v885;
+assign v893 = v886;
+assign v894 = v887;
+assign v895 = v889;
+assign EX__addw__ex_stage__L131 = v895;
+assign v896 = (v881 | v894);
+assign v897 = {{32{v896[31]}}, v896};
+assign v898 = v897;
+assign EX__orw__ex_stage__L132 = v898;
+assign v899 = (v881 & v894);
+assign v900 = {{32{v899[31]}}, v899};
+assign v901 = v900;
+assign EX__andw__ex_stage__L133 = v901;
+assign v902 = (v881 ^ v894);
+assign v903 = {{32{v902[31]}}, v902};
+assign v904 = v903;
+assign EX__xorw__ex_stage__L134 = v904;
+assign v905 = (EX__op_addw__ex_stage__L85 ? EX__addw__ex_stage__L131 : v890);
+assign v906 = (EX__op_addw__ex_stage__L85 ? v177 : v891);
+assign v907 = (EX__op_addw__ex_stage__L85 ? v176 : v892);
+assign v908 = (EX__op_addw__ex_stage__L85 ? v173 : v893);
+assign v909 = (EX__op_orw__ex_stage__L86 ? EX__orw__ex_stage__L132 : v905);
+assign v910 = (EX__op_orw__ex_stage__L86 ? v177 : v906);
+assign v911 = (EX__op_orw__ex_stage__L86 ? v176 : v907);
+assign v912 = (EX__op_orw__ex_stage__L86 ? v173 : v908);
+assign v913 = (EX__op_andw__ex_stage__L87 ? EX__andw__ex_stage__L133 : v909);
+assign v914 = (EX__op_andw__ex_stage__L87 ? v177 : v910);
+assign v915 = (EX__op_andw__ex_stage__L87 ? v176 : v911);
+assign v916 = (EX__op_andw__ex_stage__L87 ? v173 : v912);
+assign v917 = (EX__op_xorw__ex_stage__L88 ? EX__xorw__ex_stage__L134 : v913);
+assign v918 = (EX__op_xorw__ex_stage__L88 ? v177 : v914);
+assign v919 = (EX__op_xorw__ex_stage__L88 ? v176 : v915);
+assign v920 = (EX__op_xorw__ex_stage__L88 ? v173 : v916);
+assign v921 = v917;
+assign v922 = v918;
+assign v923 = v919;
+assign v924 = v920;
+assign EX__cmp__ex_stage__L141 = v836;
+assign v925 = (EX__op_cmp_eq__ex_stage__L89 ? EX__cmp__ex_stage__L141 : v921);
+assign v926 = (EX__op_cmp_eq__ex_stage__L89 ? v177 : v922);
+assign v927 = (EX__op_cmp_eq__ex_stage__L89 ? v176 : v923);
+assign v928 = (EX__op_cmp_eq__ex_stage__L89 ? v173 : v924);
+assign v929 = (EX__op_hl_lui__ex_stage__L91 ? EX__imm__ex_stage__L71 : v925);
+assign v930 = (EX__op_hl_lui__ex_stage__L91 ? v177 : v926);
+assign v931 = (EX__op_hl_lui__ex_stage__L91 ? v176 : v927);
+assign v932 = (EX__op_hl_lui__ex_stage__L91 ? v173 : v928);
+assign v933 = (EX__srcp_val__ex_stage__L70 == v173);
+assign v934 = (~v933);
+assign v935 = v929;
+assign v936 = v930;
+assign v937 = v931;
+assign v938 = v932;
+assign v939 = v934;
+assign EX__srcp_nz__ex_stage__L148 = v939;
+pyc_mux #(.WIDTH(64)) v940_inst (
+  .sel(EX__srcp_nz__ex_stage__L148),
+  .a(EX__srcr_val__ex_stage__L69),
+  .b(EX__srcl_val__ex_stage__L68),
   .y(v940)
 );
-assign exmem__len_bytes__next = v940;
-pyc_mux #(.WIDTH(6)) v941_inst (
+assign EX__csel_val__ex_stage__L149 = v940;
+assign v941 = (EX__op_csel__ex_stage__L90 ? EX__csel_val__ex_stage__L149 : v935);
+assign v942 = (EX__op_csel__ex_stage__L90 ? v177 : v936);
+assign v943 = (EX__op_csel__ex_stage__L90 ? v176 : v937);
+assign v944 = (EX__op_csel__ex_stage__L90 ? v173 : v938);
+assign v945 = (EX__op_lwi__ex_stage__L92 | EX__op_c_lwi__ex_stage__L93);
+assign v946 = v941;
+assign v947 = v942;
+assign v948 = v943;
+assign v949 = v944;
+assign v950 = v945;
+assign EX__is_lwi__ex_stage__L153 = v950;
+pyc_add #(.WIDTH(64)) v951_inst (
+  .a(EX__srcl_val__ex_stage__L68),
+  .b(EX__off__ex_stage__L98),
+  .y(v951)
+);
+assign EX__lwi_addr__ex_stage__L154 = v951;
+assign v952 = (EX__is_lwi__ex_stage__L153 ? v173 : v946);
+assign v953 = (EX__is_lwi__ex_stage__L153 ? v178 : v947);
+assign v954 = (EX__is_lwi__ex_stage__L153 ? v177 : v947);
+assign v955 = (EX__is_lwi__ex_stage__L153 ? v166 : v948);
+assign v956 = (EX__is_lwi__ex_stage__L153 ? EX__lwi_addr__ex_stage__L154 : v949);
+assign v957 = (EX__is_lwi__ex_stage__L153 ? v173 : v949);
+assign v958 = (EX__srcr_val__ex_stage__L69 + EX__off__ex_stage__L98);
+assign v959 = (EX__op_swi__ex_stage__L94 ? v958 : v951);
+assign v960 = v952;
+assign v961 = v953;
+assign v962 = v954;
+assign v963 = v955;
+assign v964 = v956;
+assign v965 = v957;
+assign v966 = v959;
+assign EX__store_addr__ex_stage__L158 = v966;
+pyc_mux #(.WIDTH(64)) v967_inst (
+  .sel(EX__op_swi__ex_stage__L94),
+  .a(EX__srcl_val__ex_stage__L68),
+  .b(EX__srcr_val__ex_stage__L69),
+  .y(v967)
+);
+assign EX__store_data__ex_stage__L159 = v967;
+assign v968 = (EX__op_swi__ex_stage__L94 | EX__op_c_swi__ex_stage__L95);
+assign v969 = (v968 ? v173 : v960);
+assign v970 = (v968 ? v177 : v961);
+assign v971 = (v968 ? v178 : v962);
+assign v972 = (v968 ? v166 : v963);
+assign v973 = (v968 ? EX__store_addr__ex_stage__L158 : v964);
+assign v974 = (v968 ? EX__store_data__ex_stage__L159 : v965);
+assign v975 = (EX__imm__ex_stage__L71 << 3);
+assign v976 = v969;
+assign v977 = v970;
+assign v978 = v971;
+assign v979 = v972;
+assign v980 = v973;
+assign v981 = v974;
+assign v982 = v975;
+assign EX__sdi_off__ex_stage__L163 = v982;
+pyc_add #(.WIDTH(64)) v983_inst (
+  .a(EX__srcr_val__ex_stage__L69),
+  .b(EX__sdi_off__ex_stage__L163),
+  .y(v983)
+);
+assign EX__sdi_addr__ex_stage__L164 = v983;
+assign v984 = (EX__op_sdi__ex_stage__L96 ? v173 : v976);
+assign v985 = (EX__op_sdi__ex_stage__L96 ? v177 : v977);
+assign v986 = (EX__op_sdi__ex_stage__L96 ? v178 : v978);
+assign v987 = (EX__op_sdi__ex_stage__L96 ? v176 : v979);
+assign v988 = (EX__op_sdi__ex_stage__L96 ? EX__sdi_addr__ex_stage__L164 : v980);
+assign v989 = (EX__op_sdi__ex_stage__L96 ? EX__srcl_val__ex_stage__L68 : v981);
+assign v990 = (do_ex__linx_cpu_pyc__L106 ? EX__op__ex_stage__L65 : exmem__op);
+assign v991 = v984;
+assign v992 = v985;
+assign v993 = v986;
+assign v994 = v987;
+assign v995 = v988;
+assign v996 = v989;
+assign v997 = v990;
+assign exmem__op__next = v997;
+pyc_mux #(.WIDTH(3)) v998_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(idex__regdst),
+  .a(EX__len_bytes__ex_stage__L66),
+  .b(exmem__len_bytes),
+  .y(v998)
+);
+assign exmem__len_bytes__next = v998;
+pyc_mux #(.WIDTH(6)) v999_inst (
+  .sel(do_ex__linx_cpu_pyc__L106),
+  .a(EX__regdst__ex_stage__L67),
   .b(exmem__regdst),
-  .y(v941)
+  .y(v999)
 );
-assign exmem__regdst__next = v941;
-pyc_mux #(.WIDTH(64)) v942_inst (
+assign exmem__regdst__next = v999;
+pyc_mux #(.WIDTH(64)) v1000_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v933),
+  .a(v991),
   .b(exmem__alu),
-  .y(v942)
+  .y(v1000)
 );
-assign exmem__alu__next = v942;
-pyc_mux #(.WIDTH(1)) v943_inst (
+assign exmem__alu__next = v1000;
+pyc_mux #(.WIDTH(1)) v1001_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v934),
+  .a(v992),
   .b(exmem__is_load),
-  .y(v943)
+  .y(v1001)
 );
-assign exmem__is_load__next = v943;
-pyc_mux #(.WIDTH(1)) v944_inst (
+assign exmem__is_load__next = v1001;
+pyc_mux #(.WIDTH(1)) v1002_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v935),
+  .a(v993),
   .b(exmem__is_store),
-  .y(v944)
+  .y(v1002)
 );
-assign exmem__is_store__next = v944;
-pyc_mux #(.WIDTH(3)) v945_inst (
+assign exmem__is_store__next = v1002;
+pyc_mux #(.WIDTH(3)) v1003_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v936),
+  .a(v994),
   .b(exmem__size),
-  .y(v945)
+  .y(v1003)
 );
-assign exmem__size__next = v945;
-pyc_mux #(.WIDTH(64)) v946_inst (
+assign exmem__size__next = v1003;
+pyc_mux #(.WIDTH(64)) v1004_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v937),
+  .a(v995),
   .b(exmem__addr),
-  .y(v946)
+  .y(v1004)
 );
-assign exmem__addr__next = v946;
-pyc_mux #(.WIDTH(64)) v947_inst (
+assign exmem__addr__next = v1004;
+pyc_mux #(.WIDTH(64)) v1005_inst (
   .sel(do_ex__linx_cpu_pyc__L106),
-  .a(v938),
+  .a(v996),
   .b(exmem__wdata),
-  .y(v947)
+  .y(v1005)
 );
-assign exmem__wdata__next = v947;
-assign v948 = mem_rdata__linx_cpu_pyc__L118[31:0];
-assign v949 = {{32{v948[31]}}, v948};
-assign v950 = (exmem__is_load ? v949 : exmem__alu);
-assign v951 = (exmem__is_store ? v173 : v950);
-assign v952 = (do_mem__linx_cpu_pyc__L107 ? exmem__op : memwb__op);
-assign v953 = v951;
-assign v954 = v952;
-assign memwb__op__next = v954;
-pyc_mux #(.WIDTH(3)) v955_inst (
+assign exmem__wdata__next = v1005;
+assign MEM__op__mem_stage__L13 = exmem__op;
+assign MEM__len_bytes__mem_stage__L14 = exmem__len_bytes;
+assign MEM__regdst__mem_stage__L15 = exmem__regdst;
+assign MEM__alu__mem_stage__L16 = exmem__alu;
+assign MEM__is_load__mem_stage__L17 = exmem__is_load;
+assign MEM__is_store__mem_stage__L18 = exmem__is_store;
+assign v1006 = mem_rdata__linx_cpu_pyc__L118[31:0];
+assign MEM__load32__mem_stage__L21 = v1006;
+assign v1007 = {{32{MEM__load32__mem_stage__L21[31]}}, MEM__load32__mem_stage__L21};
+assign MEM__load64__mem_stage__L22 = v1007;
+pyc_mux #(.WIDTH(64)) v1008_inst (
+  .sel(MEM__is_load__mem_stage__L17),
+  .a(MEM__load64__mem_stage__L22),
+  .b(MEM__alu__mem_stage__L16),
+  .y(v1008)
+);
+assign MEM__mem_val__mem_stage__L23 = v1008;
+pyc_mux #(.WIDTH(64)) v1009_inst (
+  .sel(MEM__is_store__mem_stage__L18),
+  .a(v173),
+  .b(MEM__mem_val__mem_stage__L23),
+  .y(v1009)
+);
+assign MEM__mem_val__mem_stage__L24 = v1009;
+pyc_mux #(.WIDTH(6)) v1010_inst (
   .sel(do_mem__linx_cpu_pyc__L107),
-  .a(exmem__len_bytes),
+  .a(MEM__op__mem_stage__L13),
+  .b(memwb__op),
+  .y(v1010)
+);
+assign memwb__op__next = v1010;
+pyc_mux #(.WIDTH(3)) v1011_inst (
+  .sel(do_mem__linx_cpu_pyc__L107),
+  .a(MEM__len_bytes__mem_stage__L14),
   .b(memwb__len_bytes),
-  .y(v955)
+  .y(v1011)
 );
-assign memwb__len_bytes__next = v955;
-pyc_mux #(.WIDTH(6)) v956_inst (
+assign memwb__len_bytes__next = v1011;
+pyc_mux #(.WIDTH(6)) v1012_inst (
   .sel(do_mem__linx_cpu_pyc__L107),
-  .a(exmem__regdst),
+  .a(MEM__regdst__mem_stage__L15),
   .b(memwb__regdst),
-  .y(v956)
+  .y(v1012)
 );
-assign memwb__regdst__next = v956;
-pyc_mux #(.WIDTH(64)) v957_inst (
+assign memwb__regdst__next = v1012;
+pyc_mux #(.WIDTH(64)) v1013_inst (
   .sel(do_mem__linx_cpu_pyc__L107),
-  .a(v953),
+  .a(MEM__mem_val__mem_stage__L24),
   .b(memwb__value),
-  .y(v957)
+  .y(v1013)
 );
-assign memwb__value__next = v957;
-pyc_mux #(.WIDTH(1)) v958_inst (
+assign memwb__value__next = v1013;
+assign WB__stage__wb_stage__L52 = state__stage;
+assign WB__pc__wb_stage__L53 = state__pc;
+assign WB__br_kind__wb_stage__L54 = state__br_kind;
+assign WB__br_base_pc__wb_stage__L55 = state__br_base_pc;
+assign WB__br_off__wb_stage__L56 = state__br_off;
+assign WB__commit_cond__wb_stage__L57 = state__commit_cond;
+assign WB__commit_tgt__wb_stage__L58 = state__commit_tgt;
+assign WB__op__wb_stage__L60 = memwb__op;
+assign WB__len_bytes__wb_stage__L61 = memwb__len_bytes;
+assign WB__regdst__wb_stage__L62 = memwb__regdst;
+assign WB__value__wb_stage__L63 = memwb__value;
+pyc_mux #(.WIDTH(1)) v1014_inst (
   .sel(halt_set__linx_cpu_pyc__L100),
   .a(v178),
   .b(state__halted),
-  .y(v958)
+  .y(v1014)
 );
-assign state__halted__next = v958;
-assign v959 = (memwb__op == v139);
-assign v960 = (memwb__op == v142);
-assign v961 = (memwb__op == v104);
-assign v962 = (memwb__op == v137);
-assign v963 = (v959 | v960);
-assign v964 = (v963 | v961);
-assign v965 = (v964 | v962);
-assign v966 = (state__br_kind == v93);
-assign v967 = (state__br_kind == v92);
-assign v968 = (state__br_kind == v91);
-assign v969 = (state__br_base_pc + state__br_off);
-assign v970 = (v968 ? state__commit_tgt : v969);
-assign v971 = (v967 | v968);
-assign v972 = (v966 & state__commit_cond);
-assign v973 = (v971 | v972);
-assign v974 = {{61{1'b0}}, memwb__len_bytes};
-assign v975 = (state__pc + v974);
-assign v976 = (v973 ? v970 : v975);
-assign v977 = (v965 ? v976 : v975);
-assign v978 = (do_wb__linx_cpu_pyc__L108 ? v977 : state__pc);
-assign v979 = v959;
-assign v980 = v960;
-assign v981 = v961;
-assign v982 = v962;
-assign v983 = v964;
-assign v984 = v965;
-assign v985 = v973;
-assign v986 = v978;
-assign state__pc__next = v986;
-assign v987 = (stage_is_if__linx_cpu_pyc__L94 ? v169 : state__stage);
-assign v988 = (stage_is_id__linx_cpu_pyc__L95 ? v168 : v987);
-assign v989 = (stage_is_ex__linx_cpu_pyc__L96 ? v167 : v988);
-assign v990 = (stage_is_mem__linx_cpu_pyc__L97 ? v166 : v989);
-assign v991 = (stage_is_wb__linx_cpu_pyc__L98 ? v176 : v990);
-assign v992 = (stop__linx_cpu_pyc__L101 ? state__stage : v991);
-assign v993 = v992;
-assign state__stage__next = v993;
-pyc_add #(.WIDTH(64)) v994_inst (
+assign state__halted__next = v1014;
+assign v1015 = (WB__op__wb_stage__L60 == v139);
+assign WB__op_c_bstart_std__wb_stage__L69 = v1015;
+assign v1016 = (WB__op__wb_stage__L60 == v142);
+assign WB__op_c_bstart_cond__wb_stage__L70 = v1016;
+assign v1017 = (WB__op__wb_stage__L60 == v104);
+assign WB__op_bstart_call__wb_stage__L71 = v1017;
+assign v1018 = (WB__op__wb_stage__L60 == v137);
+assign WB__op_c_bstop__wb_stage__L72 = v1018;
+assign v1019 = (WB__op_c_bstart_std__wb_stage__L69 | WB__op_c_bstart_cond__wb_stage__L70);
+assign v1020 = (v1019 | WB__op_bstart_call__wb_stage__L71);
+assign v1021 = v1020;
+assign WB__op_is_start_marker__wb_stage__L74 = v1021;
+pyc_or #(.WIDTH(1)) v1022_inst (
+  .a(WB__op_is_start_marker__wb_stage__L74),
+  .b(WB__op_c_bstop__wb_stage__L72),
+  .y(v1022)
+);
+assign WB__op_is_boundary__wb_stage__L75 = v1022;
+assign v1023 = (WB__br_kind__wb_stage__L54 == v93);
+assign WB__br_is_cond__wb_stage__L78 = v1023;
+assign v1024 = (WB__br_kind__wb_stage__L54 == v92);
+assign WB__br_is_call__wb_stage__L79 = v1024;
+assign v1025 = (WB__br_kind__wb_stage__L54 == v91);
+assign WB__br_is_ret__wb_stage__L80 = v1025;
+pyc_add #(.WIDTH(64)) v1026_inst (
+  .a(WB__br_base_pc__wb_stage__L55),
+  .b(WB__br_off__wb_stage__L56),
+  .y(v1026)
+);
+assign WB__br_target_pc__wb_stage__L82 = v1026;
+pyc_mux #(.WIDTH(64)) v1027_inst (
+  .sel(WB__br_is_ret__wb_stage__L80),
+  .a(WB__commit_tgt__wb_stage__L58),
+  .b(WB__br_target_pc__wb_stage__L82),
+  .y(v1027)
+);
+assign WB__br_target_pc__wb_stage__L83 = v1027;
+assign v1028 = (WB__br_is_call__wb_stage__L79 | WB__br_is_ret__wb_stage__L80);
+assign v1029 = (WB__br_is_cond__wb_stage__L78 & WB__commit_cond__wb_stage__L57);
+assign v1030 = (v1028 | v1029);
+assign v1031 = v1030;
+assign WB__br_take__wb_stage__L85 = v1031;
+assign v1032 = {{61{1'b0}}, WB__len_bytes__wb_stage__L61};
+assign v1033 = (WB__pc__wb_stage__L53 + v1032);
+assign v1034 = v1033;
+assign WB__pc_inc__wb_stage__L87 = v1034;
+assign v1035 = (WB__br_take__wb_stage__L85 ? WB__br_target_pc__wb_stage__L83 : WB__pc_inc__wb_stage__L87);
+assign v1036 = (WB__op_is_boundary__wb_stage__L75 ? v1035 : WB__pc_inc__wb_stage__L87);
+assign v1037 = v1036;
+assign WB__pc_next__wb_stage__L88 = v1037;
+pyc_mux #(.WIDTH(64)) v1038_inst (
+  .sel(do_wb__linx_cpu_pyc__L108),
+  .a(WB__pc_next__wb_stage__L88),
+  .b(state__pc),
+  .y(v1038)
+);
+assign state__pc__next = v1038;
+pyc_mux #(.WIDTH(3)) v1039_inst (
+  .sel(stage_is_if__linx_cpu_pyc__L94),
+  .a(v169),
+  .b(WB__stage__wb_stage__L52),
+  .y(v1039)
+);
+assign WB__stage_seq__wb_stage__L92 = v1039;
+pyc_mux #(.WIDTH(3)) v1040_inst (
+  .sel(stage_is_id__linx_cpu_pyc__L95),
+  .a(v168),
+  .b(WB__stage_seq__wb_stage__L92),
+  .y(v1040)
+);
+assign WB__stage_seq__wb_stage__L93 = v1040;
+pyc_mux #(.WIDTH(3)) v1041_inst (
+  .sel(stage_is_ex__linx_cpu_pyc__L96),
+  .a(v167),
+  .b(WB__stage_seq__wb_stage__L93),
+  .y(v1041)
+);
+assign WB__stage_seq__wb_stage__L94 = v1041;
+pyc_mux #(.WIDTH(3)) v1042_inst (
+  .sel(stage_is_mem__linx_cpu_pyc__L97),
+  .a(v166),
+  .b(WB__stage_seq__wb_stage__L94),
+  .y(v1042)
+);
+assign WB__stage_seq__wb_stage__L95 = v1042;
+pyc_mux #(.WIDTH(3)) v1043_inst (
+  .sel(stage_is_wb__linx_cpu_pyc__L98),
+  .a(v176),
+  .b(WB__stage_seq__wb_stage__L95),
+  .y(v1043)
+);
+assign WB__stage_seq__wb_stage__L96 = v1043;
+pyc_mux #(.WIDTH(3)) v1044_inst (
+  .sel(v257),
+  .a(WB__stage_seq__wb_stage__L96),
+  .b(state__stage),
+  .y(v1044)
+);
+assign state__stage__next = v1044;
+pyc_add #(.WIDTH(64)) v1045_inst (
   .a(state__cycles),
   .b(v172),
-  .y(v994)
+  .y(v1045)
 );
-assign state__cycles__next = v994;
-assign v995 = (memwb__op == v146);
-assign v996 = (memwb__op == v153);
-assign v997 = (do_wb__linx_cpu_pyc__L108 & v984);
-assign v998 = (v997 ? v177 : state__commit_cond);
-assign v999 = (v997 ? v173 : state__commit_tgt);
-assign v1000 = (do_wb__linx_cpu_pyc__L108 & v995);
-assign v1001 = memwb__value[0];
-assign v1002 = (v1000 ? v1001 : v998);
-assign v1003 = (do_wb__linx_cpu_pyc__L108 & v996);
-assign v1004 = (v1003 ? memwb__value : v999);
-assign v1005 = v997;
-assign v1006 = v1002;
-assign v1007 = v1004;
-assign state__commit_cond__next = v1006;
-assign state__commit_tgt__next = v1007;
-assign v1008 = (v1005 & v985);
-assign v1009 = (v1008 ? v171 : state__br_kind);
-assign v1010 = (v1008 ? state__pc : state__br_base_pc);
-assign v1011 = (v1008 ? v173 : state__br_off);
-assign v1012 = (do_wb__linx_cpu_pyc__L108 & v983);
-assign v1013 = (~v985);
-assign v1014 = (v1012 & v1013);
-assign v1015 = (v1014 & v980);
-assign v1016 = (v1015 ? v93 : v1009);
-assign v1017 = (v1015 ? state__pc : v1010);
-assign v1018 = (v1015 ? memwb__value : v1011);
-assign v1019 = (v1014 & v981);
-assign v1020 = (v1019 ? v92 : v1016);
-assign v1021 = (v1019 ? state__pc : v1017);
-assign v1022 = (v1019 ? memwb__value : v1018);
-assign v1023 = memwb__value[2:0];
-assign v1024 = (v1023 == v90);
-assign v1025 = (v1024 ? v91 : v171);
-assign v1026 = (v1014 & v979);
-assign v1027 = (v1026 ? v1025 : v1020);
-assign v1028 = (v1026 ? state__pc : v1021);
-assign v1029 = (v1026 ? v173 : v1022);
-assign v1030 = (do_wb__linx_cpu_pyc__L108 & v982);
-assign v1031 = (v1030 ? v171 : v1027);
-assign v1032 = (v1030 ? state__pc : v1028);
-assign v1033 = (v1030 ? v173 : v1029);
-assign v1034 = v1012;
-assign v1035 = v1031;
-assign v1036 = v1032;
-assign v1037 = v1033;
-assign state__br_kind__next = v1035;
-assign state__br_base_pc__next = v1036;
-assign state__br_off__next = v1037;
-assign v1038 = (memwb__op == v156);
-assign v1039 = (memwb__op == v152);
-assign v1040 = (v1038 | v1039);
-assign v1041 = (~v1040);
-assign v1042 = (do_wb__linx_cpu_pyc__L108 & v1041);
-assign v1043 = (memwb__regdst == v170);
-assign v1044 = (~v1043);
-assign v1045 = (v1042 & v1044);
-assign v1046 = (memwb__op == v150);
-assign v1047 = (do_wb__linx_cpu_pyc__L108 & v1046);
-assign v1048 = (memwb__regdst == v95);
-assign v1049 = (v1045 & v1048);
-assign v1050 = (v1047 | v1049);
-assign v1051 = (memwb__regdst == v96);
-assign v1052 = (v1045 & v1051);
-assign v1053 = v1045;
-assign v1054 = v1050;
-assign v1055 = v1052;
-assign gpr__r0__next = v173;
-assign v1056 = (memwb__regdst == v139);
-assign v1057 = (v1053 & v1056);
-assign v1058 = (v1057 ? memwb__value : gpr__r1);
+assign state__cycles__next = v1045;
+assign v1046 = (WB__op__wb_stage__L60 == v146);
+assign WB__op_c_setc_eq__wb_stage__L104 = v1046;
+assign v1047 = (WB__op__wb_stage__L60 == v153);
+assign WB__op_c_setc_tgt__wb_stage__L105 = v1047;
+assign WB__commit_cond_next__wb_stage__L107 = WB__commit_cond__wb_stage__L57;
+assign WB__commit_tgt_next__wb_stage__L108 = WB__commit_tgt__wb_stage__L58;
+assign v1048 = (do_wb__linx_cpu_pyc__L108 & WB__op_is_boundary__wb_stage__L75);
+assign v1049 = (v1048 ? v177 : WB__commit_cond_next__wb_stage__L107);
+assign v1050 = v1048;
+assign v1051 = v1049;
+assign WB__commit_cond_next__wb_stage__L110 = v1051;
+pyc_mux #(.WIDTH(64)) v1052_inst (
+  .sel(v1050),
+  .a(v173),
+  .b(WB__commit_tgt_next__wb_stage__L108),
+  .y(v1052)
+);
+assign WB__commit_tgt_next__wb_stage__L111 = v1052;
+assign v1053 = (do_wb__linx_cpu_pyc__L108 & WB__op_c_setc_eq__wb_stage__L104);
+assign v1054 = WB__value__wb_stage__L63[0];
+assign v1055 = (v1053 ? v1054 : WB__commit_cond_next__wb_stage__L110);
+assign v1056 = v1055;
+assign WB__commit_cond_next__wb_stage__L112 = v1056;
+assign v1057 = (do_wb__linx_cpu_pyc__L108 & WB__op_c_setc_tgt__wb_stage__L105);
+assign v1058 = (v1057 ? WB__value__wb_stage__L63 : WB__commit_tgt_next__wb_stage__L111);
 assign v1059 = v1058;
-assign gpr__r1__next = v1059;
-assign v1060 = (memwb__regdst == v137);
-assign v1061 = (v1053 & v1060);
-assign v1062 = (v1061 ? memwb__value : gpr__r2);
-assign v1063 = v1062;
-assign gpr__r2__next = v1063;
-assign v1064 = (memwb__regdst == v148);
-assign v1065 = (v1053 & v1064);
-assign v1066 = (v1065 ? memwb__value : gpr__r3);
-assign v1067 = v1066;
-assign gpr__r3__next = v1067;
-assign v1068 = (memwb__regdst == v150);
-assign v1069 = (v1053 & v1068);
-assign v1070 = (v1069 ? memwb__value : gpr__r4);
-assign v1071 = v1070;
-assign gpr__r4__next = v1071;
-assign v1072 = (memwb__regdst == v152);
-assign v1073 = (v1053 & v1072);
-assign v1074 = (v1073 ? memwb__value : gpr__r5);
-assign v1075 = v1074;
-assign gpr__r5__next = v1075;
-assign v1076 = (memwb__regdst == v115);
-assign v1077 = (v1053 & v1076);
-assign v1078 = (v1077 ? memwb__value : gpr__r6);
-assign v1079 = v1078;
-assign gpr__r6__next = v1079;
-assign v1080 = (memwb__regdst == v117);
-assign v1081 = (v1053 & v1080);
-assign v1082 = (v1081 ? memwb__value : gpr__r7);
-assign v1083 = v1082;
-assign gpr__r7__next = v1083;
-assign v1084 = (memwb__regdst == v119);
-assign v1085 = (v1053 & v1084);
-assign v1086 = (v1085 ? memwb__value : gpr__r8);
-assign v1087 = v1086;
-assign gpr__r8__next = v1087;
-assign v1088 = (memwb__regdst == v121);
-assign v1089 = (v1053 & v1088);
-assign v1090 = (v1089 ? memwb__value : gpr__r9);
-assign v1091 = v1090;
-assign gpr__r9__next = v1091;
-assign v1092 = (memwb__regdst == v156);
-assign v1093 = (v1053 & v1092);
-assign v1094 = (v1093 ? memwb__value : gpr__r10);
-assign v1095 = v1094;
-assign gpr__r10__next = v1095;
-assign v1096 = (memwb__regdst == v128);
-assign v1097 = (v1053 & v1096);
-assign v1098 = (v1097 ? memwb__value : gpr__r11);
-assign v1099 = v1098;
-assign gpr__r11__next = v1099;
-assign v1100 = (memwb__regdst == v130);
-assign v1101 = (v1053 & v1100);
-assign v1102 = (v1101 ? memwb__value : gpr__r12);
-assign v1103 = v1102;
-assign gpr__r12__next = v1103;
-assign v1104 = (memwb__regdst == v132);
-assign v1105 = (v1053 & v1104);
-assign v1106 = (v1105 ? memwb__value : gpr__r13);
-assign v1107 = v1106;
-assign gpr__r13__next = v1107;
-assign v1108 = (memwb__regdst == v134);
-assign v1109 = (v1053 & v1108);
-assign v1110 = (v1109 ? memwb__value : gpr__r14);
+assign WB__commit_tgt_next__wb_stage__L113 = v1059;
+assign state__commit_cond__next = WB__commit_cond_next__wb_stage__L112;
+assign state__commit_tgt__next = WB__commit_tgt_next__wb_stage__L113;
+assign WB__br_kind_next__wb_stage__L120 = WB__br_kind__wb_stage__L54;
+assign WB__br_base_next__wb_stage__L121 = WB__br_base_pc__wb_stage__L55;
+assign WB__br_off_next__wb_stage__L122 = WB__br_off__wb_stage__L56;
+assign v1060 = (v1050 & WB__br_take__wb_stage__L85);
+assign v1061 = (v1060 ? v171 : WB__br_kind_next__wb_stage__L120);
+assign v1062 = v1060;
+assign v1063 = v1061;
+assign WB__br_kind_next__wb_stage__L125 = v1063;
+pyc_mux #(.WIDTH(64)) v1064_inst (
+  .sel(v1062),
+  .a(WB__pc__wb_stage__L53),
+  .b(WB__br_base_next__wb_stage__L121),
+  .y(v1064)
+);
+assign WB__br_base_next__wb_stage__L126 = v1064;
+pyc_mux #(.WIDTH(64)) v1065_inst (
+  .sel(v1062),
+  .a(v173),
+  .b(WB__br_off_next__wb_stage__L122),
+  .y(v1065)
+);
+assign WB__br_off_next__wb_stage__L127 = v1065;
+assign v1066 = (do_wb__linx_cpu_pyc__L108 & WB__op_is_start_marker__wb_stage__L74);
+assign v1067 = (~WB__br_take__wb_stage__L85);
+assign v1068 = (v1066 & v1067);
+assign v1069 = v1066;
+assign v1070 = v1068;
+assign WB__enter_new_block__wb_stage__L129 = v1070;
+assign v1071 = (WB__enter_new_block__wb_stage__L129 & WB__op_c_bstart_cond__wb_stage__L70);
+assign v1072 = (v1071 ? v93 : WB__br_kind_next__wb_stage__L125);
+assign v1073 = v1071;
+assign v1074 = v1072;
+assign WB__br_kind_next__wb_stage__L132 = v1074;
+pyc_mux #(.WIDTH(64)) v1075_inst (
+  .sel(v1073),
+  .a(WB__pc__wb_stage__L53),
+  .b(WB__br_base_next__wb_stage__L126),
+  .y(v1075)
+);
+assign WB__br_base_next__wb_stage__L133 = v1075;
+pyc_mux #(.WIDTH(64)) v1076_inst (
+  .sel(v1073),
+  .a(WB__value__wb_stage__L63),
+  .b(WB__br_off_next__wb_stage__L127),
+  .y(v1076)
+);
+assign WB__br_off_next__wb_stage__L134 = v1076;
+assign v1077 = (WB__enter_new_block__wb_stage__L129 & WB__op_bstart_call__wb_stage__L71);
+assign v1078 = (v1077 ? v92 : WB__br_kind_next__wb_stage__L132);
+assign v1079 = v1077;
+assign v1080 = v1078;
+assign WB__br_kind_next__wb_stage__L137 = v1080;
+pyc_mux #(.WIDTH(64)) v1081_inst (
+  .sel(v1079),
+  .a(WB__pc__wb_stage__L53),
+  .b(WB__br_base_next__wb_stage__L133),
+  .y(v1081)
+);
+assign WB__br_base_next__wb_stage__L138 = v1081;
+pyc_mux #(.WIDTH(64)) v1082_inst (
+  .sel(v1079),
+  .a(WB__value__wb_stage__L63),
+  .b(WB__br_off_next__wb_stage__L134),
+  .y(v1082)
+);
+assign WB__br_off_next__wb_stage__L139 = v1082;
+assign v1083 = WB__value__wb_stage__L63[2:0];
+assign WB__brtype__wb_stage__L142 = v1083;
+assign v1084 = (WB__brtype__wb_stage__L142 == v90);
+assign v1085 = (v1084 ? v91 : v171);
+assign v1086 = v1085;
+assign WB__kind_from_brtype__wb_stage__L143 = v1086;
+assign v1087 = (WB__enter_new_block__wb_stage__L129 & WB__op_c_bstart_std__wb_stage__L69);
+assign v1088 = (v1087 ? WB__kind_from_brtype__wb_stage__L143 : WB__br_kind_next__wb_stage__L137);
+assign v1089 = v1087;
+assign v1090 = v1088;
+assign WB__br_kind_next__wb_stage__L144 = v1090;
+pyc_mux #(.WIDTH(64)) v1091_inst (
+  .sel(v1089),
+  .a(WB__pc__wb_stage__L53),
+  .b(WB__br_base_next__wb_stage__L138),
+  .y(v1091)
+);
+assign WB__br_base_next__wb_stage__L145 = v1091;
+pyc_mux #(.WIDTH(64)) v1092_inst (
+  .sel(v1089),
+  .a(v173),
+  .b(WB__br_off_next__wb_stage__L139),
+  .y(v1092)
+);
+assign WB__br_off_next__wb_stage__L146 = v1092;
+assign v1093 = (do_wb__linx_cpu_pyc__L108 & WB__op_c_bstop__wb_stage__L72);
+assign v1094 = (v1093 ? v171 : WB__br_kind_next__wb_stage__L144);
+assign v1095 = v1093;
+assign v1096 = v1094;
+assign WB__br_kind_next__wb_stage__L149 = v1096;
+pyc_mux #(.WIDTH(64)) v1097_inst (
+  .sel(v1095),
+  .a(WB__pc__wb_stage__L53),
+  .b(WB__br_base_next__wb_stage__L145),
+  .y(v1097)
+);
+assign WB__br_base_next__wb_stage__L150 = v1097;
+pyc_mux #(.WIDTH(64)) v1098_inst (
+  .sel(v1095),
+  .a(v173),
+  .b(WB__br_off_next__wb_stage__L146),
+  .y(v1098)
+);
+assign WB__br_off_next__wb_stage__L151 = v1098;
+assign state__br_kind__next = WB__br_kind_next__wb_stage__L149;
+assign state__br_base_pc__next = WB__br_base_next__wb_stage__L150;
+assign state__br_off__next = WB__br_off_next__wb_stage__L151;
+assign v1099 = (WB__op__wb_stage__L60 == v156);
+assign v1100 = (WB__op__wb_stage__L60 == v152);
+assign v1101 = (v1099 | v1100);
+assign v1102 = v1101;
+assign WB__wb_is_store__wb_stage__L158 = v1102;
+assign v1103 = (~WB__wb_is_store__wb_stage__L158);
+assign v1104 = (do_wb__linx_cpu_pyc__L108 & v1103);
+assign v1105 = (WB__regdst__wb_stage__L62 == v170);
+assign v1106 = (~v1105);
+assign v1107 = (v1104 & v1106);
+assign v1108 = v1107;
+assign WB__do_reg_write__wb_stage__L159 = v1108;
+assign WB__do_clear_hands__wb_stage__L161 = v1069;
+assign v1109 = (WB__op__wb_stage__L60 == v150);
+assign v1110 = (do_wb__linx_cpu_pyc__L108 & v1109);
 assign v1111 = v1110;
-assign gpr__r14__next = v1111;
-assign v1112 = (memwb__regdst == v112);
-assign v1113 = (v1053 & v1112);
-assign v1114 = (v1113 ? memwb__value : gpr__r15);
+assign WB__do_push_t__wb_stage__L162 = v1111;
+assign v1112 = (WB__regdst__wb_stage__L62 == v95);
+assign v1113 = (WB__do_reg_write__wb_stage__L159 & v1112);
+assign v1114 = (WB__do_push_t__wb_stage__L162 | v1113);
 assign v1115 = v1114;
-assign gpr__r15__next = v1115;
-assign v1116 = (memwb__regdst == v126);
-assign v1117 = (v1053 & v1116);
-assign v1118 = (v1117 ? memwb__value : gpr__r16);
-assign v1119 = v1118;
-assign gpr__r16__next = v1119;
-assign v1120 = (memwb__regdst == v101);
-assign v1121 = (v1053 & v1120);
-assign v1122 = (v1121 ? memwb__value : gpr__r17);
-assign v1123 = v1122;
-assign gpr__r17__next = v1123;
-assign v1124 = (memwb__regdst == v165);
-assign v1125 = (v1053 & v1124);
-assign v1126 = (v1125 ? memwb__value : gpr__r18);
-assign v1127 = v1126;
-assign gpr__r18__next = v1127;
-assign v1128 = (memwb__regdst == v142);
-assign v1129 = (v1053 & v1128);
-assign v1130 = (v1129 ? memwb__value : gpr__r19);
-assign v1131 = v1130;
-assign gpr__r19__next = v1131;
-assign v1132 = (memwb__regdst == v104);
-assign v1133 = (v1053 & v1132);
-assign v1134 = (v1133 ? memwb__value : gpr__r20);
-assign v1135 = v1134;
-assign gpr__r20__next = v1135;
-assign v1136 = (memwb__regdst == v159);
-assign v1137 = (v1053 & v1136);
-assign v1138 = (v1137 ? memwb__value : gpr__r21);
-assign v1139 = v1138;
-assign gpr__r21__next = v1139;
-assign v1140 = (memwb__regdst == v155);
-assign v1141 = (v1053 & v1140);
-assign v1142 = (v1141 ? memwb__value : gpr__r22);
-assign v1143 = v1142;
-assign gpr__r22__next = v1143;
-assign v1144 = (memwb__regdst == v146);
-assign v1145 = (v1053 & v1144);
-assign v1146 = (v1145 ? memwb__value : gpr__r23);
-assign v1147 = v1146;
-assign gpr__r23__next = v1147;
-assign v1148 = (v1054 ? memwb__value : t__r0);
-assign v1149 = (v1034 ? v173 : v1148);
-assign v1150 = (v1054 ? t__r0 : t__r1);
-assign v1151 = (v1034 ? v173 : v1150);
-assign v1152 = (v1054 ? t__r1 : t__r2);
-assign v1153 = (v1034 ? v173 : v1152);
-assign v1154 = (v1054 ? t__r2 : t__r3);
-assign v1155 = (v1034 ? v173 : v1154);
-assign v1156 = (v1055 ? memwb__value : u__r0);
-assign v1157 = (v1034 ? v173 : v1156);
-assign v1158 = (v1055 ? u__r0 : u__r1);
-assign v1159 = (v1034 ? v173 : v1158);
-assign v1160 = (v1055 ? u__r1 : u__r2);
-assign v1161 = (v1034 ? v173 : v1160);
-assign v1162 = (v1055 ? u__r2 : u__r3);
-assign v1163 = (v1034 ? v173 : v1162);
-assign v1164 = v1149;
-assign v1165 = v1151;
-assign v1166 = v1153;
-assign v1167 = v1155;
-assign v1168 = v1157;
-assign v1169 = v1159;
-assign v1170 = v1161;
-assign v1171 = v1163;
-assign t__r0__next = v1164;
-assign t__r1__next = v1165;
-assign t__r2__next = v1166;
-assign t__r3__next = v1167;
-assign u__r0__next = v1168;
-assign u__r1__next = v1169;
-assign u__r2__next = v1170;
-assign u__r3__next = v1171;
+assign WB__do_push_t__wb_stage__L164 = v1115;
+assign v1116 = (WB__regdst__wb_stage__L62 == v96);
+assign v1117 = (WB__do_reg_write__wb_stage__L159 & v1116);
+assign v1118 = v1117;
+assign WB__do_push_u__wb_stage__L165 = v1118;
+assign gpr__r0__next = v173;
+assign v1119 = (memwb__regdst == v139);
+assign v1120 = (WB__do_reg_write__wb_stage__L159 & v1119);
+assign v1121 = (v1120 ? memwb__value : gpr__r1);
+assign v1122 = v1121;
+assign gpr__r1__next = v1122;
+assign v1123 = (memwb__regdst == v137);
+assign v1124 = (WB__do_reg_write__wb_stage__L159 & v1123);
+assign v1125 = (v1124 ? memwb__value : gpr__r2);
+assign v1126 = v1125;
+assign gpr__r2__next = v1126;
+assign v1127 = (memwb__regdst == v148);
+assign v1128 = (WB__do_reg_write__wb_stage__L159 & v1127);
+assign v1129 = (v1128 ? memwb__value : gpr__r3);
+assign v1130 = v1129;
+assign gpr__r3__next = v1130;
+assign v1131 = (memwb__regdst == v150);
+assign v1132 = (WB__do_reg_write__wb_stage__L159 & v1131);
+assign v1133 = (v1132 ? memwb__value : gpr__r4);
+assign v1134 = v1133;
+assign gpr__r4__next = v1134;
+assign v1135 = (memwb__regdst == v152);
+assign v1136 = (WB__do_reg_write__wb_stage__L159 & v1135);
+assign v1137 = (v1136 ? memwb__value : gpr__r5);
+assign v1138 = v1137;
+assign gpr__r5__next = v1138;
+assign v1139 = (memwb__regdst == v115);
+assign v1140 = (WB__do_reg_write__wb_stage__L159 & v1139);
+assign v1141 = (v1140 ? memwb__value : gpr__r6);
+assign v1142 = v1141;
+assign gpr__r6__next = v1142;
+assign v1143 = (memwb__regdst == v117);
+assign v1144 = (WB__do_reg_write__wb_stage__L159 & v1143);
+assign v1145 = (v1144 ? memwb__value : gpr__r7);
+assign v1146 = v1145;
+assign gpr__r7__next = v1146;
+assign v1147 = (memwb__regdst == v119);
+assign v1148 = (WB__do_reg_write__wb_stage__L159 & v1147);
+assign v1149 = (v1148 ? memwb__value : gpr__r8);
+assign v1150 = v1149;
+assign gpr__r8__next = v1150;
+assign v1151 = (memwb__regdst == v121);
+assign v1152 = (WB__do_reg_write__wb_stage__L159 & v1151);
+assign v1153 = (v1152 ? memwb__value : gpr__r9);
+assign v1154 = v1153;
+assign gpr__r9__next = v1154;
+assign v1155 = (memwb__regdst == v156);
+assign v1156 = (WB__do_reg_write__wb_stage__L159 & v1155);
+assign v1157 = (v1156 ? memwb__value : gpr__r10);
+assign v1158 = v1157;
+assign gpr__r10__next = v1158;
+assign v1159 = (memwb__regdst == v128);
+assign v1160 = (WB__do_reg_write__wb_stage__L159 & v1159);
+assign v1161 = (v1160 ? memwb__value : gpr__r11);
+assign v1162 = v1161;
+assign gpr__r11__next = v1162;
+assign v1163 = (memwb__regdst == v130);
+assign v1164 = (WB__do_reg_write__wb_stage__L159 & v1163);
+assign v1165 = (v1164 ? memwb__value : gpr__r12);
+assign v1166 = v1165;
+assign gpr__r12__next = v1166;
+assign v1167 = (memwb__regdst == v132);
+assign v1168 = (WB__do_reg_write__wb_stage__L159 & v1167);
+assign v1169 = (v1168 ? memwb__value : gpr__r13);
+assign v1170 = v1169;
+assign gpr__r13__next = v1170;
+assign v1171 = (memwb__regdst == v134);
+assign v1172 = (WB__do_reg_write__wb_stage__L159 & v1171);
+assign v1173 = (v1172 ? memwb__value : gpr__r14);
+assign v1174 = v1173;
+assign gpr__r14__next = v1174;
+assign v1175 = (memwb__regdst == v112);
+assign v1176 = (WB__do_reg_write__wb_stage__L159 & v1175);
+assign v1177 = (v1176 ? memwb__value : gpr__r15);
+assign v1178 = v1177;
+assign gpr__r15__next = v1178;
+assign v1179 = (memwb__regdst == v126);
+assign v1180 = (WB__do_reg_write__wb_stage__L159 & v1179);
+assign v1181 = (v1180 ? memwb__value : gpr__r16);
+assign v1182 = v1181;
+assign gpr__r16__next = v1182;
+assign v1183 = (memwb__regdst == v101);
+assign v1184 = (WB__do_reg_write__wb_stage__L159 & v1183);
+assign v1185 = (v1184 ? memwb__value : gpr__r17);
+assign v1186 = v1185;
+assign gpr__r17__next = v1186;
+assign v1187 = (memwb__regdst == v165);
+assign v1188 = (WB__do_reg_write__wb_stage__L159 & v1187);
+assign v1189 = (v1188 ? memwb__value : gpr__r18);
+assign v1190 = v1189;
+assign gpr__r18__next = v1190;
+assign v1191 = (memwb__regdst == v142);
+assign v1192 = (WB__do_reg_write__wb_stage__L159 & v1191);
+assign v1193 = (v1192 ? memwb__value : gpr__r19);
+assign v1194 = v1193;
+assign gpr__r19__next = v1194;
+assign v1195 = (memwb__regdst == v104);
+assign v1196 = (WB__do_reg_write__wb_stage__L159 & v1195);
+assign v1197 = (v1196 ? memwb__value : gpr__r20);
+assign v1198 = v1197;
+assign gpr__r20__next = v1198;
+assign v1199 = (memwb__regdst == v159);
+assign v1200 = (WB__do_reg_write__wb_stage__L159 & v1199);
+assign v1201 = (v1200 ? memwb__value : gpr__r21);
+assign v1202 = v1201;
+assign gpr__r21__next = v1202;
+assign v1203 = (memwb__regdst == v155);
+assign v1204 = (WB__do_reg_write__wb_stage__L159 & v1203);
+assign v1205 = (v1204 ? memwb__value : gpr__r22);
+assign v1206 = v1205;
+assign gpr__r22__next = v1206;
+assign v1207 = (memwb__regdst == v146);
+assign v1208 = (WB__do_reg_write__wb_stage__L159 & v1207);
+assign v1209 = (v1208 ? memwb__value : gpr__r23);
+assign v1210 = v1209;
+assign gpr__r23__next = v1210;
+assign v1211 = (WB__do_push_t__wb_stage__L164 ? memwb__value : t__r0);
+assign v1212 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1211);
+assign v1213 = (WB__do_push_t__wb_stage__L164 ? t__r0 : t__r1);
+assign v1214 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1213);
+assign v1215 = (WB__do_push_t__wb_stage__L164 ? t__r1 : t__r2);
+assign v1216 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1215);
+assign v1217 = (WB__do_push_t__wb_stage__L164 ? t__r2 : t__r3);
+assign v1218 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1217);
+assign v1219 = (WB__do_push_u__wb_stage__L165 ? memwb__value : u__r0);
+assign v1220 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1219);
+assign v1221 = (WB__do_push_u__wb_stage__L165 ? u__r0 : u__r1);
+assign v1222 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1221);
+assign v1223 = (WB__do_push_u__wb_stage__L165 ? u__r1 : u__r2);
+assign v1224 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1223);
+assign v1225 = (WB__do_push_u__wb_stage__L165 ? u__r2 : u__r3);
+assign v1226 = (WB__do_clear_hands__wb_stage__L161 ? v173 : v1225);
+assign v1227 = v1212;
+assign v1228 = v1214;
+assign v1229 = v1216;
+assign v1230 = v1218;
+assign v1231 = v1220;
+assign v1232 = v1222;
+assign v1233 = v1224;
+assign v1234 = v1226;
+assign t__r0__next = v1227;
+assign t__r1__next = v1228;
+assign t__r2__next = v1229;
+assign t__r3__next = v1230;
+assign u__r0__next = v1231;
+assign u__r1__next = v1232;
+assign u__r2__next = v1233;
+assign u__r3__next = v1234;
 assign halted = state__halted;
 assign pc = state__pc;
 assign stage = state__stage;

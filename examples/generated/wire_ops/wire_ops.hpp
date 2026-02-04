@@ -22,15 +22,18 @@ struct WireOps {
   pyc::cpp::Wire<8> v6{};
   pyc::cpp::Wire<8> v7{};
   pyc::cpp::Wire<8> v8{};
-  pyc::cpp::Wire<8> y__wire_ops__L13{};
-  pyc::cpp::Wire<1> en__wire_ops__L15{};
+  pyc::cpp::Wire<8> COMB__y__wire_ops__L14{};
+  pyc::cpp::Wire<1> en__wire_ops__L16{};
+  pyc::cpp::Wire<8> y_reg__next{};
   pyc::cpp::Wire<8> v9{};
-  pyc::cpp::Wire<8> r__wire_ops__L16{};
+  pyc::cpp::Wire<8> y_reg{};
+  pyc::cpp::Wire<8> r__wire_ops__L17{};
+  pyc::cpp::Wire<8> v10{};
 
   pyc::cpp::pyc_reg<8> v9_inst;
 
   WireOps() :
-      v9_inst(sys_clk, sys_rst, en__wire_ops__L15, y__wire_ops__L13, v3, v9) {
+      v9_inst(sys_clk, sys_rst, v4, y_reg__next, v3, v9) {
     eval();
   }
 
@@ -54,14 +57,17 @@ struct WireOps {
     b__wire_ops__L10 = b;
     sel__wire_ops__L11 = sel;
     eval_comb_1();
-    y__wire_ops__L13 = v8;
-    en__wire_ops__L15 = v4;
-    r__wire_ops__L16 = v9;
+    COMB__y__wire_ops__L14 = v8;
+    en__wire_ops__L16 = v4;
+    y_reg = v9;
+    r__wire_ops__L17 = y_reg;
+    v10 = (en__wire_ops__L16.toBool() ? COMB__y__wire_ops__L14 : r__wire_ops__L17);
+    y_reg__next = v10;
   }
 
   void eval() {
     eval_comb_pass();
-    y = r__wire_ops__L16;
+    y = r__wire_ops__L17;
   }
 
   void tick() {
