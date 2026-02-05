@@ -2774,3 +2774,6 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     rdata = addr_match.select(result_regs[255].out().zext(width=64), rdata)
 
     m.output("mem_rdata", rdata)
+
+
+build.__pycircuit_name__ = "cube"
