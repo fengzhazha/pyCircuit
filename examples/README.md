@@ -28,6 +28,14 @@ bash update_generated.sh          # examples only
 (cd .. && scripts/pyc regen)      # all goldens (examples + janus)
 ```
 
+### FastFwd (exam-style top)
+
+`examples/generated/fastfwd_pyc/` includes:
+
+- `fastfwd_pyc.v`: `FastFwd` core netlist (has FEIN/FEOUT ports)
+- `exam2021_top.v`: `EXAM2021_TOP` wrapper that instantiates `FE` internally and exposes only PKTIN/PKTOUT/BKPR
+- `fe.v`: a small FE stub model (replace with the official exam `fe.v` / `fe.v.e` RTL when integrating)
+
 ## Debug traces
 
 - C++ CPU TB (`examples/linx_cpu_pyc/tb_linx_cpu_pyc.cpp`):
