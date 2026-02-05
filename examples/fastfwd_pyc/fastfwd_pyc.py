@@ -5,12 +5,8 @@ from dataclasses import dataclass
 from pycircuit import Circuit, Queue, Reg, Wire, cat
 
 
-def _is_pow2(x: int) -> bool:
-    return x > 0 and (x & (x - 1)) == 0
-
-
 @dataclass(frozen=True)
-class _Wheel:
+class _Pipe:
     valid: list[Reg]
     seq: list[Reg]
 
@@ -26,57 +22,6 @@ class _Hist:
     valid: list[Reg]
     seq: list[Reg]
     data: list[Reg]
-
-
-def _wheel_read(valid: list[Reg], seq: list[Reg], *, idx: Wire, zero_seq: Wire) -> tuple[Wire, Wire]:
-    """Read (valid, seq) at dynamic `idx` from a small power-of-two wheel."""
-    if not valid:
-        raise ValueError("wheel cannot be empty")
-    if len(valid) != len(seq):
-        raise ValueError("wheel valid/seq size mismatch")
-
-    m = valid[0].q.m  # type: ignore[assignment]
-    out_v = m.const_wire(0, width=1)
-    out_s = zero_seq
-    for s in range(len(valid)):
-        is_s = idx.eq(s)
-        out_v = is_s.select(valid[s].out(), out_v)
-        out_s = is_s.select(seq[s].out(), out_s)
-    return out_v, out_s
-
-
-def _wheel_slot_busy(valid: list[Reg], *, idx: Wire) -> Wire:
-    m = valid[0].q.m  # type: ignore[assignment]
-    busy = m.const_wire(0, width=1)
-    for s in range(len(valid)):
-        busy = busy | (idx.eq(s) & valid[s].out())
-    return busy
-
-
-def _wheel_update(
-    valid: list[Reg],
-    seq: list[Reg],
-    *,
-    set_en: Wire,
-    set_idx: Wire,
-    set_seq: Wire,
-    clear_en: Wire,
-    clear_idx: Wire,
-) -> None:
-    """Update a wheel with one optional set and one optional clear (different slots)."""
-    m = valid[0].q.m  # type: ignore[assignment]
-    for s in range(len(valid)):
-        v_cur = valid[s].out()
-        s_cur = seq[s].out()
-
-        do_clear = clear_en & clear_idx.eq(s)
-        do_set = set_en & set_idx.eq(s)
-
-        v_next = do_set.select(m.const_wire(1, width=1), do_clear.select(m.const_wire(0, width=1), v_cur))
-        s_next = do_set.select(set_seq, s_cur)
-
-        valid[s].set(v_next)
-        seq[s].set(s_next)
 
 
 def _rob_update(
@@ -219,12 +164,13 @@ def _hist_shift_insert(hist: _Hist, *, k: Wire, seqs: list[Wire], datas: list[Wi
 def _build_fastfwd(
     m: Circuit,
     ENG_PER_LANE: int = 2,
-    LANE_Q_DEPTH: int = 32,
-    ENG_Q_DEPTH: int = 8,
+    LANE_Q_DEPTH: int = 16,
+    ENG_Q_DEPTH: int = 4,
     ROB_DEPTH: int = 16,
     SEQ_W: int = 16,
-    WHEEL: int = 8,
     HIST_DEPTH: int = 8,
+    STASH_WIN: int = 6,
+    BKPR_SLACK: int = 1,
 ) -> None:
     # ---- parameters (JIT-time) ----
     eng_per_lane = int(ENG_PER_LANE)
@@ -238,23 +184,26 @@ def _build_fastfwd(
     eng_q_depth = int(ENG_Q_DEPTH)
     rob_depth = int(ROB_DEPTH)
     seq_w = int(SEQ_W)
-    wheel = int(WHEEL)
     hist_depth = int(HIST_DEPTH)
+    stash_win = int(STASH_WIN)
+    bkpr_slack = int(BKPR_SLACK)
 
     if lane_q_depth <= 0 or eng_q_depth <= 0 or rob_depth <= 0:
         raise ValueError("queue/rob depths must be > 0")
     if seq_w <= 1:
         raise ValueError("SEQ_W must be > 1")
-    if wheel <= 0 or not _is_pow2(wheel):
-        raise ValueError("WHEEL must be a power-of-two > 0")
-    if wheel < 8:
-        raise ValueError("WHEEL must be >= 8 (latency 1..4 + JIT scheduling margin)")
     if hist_depth < 8:
         raise ValueError("HIST_DEPTH must be >= 8 (dependency window <= 7)")
+    if stash_win < 0:
+        raise ValueError("STASH_WIN must be >= 0")
+    if bkpr_slack <= 0:
+        raise ValueError("BKPR_SLACK must be > 0")
+    if bkpr_slack > lane_q_depth:
+        raise ValueError("BKPR_SLACK must be <= LANE_Q_DEPTH")
 
-    wheel_bits = (wheel - 1).bit_length()
     bundle_w = seq_w + 128 + 5
     comp_w = seq_w + 128
+    pipe_depth = 5
 
     # ---- ports ----
     clk = m.clock("clk")
@@ -277,8 +226,6 @@ def _build_fastfwd(
     with m.scope("TIME"):
         cycle = m.out("cycle", clk=clk, rst=rst, width=16, init=0)
         cycle.set(cycle.out() + 1)
-        cycle_mod = cycle.out()[0:wheel_bits]
-
         seq_alloc = m.out("seq_alloc", clk=clk, rst=rst, width=seq_w, init=0)
 
     commit_lane = m.out("commit_lane", clk=clk, rst=rst, width=2, init=0)
@@ -291,13 +238,24 @@ def _build_fastfwd(
     for lane in range(4):
         issue_q.append(m.queue(f"lane{lane}__issue_q", clk=clk, rst=rst, width=bundle_w, depth=lane_q_depth))
 
-    # ---- per-engine wheels + completion queues ----
-    wheels: list[_Wheel] = []
+    # ---- per-lane issue stash (bypass window) ----
+    stash_v: list[list[Reg]] = []
+    stash_b: list[list[Reg]] = []
+    for lane in range(4):
+        stash_v.append(
+            [m.out(f"lane{lane}__stash_v{i}", clk=clk, rst=rst, width=1, init=0) for i in range(stash_win)]
+        )
+        stash_b.append(
+            [m.out(f"lane{lane}__stash_b{i}", clk=clk, rst=rst, width=bundle_w, init=0) for i in range(stash_win)]
+        )
+
+    # ---- per-engine pipelines + completion queues ----
+    pipes: list[_Pipe] = []
     comp_q: list[Queue] = []
     for e in range(total_eng):
-        wv = [m.out(f"eng{e}__wheel_v{s}", clk=clk, rst=rst, width=1, init=0) for s in range(wheel)]
-        ws = [m.out(f"eng{e}__wheel_seq{s}", clk=clk, rst=rst, width=seq_w, init=0) for s in range(wheel)]
-        wheels.append(_Wheel(valid=wv, seq=ws))
+        pv = [m.out(f"eng{e}__pipe_v{i}", clk=clk, rst=rst, width=1, init=0) for i in range(pipe_depth)]
+        ps = [m.out(f"eng{e}__pipe_seq{i}", clk=clk, rst=rst, width=seq_w, init=0) for i in range(pipe_depth)]
+        pipes.append(_Pipe(valid=pv, seq=ps))
         comp_q.append(m.queue(f"eng{e}__comp_q", clk=clk, rst=rst, width=comp_w, depth=eng_q_depth))
 
     # ---- per-lane ROBs ----
@@ -363,13 +321,26 @@ def _build_fastfwd(
 
         # Per-lane dispatch signals.
         lane_pop = [m.const_wire(0, width=1) for _ in range(4)]
-        lane_pop_seq = [m.const_wire(0, width=seq_w) for _ in range(4)]
-        lane_pop_data = [m.const_wire(0, width=128) for _ in range(4)]
-        lane_pop_lat = [m.const_wire(0, width=2) for _ in range(4)]
-        lane_pop_dp = [m.const_wire(0, width=3) for _ in range(4)]
 
-        # Dependency lookup helpers (history + ROBs).
+        # Dependency lookup helpers (FEOUT bypass + completion queues + ROBs + history).
         def dep_lookup(dep_seq: Wire) -> tuple[Wire, Wire]:
+            found_fe = m.const_wire(0, width=1)
+            data_fe = m.const_wire(0, width=128)
+            for e in range(total_eng):
+                match = pipes[e].valid[0].out() & fwded_vld[e] & pipes[e].seq[0].out().eq(dep_seq)
+                found_fe = found_fe | match
+                data_fe = match.select(fwded_data[e], data_fe)
+
+            found_cq = m.const_wire(0, width=1)
+            data_cq = m.const_wire(0, width=128)
+            for e in range(total_eng):
+                vb = comp_q[e].out_valid
+                db = comp_q[e].out_data
+                seq_c = db[128 : 128 + seq_w]
+                match = vb & seq_c.eq(dep_seq)
+                found_cq = found_cq | match
+                data_cq = match.select(db[0:128], data_cq)
+
             found_h = m.const_wire(0, width=1)
             data_h = m.const_wire(0, width=128)
             for i in range(hist_depth):
@@ -388,92 +359,187 @@ def _build_fastfwd(
                     found_r = found_r | match
                     data_r = match.select(robs[lane].data[s].out(), data_r)
 
-            found = found_r | found_h
-            data = found_r.select(data_r, data_h)
+            found = found_fe | found_cq | found_r | found_h
+            data = found_fe.select(data_fe, found_cq.select(data_cq, found_r.select(data_r, data_h)))
             return found, data
 
         # Compute dispatch for each lane independently (one issue per lane per cycle).
         dispatch_fire_eng = [m.const_wire(0, width=1) for _ in range(total_eng)]
-        dispatch_slot_eng = [m.const_wire(0, width=wheel_bits) for _ in range(total_eng)]
         dispatch_seq_eng = [m.const_wire(0, width=seq_w) for _ in range(total_eng)]
 
         for lane in range(4):
+            eng_base = lane * eng_per_lane
+
+            c0 = m.const_wire(0, width=1)
+            c1 = m.const_wire(1, width=1)
+
+            def eng_free(e: int, lat: Wire) -> Wire:
+                """True when engine `e` can accept a dispatch with `lat` this cycle.
+
+                We insert into stage (1+lat) *after* the posedge shift, so the
+                collision check must look at stage (2+lat) in the current state.
+                """
+                busy = lat.eq(0).select(pipes[e].valid[2].out(), c0)
+                busy = lat.eq(1).select(pipes[e].valid[3].out(), busy)
+                busy = lat.eq(2).select(pipes[e].valid[4].out(), busy)
+                busy = lat.eq(3).select(c0, busy)  # stage5 doesn't exist => always free
+                return ~busy
+
+            # ---- queue head candidate ----
             qv = issue_q[lane].out_valid
             qb = issue_q[lane].out_data
 
-            ctrl = qb[0:5]
-            data_i = qb[5:133]
-            seq_i = qb[133 : 133 + seq_w]
+            q_ctrl = qb[0:5]
+            q_data = qb[5:133]
+            q_seq = qb[133 : 133 + seq_w]
+            q_lat = q_ctrl[0:2]
+            q_dp = q_ctrl[2:5]
 
-            lat = ctrl[0:2]
-            dp = ctrl[2:5]
+            q_dp_present = ~q_dp.eq(0)
+            q_dep_seq = q_seq - q_dp.zext(width=seq_w)
+            q_dep_found, q_dep_data = dep_lookup(q_dep_seq)
+            q_dep_ok = (~q_dp_present) | q_dep_found
 
-            lane_pop_seq[lane] = seq_i
-            lane_pop_data[lane] = data_i
-            lane_pop_lat[lane] = lat
-            lane_pop_dp[lane] = dp
-
-            dp_present = ~dp.eq(0)
-            dep_seq = seq_i - dp.zext(width=seq_w)
-            dep_found, dep_data = dep_lookup(dep_seq)
-            dep_ok = (~dp_present) | dep_found
-
-            # Completion slot (cycle + 1 + latencyCycles).
-            lat3 = lat.zext(width=wheel_bits)
-            slot = cycle_mod + lat3 + m.const_wire(2, width=wheel_bits)
-
-            # Pick an engine in this lane's pool with a free slot.
-            eng_base = lane * eng_per_lane
-            chosen = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
-            any_free = m.const_wire(0, width=1)
+            q_chosen = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+            q_any_free = m.const_wire(0, width=1)
             for k in range(eng_per_lane):
                 e = eng_base + k
-                busy = _wheel_slot_busy(wheels[e].valid, idx=slot)
-                free = ~busy
-                take = free & ~any_free
-                any_free = any_free | free
-                chosen[k] = take
+                free = eng_free(e, q_lat)
+                take = free & ~q_any_free
+                q_any_free = q_any_free | free
+                q_chosen[k] = take
 
-            dispatch_ok = dep_ok & any_free
-            pop = issue_q[lane].pop(when=dispatch_ok)
-            lane_pop[lane] = pop.fire
+            q_can = qv & q_dep_ok & q_any_free
+            q_delta = (q_seq - exp_seq[lane].out()) >> 2
 
-            # Drive FE signals for the chosen engine.
+            # ---- choose best candidate among stash window + queue head ----
+            best_v = m.const_wire(0, width=1)
+            best_delta = m.const_wire(0, width=seq_w)
+            best_is_q = m.const_wire(0, width=1)
+            best_stash_sel = [m.const_wire(0, width=1) for _ in range(stash_win)]
+
+            best_seq = m.const_wire(0, width=seq_w)
+            best_data = m.const_wire(0, width=128)
+            best_lat = m.const_wire(0, width=2)
+            best_dp_present = m.const_wire(0, width=1)
+            best_dep_data = m.const_wire(0, width=128)
+            best_eng_sel = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+
+            for s in range(stash_win):
+                sv = stash_v[lane][s].out()
+                sb = stash_b[lane][s].out()
+
+                ctrl = sb[0:5]
+                data_i = sb[5:133]
+                seq_i = sb[133 : 133 + seq_w]
+                lat = ctrl[0:2]
+                dp = ctrl[2:5]
+
+                dp_present = ~dp.eq(0)
+                dep_seq = seq_i - dp.zext(width=seq_w)
+                dep_found, dep_data = dep_lookup(dep_seq)
+                dep_ok = (~dp_present) | dep_found
+
+                chosen = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+                any_free = m.const_wire(0, width=1)
+                for k in range(eng_per_lane):
+                    e = eng_base + k
+                    free = eng_free(e, lat)
+                    take = free & ~any_free
+                    any_free = any_free | free
+                    chosen[k] = take
+
+                can = sv & dep_ok & any_free
+                delta = (seq_i - exp_seq[lane].out()) >> 2
+
+                better = can & (~best_v | delta.ult(best_delta))
+                best_v = best_v | better
+                best_delta = better.select(delta, best_delta)
+                best_is_q = better.select(c0, best_is_q)
+                for j in range(stash_win):
+                    best_stash_sel[j] = better.select(c1 if j == s else c0, best_stash_sel[j])
+
+                best_seq = better.select(seq_i, best_seq)
+                best_data = better.select(data_i, best_data)
+                best_lat = better.select(lat, best_lat)
+                best_dp_present = better.select(dp_present, best_dp_present)
+                best_dep_data = better.select(dep_data, best_dep_data)
+                for k in range(eng_per_lane):
+                    best_eng_sel[k] = better.select(chosen[k], best_eng_sel[k])
+
+            better_q = q_can & (~best_v | q_delta.ult(best_delta))
+            best_v = best_v | better_q
+            best_delta = better_q.select(q_delta, best_delta)
+            best_is_q = better_q.select(c1, best_is_q)
+            for j in range(stash_win):
+                best_stash_sel[j] = better_q.select(c0, best_stash_sel[j])
+
+            best_seq = better_q.select(q_seq, best_seq)
+            best_data = better_q.select(q_data, best_data)
+            best_lat = better_q.select(q_lat, best_lat)
+            best_dp_present = better_q.select(q_dp_present, best_dp_present)
+            best_dep_data = better_q.select(q_dep_data, best_dep_data)
+            for k in range(eng_per_lane):
+                best_eng_sel[k] = better_q.select(q_chosen[k], best_eng_sel[k])
+
+            # ---- drive FE signals for the selected candidate ----
             for k in range(eng_per_lane):
                 e = eng_base + k
-                fire_e = pop.fire & chosen[k]
+                fire_e = best_v & best_eng_sel[k]
                 dispatch_fire_eng[e] = fire_e
-                dispatch_slot_eng[e] = slot
-                dispatch_seq_eng[e] = seq_i
+                dispatch_seq_eng[e] = best_seq
 
                 fwd_vld[e] = fire_e
-                fwd_data[e] = data_i
-                fwd_lat[e] = lat
-                fwd_dp_vld[e] = dp_present
-                fwd_dp_data[e] = dep_data
+                fwd_data[e] = best_data
+                fwd_lat[e] = best_lat
+                fwd_dp_vld[e] = fire_e & best_dp_present
+                fwd_dp_data[e] = best_dep_data
 
-    # ---- completions (FEOUT -> per-engine completion queue) ----
-    with m.scope("COMPLETE"):
-        zero_seq = m.const_wire(0, width=seq_w)
-        for e in range(total_eng):
-            wv_cur, ws_cur = _wheel_read(wheels[e].valid, wheels[e].seq, idx=cycle_mod, zero_seq=zero_seq)
-            comp_v = wv_cur & fwded_vld[e]
-            comp_bus = cat(ws_cur, fwded_data[e])
-            fire = comp_q[e].push(comp_bus, when=comp_v)
+            # ---- update stash and issue_q pop for this lane ----
+            stash_v_mid = [stash_v[lane][s].out() & ~best_stash_sel[s] for s in range(stash_win)]
+            stash_free = m.const_wire(0, width=1)
+            for s in range(stash_win):
+                stash_free = stash_free | ~stash_v_mid[s]
 
-            # Clear wheel slot only when we successfully capture the completion.
-            _wheel_update(
-                wheels[e].valid,
-                wheels[e].seq,
-                set_en=dispatch_fire_eng[e],
-                set_idx=dispatch_slot_eng[e],
-                set_seq=dispatch_seq_eng[e],
-                clear_en=fire,
-                clear_idx=cycle_mod,
-            )
+            q_pop_dispatch = best_v & best_is_q
+            q_stash_pop = qv & ~q_can & stash_free
+            q_pop = issue_q[lane].pop(when=q_pop_dispatch | q_stash_pop)
+            lane_pop[lane] = q_pop.fire
 
-    # ---- merge completions into per-lane ROBs (<=1 per lane per cycle) ----
+            # Insert stashed head when we pop the issue queue in stash mode.
+            stash_in_fire = q_stash_pop
+            stash_in_bundle = q_pop.data
+
+            stash_ins_sel = [m.const_wire(0, width=1) for _ in range(stash_win)]
+            any_free = m.const_wire(0, width=1)
+            for s in range(stash_win):
+                free = ~stash_v_mid[s]
+                take = free & ~any_free
+                any_free = any_free | free
+                stash_ins_sel[s] = take
+
+            for s in range(stash_win):
+                do_push = stash_in_fire & stash_ins_sel[s]
+                v_next = do_push.select(c1, stash_v_mid[s])
+                b_next = do_push.select(stash_in_bundle, stash_b[lane][s].out())
+                stash_v[lane][s].set(v_next)
+                stash_b[lane][s].set(b_next)
+
+    # ---- select completions into per-lane ROBs (<=1 per lane per cycle) ----
     with m.scope("ROB"):
+        comp_now_v = [m.const_wire(0, width=1) for _ in range(total_eng)]
+        comp_now_seq = [m.const_wire(0, width=seq_w) for _ in range(total_eng)]
+        comp_now_data = [m.const_wire(0, width=128) for _ in range(total_eng)]
+        comp_now_bus = [m.const_wire(0, width=comp_w) for _ in range(total_eng)]
+
+        for e in range(total_eng):
+            comp_now_v[e] = pipes[e].valid[0].out() & fwded_vld[e]
+            comp_now_seq[e] = pipes[e].seq[0].out()
+            comp_now_data[e] = fwded_data[e]
+            comp_now_bus[e] = cat(comp_now_seq[e], fwded_data[e])
+
+        direct_take_eng = [m.const_wire(0, width=1) for _ in range(total_eng)]
+
         ins_fire_lane = [m.const_wire(0, width=1) for _ in range(4)]
         ins_seq_lane = [m.const_wire(0, width=seq_w) for _ in range(4)]
         ins_data_lane = [m.const_wire(0, width=128) for _ in range(4)]
@@ -481,29 +547,94 @@ def _build_fastfwd(
         for lane in range(4):
             eng_base = lane * eng_per_lane
 
-            take = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
-            any_take = m.const_wire(0, width=1)
-            sel_bus = m.const_wire(0, width=comp_w)
+            c0 = m.const_wire(0, width=1)
+            c1 = m.const_wire(1, width=1)
+
+            best_v = m.const_wire(0, width=1)
+            best_delta = m.const_wire(0, width=seq_w)
+            best_seq = m.const_wire(0, width=seq_w)
+            best_data = m.const_wire(0, width=128)
+            best_sel_direct = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
+            best_sel_buf = [m.const_wire(0, width=1) for _ in range(eng_per_lane)]
 
             for k in range(eng_per_lane):
                 e = eng_base + k
+
+                # Direct completion (current cycle) candidate.
+                seq_d = comp_now_seq[e]
+                delta_d = (seq_d - exp_seq[lane].out()) >> 2
+                in_range_d = delta_d.ult(rob_depth)
+                cand_d = comp_now_v[e] & in_range_d
+                better_d = cand_d & (~best_v | delta_d.ult(best_delta))
+                best_v = best_v | better_d
+                best_delta = better_d.select(delta_d, best_delta)
+                best_seq = better_d.select(seq_d, best_seq)
+                best_data = better_d.select(comp_now_data[e], best_data)
+                for j in range(eng_per_lane):
+                    best_sel_direct[j] = better_d.select(c1 if j == k else c0, best_sel_direct[j])
+                    best_sel_buf[j] = better_d.select(c0, best_sel_buf[j])
+
+                # Buffered completion (comp_q head) candidate.
                 vb = comp_q[e].out_valid
                 db = comp_q[e].out_data
-                seq_c = db[128 : 128 + seq_w]
-                delta = (seq_c - exp_seq[lane].out()) >> 2
-                in_range = delta.ult(rob_depth)
-                cand = vb & in_range & ~any_take
-                take[k] = cand
-                any_take = any_take | cand
-                sel_bus = cand.select(db, sel_bus)
+                seq_b = db[128 : 128 + seq_w]
+                delta_b = (seq_b - exp_seq[lane].out()) >> 2
+                in_range_b = delta_b.ult(rob_depth)
+                cand_b = vb & in_range_b
+                better_b = cand_b & (~best_v | delta_b.ult(best_delta))
+                best_v = best_v | better_b
+                best_delta = better_b.select(delta_b, best_delta)
+                best_seq = better_b.select(seq_b, best_seq)
+                best_data = better_b.select(db[0:128], best_data)
+                for j in range(eng_per_lane):
+                    best_sel_direct[j] = better_b.select(c0, best_sel_direct[j])
+                    best_sel_buf[j] = better_b.select(c1 if j == k else c0, best_sel_buf[j])
 
             for k in range(eng_per_lane):
                 e = eng_base + k
-                comp_q[e].pop(when=take[k])
+                comp_q[e].pop(when=best_sel_buf[k])
+                direct_take_eng[e] = best_sel_direct[k]
 
-            ins_fire_lane[lane] = any_take
-            ins_seq_lane[lane] = sel_bus[128 : 128 + seq_w]
-            ins_data_lane[lane] = sel_bus[0:128]
+            ins_fire_lane[lane] = best_v
+            ins_seq_lane[lane] = best_seq
+            ins_data_lane[lane] = best_data
+
+    # ---- completions (FEOUT -> per-engine completion queue) + pipeline update ----
+    with m.scope("COMPLETE"):
+        c0 = m.const_wire(0, width=1)
+        c1 = m.const_wire(1, width=1)
+        zero_seq = m.const_wire(0, width=seq_w)
+
+        for e in range(total_eng):
+            do_buf = comp_now_v[e] & ~direct_take_eng[e]
+            comp_q[e].push(comp_now_bus[e], when=do_buf)
+
+            fire = dispatch_fire_eng[e]
+            lat = fwd_lat[e]
+            seq_in = dispatch_seq_eng[e]
+
+            # Shift pipeline stages (stage0 drops each cycle) then insert into stage (1+lat).
+            for i in range(pipe_depth):
+                if i + 1 < pipe_depth:
+                    v_next = pipes[e].valid[i + 1].out()
+                    s_next = pipes[e].seq[i + 1].out()
+                else:
+                    v_next = c0
+                    s_next = zero_seq
+
+                if i == 1:
+                    do_set = fire & lat.eq(0)
+                elif i == 2:
+                    do_set = fire & lat.eq(1)
+                elif i == 3:
+                    do_set = fire & lat.eq(2)
+                elif i == 4:
+                    do_set = fire & lat.eq(3)
+                else:
+                    do_set = c0
+
+                pipes[e].valid[i].set(do_set.select(c1, v_next))
+                pipes[e].seq[i].set(do_set.select(seq_in, s_next))
 
     # ---- commit (ROB -> PKTOUT) + history ----
     with m.scope("COMMIT"):
@@ -622,8 +753,8 @@ def _build_fastfwd(
             cnt_next = shadow_cnt[lane].out() + push_i - pop_i
             shadow_cnt[lane].set(cnt_next)
 
-            # Assert when count is close to full (leave 2 entries of slack).
-            near_full = cnt_next.uge(lane_q_depth - 2)
+            # Assert when count is close to full (leave slack for registered BKPR).
+            near_full = cnt_next.uge(lane_q_depth - bkpr_slack)
             bkpr_next = bkpr_next | near_full
         bkpr_r.set(bkpr_next)
 
@@ -643,13 +774,15 @@ def _build_fastfwd(
 
 def build(
     m: Circuit,
+    # Defaults tuned via `tools/dse_fastfwd_pyc.sh` for balanced throughput/area.
     ENG_PER_LANE: int = 2,
-    LANE_Q_DEPTH: int = 32,
-    ENG_Q_DEPTH: int = 8,
+    LANE_Q_DEPTH: int = 16,
+    ENG_Q_DEPTH: int = 4,
     ROB_DEPTH: int = 16,
     SEQ_W: int = 16,
-    WHEEL: int = 8,
     HIST_DEPTH: int = 8,
+    STASH_WIN: int = 6,
+    BKPR_SLACK: int = 1,
 ) -> None:
     # Wrapper kept tiny so the AST/JIT compiler executes the implementation as Python.
     _build_fastfwd(
@@ -659,8 +792,9 @@ def build(
         ENG_Q_DEPTH=ENG_Q_DEPTH,
         ROB_DEPTH=ROB_DEPTH,
         SEQ_W=SEQ_W,
-        WHEEL=WHEEL,
         HIST_DEPTH=HIST_DEPTH,
+        STASH_WIN=STASH_WIN,
+        BKPR_SLACK=BKPR_SLACK,
     )
 
 

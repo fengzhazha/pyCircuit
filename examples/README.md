@@ -37,6 +37,7 @@ bash update_generated.sh          # examples only
 - C++ FastFwd TB (`examples/fastfwd_pyc/tb_fastfwd_pyc.cpp`):
   - `PYC_TRACE=1` writes a text log under `examples/generated/fastfwd_pyc/`.
   - `PYC_VCD=1` writes a VCD waveform under `examples/generated/fastfwd_pyc/`.
+  - `PYC_KONATA=1` writes a Kanata trace (`*.kanata`) under `examples/generated/fastfwd_pyc/` for viewing in Konata.
   - Optional: set `PYC_TRACE_DIR=/path/to/dir` to override the output directory.
 - C++ FIFO TB (`examples/cpp/tb_fifo.cpp`) and issue-queue TB (`examples/cpp/tb_issue_queue_2picker.cpp`):
   - Write `*.log` and `*.vcd` under `examples/generated/tb_fifo/` and `examples/generated/tb_issue_queue_2picker/`.
