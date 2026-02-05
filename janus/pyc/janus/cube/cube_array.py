@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pycircuit import Circuit, Wire
 
-from examples.linx_cpu_pyc.cube.cube_pe import build_pe
-from examples.linx_cpu_pyc.cube.cube_types import PERegs
+from janus.cube.cube_pe import build_pe
+from janus.cube.cube_types import PERegs
 
 
 def build_array(

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pycircuit import Circuit, Wire
 
-from examples.linx_cpu_pyc.cube.cube_consts import ST_COMPUTE, ST_DONE, ST_DRAIN, ST_IDLE, ST_LOAD_WEIGHTS
-from examples.linx_cpu_pyc.cube.cube_types import CubeState
+from janus.cube.cube_consts import ST_COMPUTE, ST_DONE, ST_DRAIN, ST_IDLE, ST_LOAD_WEIGHTS
+from janus.cube.cube_types import CubeState
 
 
 def build_control(

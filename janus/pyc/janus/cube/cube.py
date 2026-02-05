@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pycircuit import Circuit
 
-from examples.linx_cpu_pyc.cube.cube_array import build_array
-from examples.linx_cpu_pyc.cube.cube_buffer import build_buffers
-from examples.linx_cpu_pyc.cube.cube_consts import ST_COMPUTE, ST_DONE, ST_DRAIN, ST_IDLE, ST_LOAD_WEIGHTS
-from examples.linx_cpu_pyc.cube.cube_types import CubeState, PERegs
+from janus.cube.cube_array import build_array
+from janus.cube.cube_buffer import build_buffers
+from janus.cube.cube_consts import ST_COMPUTE, ST_DONE, ST_DRAIN, ST_IDLE, ST_LOAD_WEIGHTS
+from janus.cube.cube_types import CubeState, PERegs
 
 
 def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:

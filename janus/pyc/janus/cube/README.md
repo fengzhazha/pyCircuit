@@ -95,7 +95,7 @@ cube/
 
 ```python
 from pycircuit import Circuit
-from examples.linx_cpu_pyc.cube.cube import build
+from janus.cube.cube import build
 
 m = Circuit()
 build(m, base_addr=0x80000000)
@@ -104,11 +104,11 @@ build(m, base_addr=0x80000000)
 ### Emitting MLIR
 
 ```bash
-PYTHONPATH=binding/python python3 -c "
+PYTHONPATH="binding/python:janus/pyc" python3 -c "
 import sys
 sys.path.insert(0, 'binding/python')
 from pycircuit.cli import main
-sys.argv = ['pycircuit', 'emit', 'examples/linx_cpu_pyc/cube/cube.py', '-o', '/tmp/cube.pyc']
+sys.argv = ['pycircuit', 'emit', 'janus/pyc/janus/cube/cube.py', '-o', '/tmp/cube.pyc']
 main()
 "
 ```
@@ -201,9 +201,9 @@ C = [[c00, c01, ..., c0F],
 
 ## References
 
-- [pyCircuit Documentation](../../docs/USAGE.md)
+- [pyCircuit Documentation](../../../../docs/USAGE.md)
 - [Systolic Array Architecture](https://en.wikipedia.org/wiki/Systolic_array)
-- [LinxISA CPU](../linx_cpu_pyc.py)
+- [Janus BCC CPU](../bcc/janus_bcc_pyc.py)
 
 ## License
 
