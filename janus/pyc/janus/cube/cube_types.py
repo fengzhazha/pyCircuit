@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pycircuit import Reg
+from pycircuit import Reg, Wire
 
 
 @dataclass(frozen=True)
@@ -17,3 +17,16 @@ class CubeState:
 class PERegs:
     weight: Reg  # Weight value (16-bit)
     acc: Reg  # Accumulator (32-bit for 16-bit inputs)
+
+
+@dataclass(frozen=True)
+class MmioWriteResult:
+    start: Wire
+    reset_cube: Wire
+
+
+@dataclass(frozen=True)
+class FsmResult:
+    load_weight: Wire
+    compute: Wire
+    done: Wire

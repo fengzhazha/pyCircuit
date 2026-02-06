@@ -54,7 +54,7 @@ Base address: `0x80000000` (configurable)
 |--------------|------|-------------|
 | `0x00` | 8 bytes | Control register (start, reset) |
 | `0x08` | 8 bytes | Status register (done, busy) |
-| `0x10 - 0x20F` | 512 bytes | Matrix A (activations): 16×16 × 16-bit |
+| `0x10 - 0x2F` | 32 bytes | Matrix A (activations): 16 × 16-bit |
 | `0x210 - 0x40F` | 512 bytes | Matrix W (weights): 16×16 × 16-bit |
 | `0x410 - 0x80F` | 1024 bytes | Matrix C (results): 16×16 × 32-bit |
 
@@ -64,7 +64,7 @@ Base address: `0x80000000` (configurable)
 |-----|------|-------------|
 | 0 | START | Start computation (write 1) |
 | 1 | RESET | Reset accelerator (write 1) |
-| 2-7 | Reserved | - |
+| 2-63 | Reserved | - |
 
 ### Status Register (0x08)
 
@@ -72,7 +72,7 @@ Base address: `0x80000000` (configurable)
 |-----|------|-------------|
 | 0 | DONE | Computation complete (read-only) |
 | 1 | BUSY | Accelerator busy (read-only) |
-| 2-7 | Reserved | - |
+| 2-63 | Reserved | - |
 
 ## File Structure
 
@@ -80,43 +80,54 @@ Base address: `0x80000000` (configurable)
 cube/
 ├── __init__.py          # Package marker
 ├── cube.py              # Top-level module (main build function)
-├── cube_types.py        # Dataclasses for register groups
-├── cube_consts.py       # Constants (states, addresses)
-├── cube_pe.py           # Processing Element implementation
-├── cube_array.py        # 16×16 systolic array instantiation
-├── cube_control.py      # Control FSM (not used, logic inlined in cube.py)
-├── cube_buffer.py       # Input/output buffer management
+├── cube_types.py        # Dataclasses (CubeState, PERegs, FsmResult, MmioWriteResult)
+├── cube_consts.py       # Constants (states, addresses, array size)
+├── util.py              # Utility functions (Consts dataclass)
 └── README.md            # This file
 ```
 
+### Key Components in cube.py
+
+| Function | Decorator | Description |
+|----------|-----------|-------------|
+| `_make_pe_regs` | - | Create 16×16 PE register array |
+| `_make_result_regs` | - | Create 256 result registers |
+| `_make_weight_regs` | - | Create 256 weight registers |
+| `_make_activation_regs` | - | Create 16 activation registers |
+| `_build_pe` | `@jit_inline` | Build single PE (MAC operation) |
+| `_build_array` | - | Build 16×16 systolic array |
+| `_build_fsm` | `@jit_inline` | Build control FSM |
+| `_build_mmio_read` | - | Build MMIO read logic |
+| `_build_mmio_write` | - | Build MMIO write logic |
+| `build` | - | Top-level build function |
+
 ## Usage
 
-### Building the Module
-
-```python
-from pycircuit import Circuit
-from janus.cube.cube import build
-
-m = Circuit()
-build(m, base_addr=0x80000000)
-```
-
-### Emitting MLIR
+### Generating Outputs
 
 ```bash
-PYTHONPATH="binding/python:janus/pyc" python3 -c "
-import sys
-sys.path.insert(0, 'binding/python')
-from pycircuit.cli import main
-sys.argv = ['pycircuit', 'emit', 'janus/pyc/janus/cube/cube.py', '-o', '/tmp/cube.pyc']
-main()
-"
+# Generate Verilog and C++ from Python
+bash janus/update_generated.sh
+```
+
+This produces:
+- `janus/generated/janus_cube_pyc/janus_cube_pyc.v` - Verilog RTL
+- `janus/generated/janus_cube_pyc/janus_cube_pyc_gen.hpp` - C++ simulation header
+
+### Running Tests
+
+```bash
+# Run C++ testbench
+bash janus/tools/run_janus_cube_pyc_cpp.sh
+
+# With tracing enabled
+PYC_TRACE=1 PYC_VCD=1 bash janus/tools/run_janus_cube_pyc_cpp.sh
 ```
 
 ### Operation Sequence
 
 1. **Write weights** to addresses `0x210 - 0x40F` (256 × 16-bit values)
-2. **Write activations** to addresses `0x10 - 0x20F` (256 × 16-bit values)
+2. **Write activations** to addresses `0x10 - 0x2F` (16 × 16-bit values)
 3. **Start computation** by writing `0x01` to control register at `0x00`
 4. **Poll status** register at `0x08` until DONE bit is set
 5. **Read results** from addresses `0x410 - 0x80F` (256 × 32-bit values)
@@ -126,7 +137,7 @@ main()
 - **Load weights**: 1 cycle
 - **Compute**: 16 cycles (streaming 16 rows of activations)
 - **Drain**: 15 cycles (pipeline depth)
-- **Total**: 32 cycles for 16×16 matrix multiplication
+- **Total**: ~32 cycles for 16×16 matrix multiplication
 
 ## FSM States
 
@@ -140,24 +151,56 @@ main()
 
 ## Implementation Details
 
-### JIT Compilation Constraints
+### JIT Compilation Patterns
 
-The code is designed to work with pyCircuit's JIT compiler, which has specific constraints:
+The code follows pyCircuit JIT compilation rules:
 
-- **No for-loops with side effects**: All loops that create registers or append to lists are unrolled
-- **No tuple unpacking**: Functions return tuples but access uses indexing (`result[0]`, `result[1]`)
-- **No multiplication operator**: Currently using addition as placeholder (marked with TODO)
-- **Pre-computed addresses**: All address calculations are done at module construction time
+1. **Functions without `@jit_inline`** execute at Python time (before JIT compilation)
+   - Used for register creation loops (`_make_pe_regs`, `_make_weight_regs`, etc.)
+   - Can use Python for loops, list comprehensions, etc.
+
+2. **Functions with `@jit_inline`** are compiled into hardware
+   - Used for combinational logic (`_build_pe`, `_build_fsm`)
+   - Must follow JIT rules: no tuple unpacking, return at top-level
+
+3. **Dataclasses for return values** avoid tuple unpacking (not supported in JIT)
+   - `FsmResult(load_weight, compute, done)`
+   - `MmioWriteResult(start, reset_cube)`
+
+4. **`Consts` dataclass** centralizes common constant values
+   - `consts.zero32`, `consts.one1`, etc.
 
 ### Register Allocation
 
-- **State registers**: 4 registers (state, cycle_count, done, busy)
-- **PE registers**: 256 × 2 = 512 registers (weight + accumulator per PE)
-- **Weight buffer**: 256 × 16-bit registers
-- **Activation buffer**: 256 × 16-bit registers
-- **Result buffer**: 256 × 32-bit registers
+| Category | Count | Width | Total Bits |
+|----------|-------|-------|------------|
+| State registers | 4 | 1-8 bits | ~13 bits |
+| PE weight registers | 256 | 16 bits | 4096 bits |
+| PE accumulator registers | 256 | 32 bits | 8192 bits |
+| Weight buffer | 256 | 16 bits | 4096 bits |
+| Activation buffer | 16 | 16 bits | 256 bits |
+| Result buffer | 256 | 32 bits | 8192 bits |
 
-**Total**: ~1300 registers
+**Total**: ~24,845 bits (~3.1 KB)
+
+## Testing
+
+### C++ Testbench
+
+Located at `janus/tb/tb_janus_cube_pyc.cpp`:
+
+| Test | Description |
+|------|-------------|
+| `testIdentity` | Basic operation with zero weights |
+| `testSimple2x2` | Simple 2×2 matrix operation |
+
+### Debug Options
+
+| Environment Variable | Description |
+|---------------------|-------------|
+| `PYC_TRACE=1` | Generate `.log` file with execution trace |
+| `PYC_VCD=1` | Generate `.vcd` waveform file |
+| `PYC_TRACE_DIR=<path>` | Output directory for trace files |
 
 ## Example: Matrix Multiplication
 
@@ -187,24 +230,11 @@ C = [[c00, c01, ..., c0F],
 
 1. **Multiplication operator**: Currently using addition as placeholder due to pyCircuit limitations
 2. **No overflow detection**: 32-bit accumulator can overflow for large values
-3. **Fixed array size**: 16×16 array is hardcoded (not parameterizable due to JIT constraints)
+3. **Fixed array size**: 16×16 array is hardcoded
 4. **Simplified memory interface**: Real CPU integration would require proper bus protocol
-
-## Future Enhancements
-
-- [ ] Add multiplication operator support when available in pyCircuit
-- [ ] Add overflow detection and saturation
-- [ ] Implement proper AXI/AHB bus interface
-- [ ] Add interrupt support for completion notification
-- [ ] Support for different matrix sizes (8×8, 32×32)
-- [ ] Add support for different data types (int8, float16)
 
 ## References
 
-- [pyCircuit Documentation](../../../../docs/USAGE.md)
-- [Systolic Array Architecture](https://en.wikipedia.org/wiki/Systolic_array)
+- [pyCircuit Usage Guide](../../../../docs/USAGE.md)
 - [Janus BCC CPU](../bcc/janus_bcc_pyc.py)
-
-## License
-
-Same as pyCircuit project.
+- [Systolic Array Architecture](https://en.wikipedia.org/wiki/Systolic_array)
