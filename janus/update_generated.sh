@@ -45,9 +45,11 @@ emit_one() {
 
 emit_one janus_bcc_pyc "${ROOT_DIR}/janus/pyc/janus/bcc/janus_bcc_pyc.py"
 emit_one janus_bcc_ooo_pyc "${ROOT_DIR}/janus/pyc/janus/bcc/janus_bcc_ooo_pyc.py"
+emit_one janus_cube_pyc "${ROOT_DIR}/janus/pyc/janus/cube/cube.py"
 
 mv -f "${OUT_ROOT}/janus_bcc_pyc/janus_bcc_pyc.hpp" "${OUT_ROOT}/janus_bcc_pyc/janus_bcc_pyc_gen.hpp"
 mv -f "${OUT_ROOT}/janus_bcc_ooo_pyc/janus_bcc_ooo_pyc.hpp" "${OUT_ROOT}/janus_bcc_ooo_pyc/janus_bcc_ooo_pyc_gen.hpp"
+mv -f "${OUT_ROOT}/janus_cube_pyc/janus_cube_pyc.hpp" "${OUT_ROOT}/janus_cube_pyc/janus_cube_pyc_gen.hpp"
 
 echo "OK: wrote outputs under ${OUT_ROOT}"
 

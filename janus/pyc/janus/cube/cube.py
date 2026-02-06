@@ -2776,4 +2776,4 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     m.output("mem_rdata", rdata)
 
 
-build.__pycircuit_name__ = "cube"
+build.__pycircuit_name__ = "janus_cube_pyc"
