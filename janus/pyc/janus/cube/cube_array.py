@@ -25,7 +25,7 @@ def build_array(
         results = []
 
         for row in range(16):
-            partial_sum = m.const_wire(0, width=32)
+            partial_sum = m.const(0, width=32)
 
             for col in range(16):
                 pe_idx = row * 16 + col

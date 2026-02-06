@@ -35,26 +35,26 @@ def build_control(
 
         if state_is_idle:
             if start:
-                next_state = m.const_wire(ST_LOAD_WEIGHTS, width=3)
+                next_state = m.const(ST_LOAD_WEIGHTS, width=3)
 
         if state_is_load:
             # Load takes 1 cycle
             if cycle_count == 0:
-                next_state = m.const_wire(ST_COMPUTE, width=3)
+                next_state = m.const(ST_COMPUTE, width=3)
 
         if state_is_compute:
             # Compute takes 4 cycles (streaming 4 rows)
             if cycle_count == 3:
-                next_state = m.const_wire(ST_DRAIN, width=3)
+                next_state = m.const(ST_DRAIN, width=3)
 
         if state_is_drain:
             # Drain takes 3 cycles (pipeline depth)
             if cycle_count == 2:
-                next_state = m.const_wire(ST_DONE, width=3)
+                next_state = m.const(ST_DONE, width=3)
 
         if state_is_done:
             if reset_cube:
-                next_state = m.const_wire(ST_IDLE, width=3)
+                next_state = m.const(ST_IDLE, width=3)
 
         # Update state
         state.state.set(next_state)
@@ -67,7 +67,7 @@ def build_control(
             | (state_is_drain & (cycle_count == 2))
         )
 
-        next_count = counter_reset.select(m.const_wire(0, width=8), cycle_count + m.const_wire(1, width=8))
+        next_count = counter_reset.select(m.const(0, width=8), cycle_count + m.const(1, width=8))
         state.cycle_count.set(next_count)
 
         # Control signals

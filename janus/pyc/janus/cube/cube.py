@@ -20,10 +20,10 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     rst = m.reset("rst")
 
     # Memory interface (simplified - connects to CPU memory bus)
-    mem_wvalid = m.in_wire("mem_wvalid", width=1)
-    mem_waddr = m.in_wire("mem_waddr", width=64)
-    mem_wdata = m.in_wire("mem_wdata", width=64)
-    mem_raddr = m.in_wire("mem_raddr", width=64)
+    mem_wvalid = m.input("mem_wvalid", width=1)
+    mem_waddr = m.input("mem_waddr", width=64)
+    mem_wdata = m.input("mem_wdata", width=64)
+    mem_raddr = m.input("mem_raddr", width=64)
 
     # Control registers
     with m.scope("ctrl"):
@@ -37,10 +37,10 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     # --- State registers ---
     with m.scope("state"):
         state = CubeState(
-            state=m.out("state", clk=clk, rst=rst, width=3, init=ST_IDLE, en=m.const_wire(1, width=1)),
-            cycle_count=m.out("cycle_count", clk=clk, rst=rst, width=8, init=0, en=m.const_wire(1, width=1)),
-            done=m.out("done", clk=clk, rst=rst, width=1, init=0, en=m.const_wire(1, width=1)),
-            busy=m.out("busy", clk=clk, rst=rst, width=1, init=0, en=m.const_wire(1, width=1)),
+            state=m.out("state", clk=clk, rst=rst, width=3, init=ST_IDLE, en=m.const(1, width=1)),
+            cycle_count=m.out("cycle_count", clk=clk, rst=rst, width=8, init=0, en=m.const(1, width=1)),
+            done=m.out("done", clk=clk, rst=rst, width=1, init=0, en=m.const(1, width=1)),
+            busy=m.out("busy", clk=clk, rst=rst, width=1, init=0, en=m.const(1, width=1)),
         )
 
     # --- PE array registers (16x16 = 256 PEs) ---
@@ -50,83 +50,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row0 = []
     with m.scope("pe_r0_c0"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c1"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c2"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c3"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c4"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c5"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c6"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c7"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c8"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c9"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c10"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c11"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c12"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c13"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c14"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r0_c15"):
         pe_row0.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row0)
 
@@ -134,83 +134,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row1 = []
     with m.scope("pe_r1_c0"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c1"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c2"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c3"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c4"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c5"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c6"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c7"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c8"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c9"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c10"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c11"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c12"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c13"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c14"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r1_c15"):
         pe_row1.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row1)
 
@@ -218,83 +218,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row2 = []
     with m.scope("pe_r2_c0"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c1"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c2"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c3"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c4"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c5"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c6"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c7"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c8"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c9"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c10"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c11"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c12"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c13"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c14"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r2_c15"):
         pe_row2.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row2)
 
@@ -302,83 +302,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row3 = []
     with m.scope("pe_r3_c0"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c1"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c2"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c3"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c4"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c5"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c6"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c7"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c8"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c9"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c10"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c11"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c12"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c13"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c14"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r3_c15"):
         pe_row3.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row3)
 
@@ -386,83 +386,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row4 = []
     with m.scope("pe_r4_c0"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c1"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c2"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c3"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c4"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c5"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c6"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c7"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c8"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c9"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c10"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c11"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c12"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c13"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c14"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r4_c15"):
         pe_row4.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row4)
 
@@ -470,83 +470,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row5 = []
     with m.scope("pe_r5_c0"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c1"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c2"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c3"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c4"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c5"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c6"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c7"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c8"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c9"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c10"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c11"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c12"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c13"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c14"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r5_c15"):
         pe_row5.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row5)
 
@@ -554,83 +554,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row6 = []
     with m.scope("pe_r6_c0"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c1"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c2"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c3"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c4"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c5"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c6"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c7"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c8"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c9"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c10"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c11"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c12"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c13"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c14"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r6_c15"):
         pe_row6.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row6)
 
@@ -638,83 +638,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row7 = []
     with m.scope("pe_r7_c0"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c1"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c2"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c3"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c4"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c5"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c6"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c7"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c8"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c9"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c10"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c11"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c12"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c13"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c14"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r7_c15"):
         pe_row7.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row7)
 
@@ -722,83 +722,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row8 = []
     with m.scope("pe_r8_c0"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c1"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c2"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c3"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c4"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c5"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c6"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c7"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c8"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c9"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c10"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c11"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c12"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c13"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c14"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r8_c15"):
         pe_row8.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row8)
 
@@ -806,83 +806,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row9 = []
     with m.scope("pe_r9_c0"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c1"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c2"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c3"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c4"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c5"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c6"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c7"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c8"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c9"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c10"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c11"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c12"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c13"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c14"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r9_c15"):
         pe_row9.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row9)
 
@@ -890,83 +890,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row10 = []
     with m.scope("pe_r10_c0"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c1"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c2"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c3"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c4"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c5"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c6"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c7"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c8"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c9"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c10"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c11"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c12"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c13"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c14"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r10_c15"):
         pe_row10.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row10)
 
@@ -974,83 +974,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row11 = []
     with m.scope("pe_r11_c0"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c1"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c2"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c3"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c4"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c5"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c6"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c7"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c8"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c9"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c10"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c11"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c12"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c13"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c14"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r11_c15"):
         pe_row11.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row11)
 
@@ -1058,83 +1058,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row12 = []
     with m.scope("pe_r12_c0"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c1"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c2"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c3"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c4"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c5"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c6"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c7"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c8"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c9"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c10"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c11"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c12"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c13"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c14"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r12_c15"):
         pe_row12.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row12)
 
@@ -1142,83 +1142,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row13 = []
     with m.scope("pe_r13_c0"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c1"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c2"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c3"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c4"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c5"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c6"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c7"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c8"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c9"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c10"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c11"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c12"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c13"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c14"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r13_c15"):
         pe_row13.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row13)
 
@@ -1226,83 +1226,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row14 = []
     with m.scope("pe_r14_c0"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c1"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c2"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c3"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c4"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c5"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c6"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c7"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c8"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c9"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c10"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c11"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c12"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c13"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c14"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r14_c15"):
         pe_row14.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row14)
 
@@ -1310,83 +1310,83 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
     pe_row15 = []
     with m.scope("pe_r15_c0"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c1"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c2"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c3"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c4"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c5"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c6"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c7"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c8"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c9"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c10"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c11"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c12"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c13"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c14"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     with m.scope("pe_r15_c15"):
         pe_row15.append(PERegs(
-            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const_wire(1, width=1)),
-            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const_wire(1, width=1)),
+            weight=m.out("weight", clk=clk, rst=rst, width=16, init=0, en=m.const(1, width=1)),
+            acc=m.out("acc", clk=clk, rst=rst, width=32, init=0, en=m.const(1, width=1)),
         ))
     pe_array.append(pe_row15)
 
@@ -1407,25 +1407,25 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
 
         if state_is_idle:
             if start:
-                next_state = m.const_wire(ST_LOAD_WEIGHTS, width=3)
+                next_state = m.const(ST_LOAD_WEIGHTS, width=3)
 
         if state_is_load:
             if cycle_count == 0:
-                next_state = m.const_wire(ST_COMPUTE, width=3)
+                next_state = m.const(ST_COMPUTE, width=3)
 
         if state_is_compute:
             # Compute takes 16 cycles (streaming 16 rows)
             if cycle_count == 15:
-                next_state = m.const_wire(ST_DRAIN, width=3)
+                next_state = m.const(ST_DRAIN, width=3)
 
         if state_is_drain:
             # Drain takes 15 cycles (pipeline depth)
             if cycle_count == 14:
-                next_state = m.const_wire(ST_DONE, width=3)
+                next_state = m.const(ST_DONE, width=3)
 
         if state_is_done:
             if reset_cube:
-                next_state = m.const_wire(0, width=3)  # ST_IDLE
+                next_state = m.const(0, width=3)  # ST_IDLE
 
         # Update state
         state.state.set(next_state)
@@ -1438,7 +1438,7 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
             | (state_is_drain & (cycle_count == 14))
         )
 
-        next_count = counter_reset.select(m.const_wire(0, width=8), cycle_count + m.const_wire(1, width=8))
+        next_count = counter_reset.select(m.const(0, width=8), cycle_count + m.const(1, width=8))
         state.cycle_count.set(next_count)
 
         # Control signals
@@ -2258,7 +2258,7 @@ def build(m: Circuit, *, base_addr: int = 0x80000000) -> None:
 
     # Memory read interface (simplified)
     # In real integration, this would connect to CPU memory bus
-    rdata = m.const_wire(0, width=64)
+    rdata = m.const(0, width=64)
     # Unrolled with pre-computed addresses (256 results, 4 bytes each)
     addr_match = mem_raddr == (base_addr + 0x410 + 0)
     rdata = addr_match.select(result_regs[0].out().zext(width=64), rdata)
