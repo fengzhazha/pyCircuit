@@ -72,6 +72,8 @@ int main(int argc, char **argv) {
   pm.addPass(createSymbolDCEPass());
 
   pm.addNestedPass<func::FuncOp>(pyc::createLowerSCFToPYCStaticPass());
+  pm.addNestedPass<func::FuncOp>(pyc::createEliminateWiresPass());
+  pm.addNestedPass<func::FuncOp>(pyc::createCombCanonicalizePass());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
 
@@ -87,6 +89,7 @@ int main(int argc, char **argv) {
   pm.addPass(createCSEPass());
   pm.addPass(createRemoveDeadValuesPass());
   pm.addPass(createSymbolDCEPass());
+  pm.addNestedPass<func::FuncOp>(pyc::createCheckFlatTypesPass());
   if (failed(pm.run(*module))) {
     llvm::errs() << "error: pass pipeline failed\n";
     return 1;

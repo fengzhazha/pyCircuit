@@ -6,10 +6,10 @@ from pycircuit import Circuit
 def build(m: Circuit) -> None:
     dom = m.domain("sys")
 
-    in_valid = m.in_wire("in_valid", width=1)
-    in_data = m.in_wire("in_data", width=8)
-    out0_ready = m.in_wire("out0_ready", width=1)
-    out1_ready = m.in_wire("out1_ready", width=1)
+    in_valid = m.input("in_valid", width=1)
+    in_data = m.input("in_data", width=8)
+    out0_ready = m.input("out0_ready", width=1)
+    out1_ready = m.input("out1_ready", width=1)
 
     val0 = m.out("val0", domain=dom, width=1, init=0)
     val1 = m.out("val1", domain=dom, width=1, init=0)
@@ -42,7 +42,7 @@ def build(m: Circuit) -> None:
     s1_v0 = s0_v1
     s1_v1 = s0_v2
     s1_v2 = s0_v3
-    s1_v3 = m.const_wire(0, width=1)
+    s1_v3 = m.const(0, width=1)
     s1_d0 = s0_d1
     s1_d1 = s0_d2
     s1_d2 = s0_d3
@@ -60,7 +60,7 @@ def build(m: Circuit) -> None:
     s2_v0 = a1_v1
     s2_v1 = a1_v2
     s2_v2 = a1_v3
-    s2_v3 = m.const_wire(0, width=1)
+    s2_v3 = m.const(0, width=1)
     s2_d0 = a1_d1
     s2_d1 = a1_d2
     s2_d2 = a1_d3

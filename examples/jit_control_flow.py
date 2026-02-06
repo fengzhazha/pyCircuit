@@ -4,8 +4,8 @@ from pycircuit import Circuit
 
 
 def build(m: Circuit, N: int = 4) -> object:
-    a = m.in_wire("a", width=8)
-    b = m.in_wire("b", width=8)
+    a = m.input("a", width=8)
+    b = m.input("b", width=8)
 
     x = (a + b) >> 1
     if a < b:

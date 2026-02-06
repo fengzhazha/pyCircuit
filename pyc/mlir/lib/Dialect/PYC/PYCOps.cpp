@@ -294,6 +294,14 @@ OpFoldResult SltOp::fold(FoldAdaptor adaptor) {
 OpFoldResult TruncOp::fold(FoldAdaptor adaptor) {
   if (getIn().getType() == getResult().getType())
     return getIn();
+  if (auto z = getIn().getDefiningOp<ZextOp>()) {
+    if (z.getIn().getType() == getResult().getType())
+      return z.getIn();
+  }
+  if (auto s = getIn().getDefiningOp<SextOp>()) {
+    if (s.getIn().getType() == getResult().getType())
+      return s.getIn();
+  }
   auto a = asIntAttr(adaptor.getIn());
   if (a)
     return intAttrFor(getResult().getType(), a->trunc(cast<IntegerType>(getResult().getType()).getWidth()));
@@ -328,6 +336,16 @@ OpFoldResult ExtractOp::fold(FoldAdaptor adaptor) {
   std::int64_t lsb = getLsbAttr().getInt();
   if (lsb == 0 && outTy.getWidth() == inTy.getWidth())
     return getIn();
+  if (auto c = getIn().getDefiningOp<ConcatOp>()) {
+    auto cTy = cast<IntegerType>(c.getResult().getType());
+    std::int64_t pos = static_cast<std::int64_t>(cTy.getWidth());
+    for (Value v : c.getInputs()) {
+      auto vTy = cast<IntegerType>(v.getType());
+      pos -= static_cast<std::int64_t>(vTy.getWidth());
+      if (pos == lsb && vTy.getWidth() == outTy.getWidth())
+        return v;
+    }
+  }
   auto a = asIntAttr(adaptor.getIn());
   if (a) {
     llvm::APInt shifted = a->lshr(static_cast<unsigned>(lsb));

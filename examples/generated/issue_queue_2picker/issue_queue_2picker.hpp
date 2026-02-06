@@ -244,9 +244,9 @@ struct issue_queue_2picker {
   }
 
   inline void eval_comb_7() {
-    pyc_constant_1 = pyc::cpp::Wire<8>(0ull);
-    pyc_constant_2 = pyc::cpp::Wire<1>(0ull);
-    pyc_constant_3 = pyc::cpp::Wire<1>(1ull);
+    pyc_constant_1 = pyc::cpp::Wire<8>({0x0ull});
+    pyc_constant_2 = pyc::cpp::Wire<1>({0x0ull});
+    pyc_constant_3 = pyc::cpp::Wire<1>({0x1ull});
     in_valid__issue_queue_2picker__L9 = in_valid;
     in_data__issue_queue_2picker__L10 = in_data;
     out0_ready__issue_queue_2picker__L11 = out0_ready;

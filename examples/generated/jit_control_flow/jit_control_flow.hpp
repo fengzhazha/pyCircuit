@@ -40,14 +40,14 @@ struct JitControlFlow {
   }
 
   inline void eval_comb_0() {
-    pyc_constant_1 = pyc::cpp::Wire<8>(2ull);
-    pyc_constant_2 = pyc::cpp::Wire<8>(1ull);
+    pyc_constant_1 = pyc::cpp::Wire<8>({0x2ull});
+    pyc_constant_2 = pyc::cpp::Wire<8>({0x1ull});
     a__jit_control_flow__L7 = a;
     b__jit_control_flow__L8 = b;
     pyc_add_3 = (a__jit_control_flow__L7 + b__jit_control_flow__L8);
     pyc_lshri_4 = pyc::cpp::lshr<8>(pyc_add_3, 1u);
     x__jit_control_flow__L10 = pyc_lshri_4;
-    pyc_ult_5 = pyc::cpp::Wire<1>((a__jit_control_flow__L7.value() < b__jit_control_flow__L8.value()) ? 1u : 0u);
+    pyc_ult_5 = pyc::cpp::Wire<1>((a__jit_control_flow__L7 < b__jit_control_flow__L8) ? 1u : 0u);
     pyc_add_6 = (x__jit_control_flow__L10 + pyc_constant_2);
     x__jit_control_flow__L12 = pyc_add_6;
     pyc_add_7 = (x__jit_control_flow__L10 + pyc_constant_1);

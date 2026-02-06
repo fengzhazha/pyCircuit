@@ -36,10 +36,10 @@ def build_bcc_ooo(m: Circuit, *, mem_bytes: int, params: OooParams | None = None
     clk = m.clock("clk")
     rst = m.reset("rst")
 
-    boot_pc = m.in_wire("boot_pc", width=64)
-    boot_sp = m.in_wire("boot_sp", width=64)
+    boot_pc = m.input("boot_pc", width=64)
+    boot_sp = m.input("boot_sp", width=64)
 
-    c = m.const_wire
+    c = m.const
     consts = make_consts(m)
 
     def op_is(op, *codes: int):

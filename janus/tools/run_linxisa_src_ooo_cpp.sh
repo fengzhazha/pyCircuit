@@ -50,7 +50,6 @@ MEMH="${WORK_DIR}/${NAME}.memh"
 "${CLANG}" --target=linx64-unknown-elf -nostdlib -ffreestanding -c -o "${OBJ}" "${SRC}"
 "${LD}" -m elf64linx -T "${LINX_LD_SCRIPT}" -o "${ELF}" "${OBJ}"
 "${OBJCOPY}" -O ihex "${ELF}" "${HEX}"
-python3 "${ROOT_DIR}/hw/tools/ihex_to_memh.py" "${HEX}" "${MEMH}"
+python3 "${ROOT_DIR}/janus/tools/ihex_to_memh.py" "${HEX}" "${MEMH}"
 
-"${ROOT_DIR}/hw/tools/run_janus_bcc_ooo_pyc_cpp.sh" "${MEMH}" "$@"
-
+"${ROOT_DIR}/janus/tools/run_janus_bcc_ooo_pyc_cpp.sh" "${MEMH}" "$@"

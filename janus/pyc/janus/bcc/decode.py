@@ -66,7 +66,7 @@ class DecodeBundle:
 
 
 def decode_window(m: Circuit, window: Wire) -> Decode:
-    c = m.const_wire
+    c = m.const
 
     zero3 = c(0, width=3)
     zero64 = c(0, width=64)
@@ -405,7 +405,7 @@ def decode_window(m: Circuit, window: Wire) -> Decode:
 
 def decode_bundle_8B(m: Circuit, window: Wire) -> DecodeBundle:
     """Decode up to 4 instructions out of a 64-bit window (LSB = first byte)."""
-    c = m.const_wire
+    c = m.const
 
     # Pre-shifted windows (byte offsets: 0/2/4/6).
     win2 = window.lshr(amount=16)

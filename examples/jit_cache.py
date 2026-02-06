@@ -71,7 +71,7 @@ def _mux_by_index(m: Circuit, idx: Wire, options: list[Wire], *, default: Wire) 
 
 def _select_set_way(set_idx: Wire, table: list[list[Reg]], *, way: int) -> Wire:
     opts = [table[s][int(way)].out() for s in range(len(table))]
-    return _mux_by_index(opts[0].m, set_idx, opts, default=opts[0].m.const_wire(0, width=opts[0].width))
+    return _mux_by_index(opts[0].m, set_idx, opts, default=opts[0].m.const(0, width=opts[0].width))
 
 
 def _cache_lookup(
@@ -85,8 +85,8 @@ def _cache_lookup(
     m = set_idx.m
     ways = len(valids[0])
 
-    hit = m.const_wire(0, width=1)
-    rdata = m.const_wire(0, width=datas[0][0].width)
+    hit = m.const(0, width=1)
+    rdata = m.const(0, width=datas[0][0].width)
 
     for w in range(ways):
         v = _select_set_way(set_idx, valids, way=w)
@@ -116,8 +116,8 @@ def _cache_fill_on_miss(
     sets = len(valids)
     ways = len(valids[0])
 
-    one_i1 = m.const_wire(1, width=1)
-    zero_way = m.const_wire(0, width=repl_way.width)
+    one_i1 = m.const(1, width=1)
+    zero_way = m.const(0, width=repl_way.width)
 
     for s in range(sets):
         set_sel = set_idx.eq(s)
@@ -163,16 +163,16 @@ def build(m: Circuit, SETS: int = 8, WAYS: int = 2) -> None:
     off_bits = clog2(DATA_BYTES)
     tag_bits = tag_width(ADDR_W, off_bits, set_bits)
 
-    req_valid = m.in_wire("req_valid", width=1)
-    req_addr = m.in_wire("req_addr", width=ADDR_W)
-    rsp_ready = m.in_wire("rsp_ready", width=1)
+    req_valid = m.input("req_valid", width=1)
+    req_addr = m.input("req_addr", width=ADDR_W)
+    rsp_ready = m.input("rsp_ready", width=1)
 
     with m.scope("cache"):
         # Backing memory (byte addressed).
-        wvalid0 = m.const_wire(0, width=1)
-        waddr0 = m.const_wire(0, width=ADDR_W)
-        wdata0 = m.const_wire(0, width=DATA_W)
-        wstrb0 = m.const_wire(0, width=DATA_BYTES)
+        wvalid0 = m.const(0, width=1)
+        waddr0 = m.const(0, width=ADDR_W)
+        wdata0 = m.const(0, width=DATA_W)
+        wstrb0 = m.const(0, width=DATA_BYTES)
 
         # Request/response queues (event-ish programming).
         req_q = m.queue("req_q", domain=dom, width=ADDR_W, depth=2)
@@ -216,7 +216,7 @@ def build(m: Circuit, SETS: int = 8, WAYS: int = 2) -> None:
         )
 
         miss = req_fire & ~hit
-        repl_way = _mux_by_index(m, set_idx, _qs(rr_ptrs), default=m.const_wire(0, width=rr_ptrs[0].width))
+        repl_way = _mux_by_index(m, set_idx, _qs(rr_ptrs), default=m.const(0, width=rr_ptrs[0].width))
         _cache_fill_on_miss(
             set_idx,
             repl_way,

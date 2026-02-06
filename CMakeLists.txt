@@ -22,7 +22,7 @@ endif()
 
 if(PYC_INSTALL_PYTHON)
   install(
-    DIRECTORY binding/python/pycircuit
+    DIRECTORY python/pycircuit
     DESTINATION "${CMAKE_INSTALL_DATADIR}/pycircuit/python"
     PATTERN "__pycache__" EXCLUDE
     PATTERN "*.pyc" EXCLUDE

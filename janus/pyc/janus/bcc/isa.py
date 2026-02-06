@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # NOTE: These op IDs are an internal encoding for the Janus BCC bring-up model.
-# Keep them stable across backends/tests (C++ + SystemVerilog).
+# Keep them stable across backends/tests (C++ + Verilog).
 
 OP_INVALID = 0
 OP_C_BSTART_STD = 1
@@ -46,4 +46,3 @@ BK_FALL = 0
 BK_COND = 1
 BK_CALL = 2
 BK_RET = 3
-

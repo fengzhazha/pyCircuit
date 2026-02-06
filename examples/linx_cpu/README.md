@@ -12,7 +12,7 @@ Generated outputs live under `examples/generated/linx_cpu_pyc/`.
 Regenerate everything (all examples + linx CPU):
 
 ```bash
-bash examples/update_generated.sh
+scripts/pyc regen
 ```
 
 ## Run the SV testbench (against generated Verilog)

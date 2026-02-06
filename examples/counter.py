@@ -6,7 +6,7 @@ from pycircuit import Circuit
 def build(m: Circuit) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
-    do = m.in_wire("en", width=1)
+    do = m.input("en", width=1)
 
     count = m.out("count", clk=clk, rst=rst, width=8, init=0, en=1)
 
@@ -15,4 +15,4 @@ def build(m: Circuit) -> None:
         c = count.out()
         count.set(c + 1, when=do)
 
-    m.output("count", count.out())
+    m.output("count", count)

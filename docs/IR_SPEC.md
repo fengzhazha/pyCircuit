@@ -25,6 +25,12 @@ All examples below live inside a standard MLIR `module { ... }` and use
 
 ```mlir
 %y = pyc.add %a, %b : i8
+%y = pyc.sub %a, %b : i8
+%y = pyc.mul %a, %b : i8
+%y = pyc.udiv %a, %b : i8
+%y = pyc.urem %a, %b : i8
+%y = pyc.sdiv %a, %b : i8
+%y = pyc.srem %a, %b : i8
 %y = pyc.mux %sel, %a, %b : i8
 %y = pyc.and %a, %b : i8
 %y = pyc.or  %a, %b : i8
@@ -32,6 +38,8 @@ All examples below live inside a standard MLIR `module { ... }` and use
 %y = pyc.not %a : i8
 
 %p = pyc.eq %a, %b : i8
+%p = pyc.ult %a, %b : i8
+%p = pyc.slt %a, %b : i8
 
 %lo = pyc.trunc %x : i64 -> i32
 %zx = pyc.zext  %x : i8  -> i64
@@ -39,6 +47,8 @@ All examples below live inside a standard MLIR `module { ... }` and use
 
 %s = pyc.extract %x {lsb = 4} : i16 -> i8
 %sh = pyc.shli %x {amount = 2} : i16
+%sh = pyc.lshri %x {amount = 2} : i16
+%sh = pyc.ashri %x {amount = 2} : i16
 
 %bus = pyc.concat(%a, %b, %c) : (i8, i16, i1) -> i25
 ```
@@ -120,14 +130,15 @@ into a single region:
 
 `pyc-compile --emit=verilog` emits Verilog:
 
-- Combinational ops become instances of primitives in `include/pyc/verilog/` (e.g. `pyc_add`, `pyc_mux`, `pyc_and`)
-- `pyc.reg` becomes an instance of `include/pyc/verilog/pyc_reg.v`
-- `pyc.fifo` becomes an instance of `include/pyc/verilog/pyc_fifo.v`
-- `pyc.async_fifo` becomes an instance of `include/pyc/verilog/pyc_async_fifo.v`
-- `pyc.byte_mem` becomes an instance of `include/pyc/verilog/pyc_byte_mem.v`
-- `pyc.sync_mem` becomes an instance of `include/pyc/verilog/pyc_sync_mem.v`
-- `pyc.sync_mem_dp` becomes an instance of `include/pyc/verilog/pyc_sync_mem_dp.v`
-- `pyc.cdc_sync` becomes an instance of `include/pyc/verilog/pyc_cdc_sync.v`
+- **Combinational ops** are typically emitted as flattened `assign` expressions (netlist style).
+- **Stateful ops** instantiate the corresponding primitives from `include/pyc/verilog/`:
+  - `pyc.reg` → `pyc_reg` (`include/pyc/verilog/pyc_reg.v`)
+  - `pyc.fifo` → `pyc_fifo` (`include/pyc/verilog/pyc_fifo.v`)
+  - `pyc.async_fifo` → `pyc_async_fifo` (`include/pyc/verilog/pyc_async_fifo.v`)
+  - `pyc.byte_mem` → `pyc_byte_mem` (`include/pyc/verilog/pyc_byte_mem.v`)
+  - `pyc.sync_mem` → `pyc_sync_mem` (`include/pyc/verilog/pyc_sync_mem.v`)
+  - `pyc.sync_mem_dp` → `pyc_sync_mem_dp` (`include/pyc/verilog/pyc_sync_mem_dp.v`)
+  - `pyc.cdc_sync` → `pyc_cdc_sync` (`include/pyc/verilog/pyc_cdc_sync.v`)
 
 `pyc-compile` also runs `pyc-fuse-comb`, which enables emission of flattened
 Verilog `assign` statements for large purely-combinational regions.

@@ -13,6 +13,7 @@ Docs:
 - `docs/USAGE.md` (how to write designs; JIT rules; debug/tracing)
 - `docs/IR_SPEC.md` (PYC dialect contract)
 - `docs/PRIMITIVES.md` (backend template “ABI”: matching C++/Verilog primitives)
+- `docs/VERILOG_FLOW.md` (open-source Verilog sim/lint with Icarus/Verilator/GTKWave)
 
 ## Design goals (why this repo exists)
 
@@ -30,9 +31,9 @@ from pycircuit import Circuit, cat
 def build(m: Circuit, STAGES: int = 3) -> None:
     dom = m.domain("sys")
 
-    a = m.in_wire("a", width=16)
-    b = m.in_wire("b", width=16)
-    sel = m.in_wire("sel", width=1)
+    a = m.input("a", width=16)
+    b = m.input("b", width=16)
+    sel = m.input("sel", width=1)
 
     with m.scope("EX"):
         x = a ^ b
@@ -59,6 +60,16 @@ Prereqs:
 - CMake ≥ 3.20 + Ninja
 - A C++17 compiler
 - An LLVM+MLIR build/install that provides `LLVMConfig.cmake` + `MLIRConfig.cmake`
+
+### Quickstart (recommended)
+
+If `llvm-config` is on your PATH:
+
+```bash
+scripts/pyc build
+scripts/pyc regen
+scripts/pyc test
+```
 
 ### Configure + build (recommended: top-level CMake)
 
@@ -95,7 +106,7 @@ python3 -m pip install -e .
 Emit `.pyc` (MLIR) from Python:
 
 ```bash
-PYTHONPATH=binding/python python3 -m pycircuit.cli emit examples/jit_pipeline_vec.py -o /tmp/jit_pipeline_vec.pyc
+PYTHONPATH=python python3 -m pycircuit.cli emit examples/jit_pipeline_vec.py -o /tmp/jit_pipeline_vec.pyc
 ```
 
 If installed via `pip`, you can also run:
@@ -113,8 +124,12 @@ Compile MLIR to Verilog:
 Regenerate the checked-in golden outputs under `examples/generated/`:
 
 ```bash
-bash examples/update_generated.sh
+scripts/pyc regen
 ```
+
+## Open-source Verilog simulation (Icarus / Verilator)
+
+See `docs/VERILOG_FLOW.md`.
 
 ## LinxISA CPU bring-up (example)
 
@@ -149,7 +164,7 @@ The tarball includes:
 
 ## Repo layout
 
-- `binding/python/pycircuit/`: Python DSL + AST/JIT frontend + CLI
+- `python/pycircuit/`: Python DSL + AST/JIT frontend + CLI
 - `pyc/mlir/`: MLIR dialect, passes, tools (`pyc-opt`, `pyc-compile`)
 - `include/pyc/`: backend template libraries (C++ + Verilog primitives)
 - `examples/`: example designs, testbenches, and checked-in generated outputs

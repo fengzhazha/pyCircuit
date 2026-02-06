@@ -40,8 +40,8 @@ from pycircuit import Circuit
 def build(m: Circuit, STAGES: int = 3) -> None:
     dom = m.domain("sys")
 
-    a = m.in_wire("a", width=16)
-    b = m.in_wire("b", width=16)
+    a = m.input("a", width=16)
+    b = m.input("b", width=16)
 
     r = m.out("acc", domain=dom, width=16, init=0)
 
@@ -49,6 +49,15 @@ def build(m: Circuit, STAGES: int = 3) -> None:
     r.set(x)  # default when=1
 
     m.output("acc", r)
+```
+
+You can override JIT parameters from the CLI (repeat `--param` as needed):
+
+```bash
+PYTHONPATH=python python3 -m pycircuit.cli emit examples/fastfwd_pyc/fastfwd_pyc.py \
+  --param N_FE=8 \
+  --param LANE_Q_DEPTH=64 --param ROB_DEPTH=32 \
+  -o /tmp/fastfwd.pyc
 ```
 
 ### 2.2 Stage-friendly coding style
@@ -75,7 +84,7 @@ with m.scope("EX"):
 
 You must still provide widths for:
 
-- module ports: `m.in_wire("x", width=...)`
+- module ports: `m.input("x", width=...)`
 - state: `m.out("r", width=..., ...)`
 - any manually created wires: `m.new_wire(width=...)`
 
@@ -93,7 +102,9 @@ The frontend tries to remove common “cast noise”:
     previous value (if pre-defined) or defaults to `0`.
 
 If you need explicit signed behavior, use `.sext(...)` / `.ashr(...)` manually
-today (signedness metadata is reserved but not fully implemented yet).
+today. You can also mark signed intent at the edges (e.g. `m.input(..., signed=True)`
+or negative literals); signed intent is propagated through most arithmetic and
+selects signed lowering (`pyc.slt`, `pyc.sdiv`, `pyc.ashri`, etc).
 
 ---
 
@@ -109,7 +120,9 @@ today (signedness metadata is reserved but not fully implemented yet).
 ### 4.2 Shift operators (`<<`, `>>`)
 
 - `x << 3` is a constant left shift.
-- `x >> 2` is a constant logical right shift (zero-fill).
+- `x >> 2` is a constant right shift:
+  - logical (zero-fill) by default
+  - arithmetic (sign-fill) if `x` is marked signed
 - Use `x.ashr(amount=...)` for arithmetic right shift (sign-fill).
 
 ### 4.3 Comparisons in JIT code
@@ -117,7 +130,7 @@ today (signedness metadata is reserved but not fully implemented yet).
 Inside JIT-compiled code, these compile to `i1` wires:
 
 - `==`, `!=`
-- `<`, `<=`, `>`, `>=` (currently **unsigned** compares)
+- `<`, `<=`, `>`, `>=` (respects signed intent: if either operand is signed, lowers to signed compare)
 
 In helper functions executed at JIT time (plain Python), prefer explicit methods:
 
@@ -247,25 +260,24 @@ Generated Verilog/C++ tries to keep readable identifiers:
 - log file by default (disable with `+nolog`)
 - output paths override: `+vcd=<path>` / `+log=<path>`
 
+For running the generated Verilog through open-source tools (Icarus/Verilator/GTKWave),
+see `docs/VERILOG_FLOW.md`.
+
 ---
 
 ## 10) What’s still missing / recommended next ops
 
-For “serious development”, these are the most common missing pieces to add next
-to the PYC dialect + emitters:
+The prototype already includes the “baseline bring-up set” (cmp/shift/mul-div/rem,
+mem ports, async FIFO + CDC sync). The most useful missing pieces for scaling up
+to serious designs are now less about single ops and more about structure:
 
-1. **Integer comparisons as first-class ops**
-   - unsigned/signed `<, <=, >, >=` (today the frontend lowers unsigned compares into bit-ops)
-2. **Right-shift ops**
-   - logical/arithmetic shift-right by immediate (frontend lowers with slice+ext today)
-3. **Sub/mul/div/rem ops**
-   - at least `sub`, and optionally `mul` (CPU bring-up eventually needs them)
-4. **Mem port variants**
-   - 1R1W sync read RAM, registered outputs, true dual-port RAM, etc.
-5. **Async FIFO / CDC primitives**
-   - explicit cross-domain FIFO modeling + correctness constraints
-6. **Signedness metadata**
-   - propagate `signed` intent and select `sext/ashr/slt` lowering automatically
-
-If you want, I can implement these in the dialect incrementally, starting with
-`pyc.(u/s)lt` and `pyc.lshr/ashr` ops (big readability + ergonomics win).
+1. **Hierarchical modules / instantiation**
+   - preserve boundaries in IR and optionally in emission (readability + reuse)
+2. **Interfaces**
+   - first-class ready/valid “stream” bundles; better type-checking for handshakes
+3. **More memory variants**
+   - true dual-port (2R2W), write-first/read-first policies, per-port clocks
+4. **Variable shifts**
+   - `shl`, `lshr`, `ashr` by a *value* (not only immediates)
+5. **Better diagnostics**
+   - error messages that always include `file:line` and the current `scope()`

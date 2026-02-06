@@ -12,6 +12,7 @@
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
@@ -111,10 +112,18 @@ static std::string getPortName(func::FuncOp f, unsigned idx, bool isResult) {
 static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTable &nt) {
   if (auto c = dyn_cast<pyc::ConstantOp>(op)) {
     unsigned w = bitWidth(c.getType());
-    if (w == 0 || w > 64)
-      return c.emitError("C++ emitter only supports widths 1..64 for constants in the prototype");
-    os << "    " << nt.get(c.getResult()) << " = pyc::cpp::Wire<" << w << ">("
-       << c.getValueAttr().getValue().getZExtValue() << "ull);\n";
+    if (w == 0)
+      return c.emitError("invalid constant width");
+    auto v = c.getValueAttr().getValue();
+    unsigned words = (w + 63u) / 64u;
+    os << "    " << nt.get(c.getResult()) << " = pyc::cpp::Wire<" << w << ">({";
+    for (unsigned i = 0; i < words; i++) {
+      if (i)
+        os << ", ";
+      std::uint64_t word = v.getRawData()[i];
+      os << "0x" << llvm::utohexstr(word) << "ull";
+    }
+    os << "});\n";
     return success();
   }
   if (auto a = dyn_cast<pyc::AliasOp>(op)) {
@@ -200,25 +209,25 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
   }
   if (auto u = dyn_cast<pyc::UltOp>(op)) {
     unsigned w = bitWidth(u.getLhs().getType());
-    if (w == 0 || w > 64)
-      return u.emitError("C++ emitter only supports widths 1..64 for ult in the prototype");
-    os << "    " << nt.get(u.getResult()) << " = pyc::cpp::Wire<1>((" << nt.get(u.getLhs()) << ".value() < "
-       << nt.get(u.getRhs()) << ".value()) ? 1u : 0u);\n";
+    if (w == 0)
+      return u.emitError("invalid ult width");
+    os << "    " << nt.get(u.getResult()) << " = pyc::cpp::Wire<1>((" << nt.get(u.getLhs()) << " < "
+       << nt.get(u.getRhs()) << ") ? 1u : 0u);\n";
     return success();
   }
   if (auto s = dyn_cast<pyc::SltOp>(op)) {
     unsigned w = bitWidth(s.getLhs().getType());
-    if (w == 0 || w > 64)
-      return s.emitError("C++ emitter only supports widths 1..64 for slt in the prototype");
-    os << "    " << nt.get(s.getResult()) << " = pyc::cpp::Wire<1>((pyc::cpp::asSigned<" << w << ">(" << nt.get(s.getLhs())
-       << ") < pyc::cpp::asSigned<" << w << ">(" << nt.get(s.getRhs()) << ")) ? 1u : 0u);\n";
+    if (w == 0)
+      return s.emitError("invalid slt width");
+    os << "    " << nt.get(s.getResult()) << " = pyc::cpp::Wire<1>((pyc::cpp::slt<" << w << ">(" << nt.get(s.getLhs())
+       << ", " << nt.get(s.getRhs()) << ")) ? 1u : 0u);\n";
     return success();
   }
   if (auto t = dyn_cast<pyc::TruncOp>(op)) {
     unsigned iw = bitWidth(t.getIn().getType());
     unsigned ow = bitWidth(t.getResult().getType());
-    if (iw == 0 || ow == 0 || iw > 64 || ow > 64)
-      return t.emitError("C++ emitter only supports widths 1..64 for trunc in the prototype");
+    if (iw == 0 || ow == 0)
+      return t.emitError("invalid trunc width");
     os << "    " << nt.get(t.getResult()) << " = pyc::cpp::trunc<" << ow << ", " << iw << ">(" << nt.get(t.getIn())
        << ");\n";
     return success();
@@ -226,8 +235,8 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
   if (auto z = dyn_cast<pyc::ZextOp>(op)) {
     unsigned iw = bitWidth(z.getIn().getType());
     unsigned ow = bitWidth(z.getResult().getType());
-    if (iw == 0 || ow == 0 || iw > 64 || ow > 64)
-      return z.emitError("C++ emitter only supports widths 1..64 for zext in the prototype");
+    if (iw == 0 || ow == 0)
+      return z.emitError("invalid zext width");
     os << "    " << nt.get(z.getResult()) << " = pyc::cpp::zext<" << ow << ", " << iw << ">(" << nt.get(z.getIn())
        << ");\n";
     return success();
@@ -235,8 +244,8 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
   if (auto s = dyn_cast<pyc::SextOp>(op)) {
     unsigned iw = bitWidth(s.getIn().getType());
     unsigned ow = bitWidth(s.getResult().getType());
-    if (iw == 0 || ow == 0 || iw > 64 || ow > 64)
-      return s.emitError("C++ emitter only supports widths 1..64 for sext in the prototype");
+    if (iw == 0 || ow == 0)
+      return s.emitError("invalid sext width");
     os << "    " << nt.get(s.getResult()) << " = pyc::cpp::sext<" << ow << ", " << iw << ">(" << nt.get(s.getIn())
        << ");\n";
     return success();
@@ -244,40 +253,40 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
   if (auto ex = dyn_cast<pyc::ExtractOp>(op)) {
     unsigned iw = bitWidth(ex.getIn().getType());
     unsigned ow = bitWidth(ex.getResult().getType());
-    if (iw == 0 || ow == 0 || iw > 64 || ow > 64)
-      return ex.emitError("C++ emitter only supports widths 1..64 for extract in the prototype");
+    if (iw == 0 || ow == 0)
+      return ex.emitError("invalid extract width");
     os << "    " << nt.get(ex.getResult()) << " = pyc::cpp::extract<" << ow << ", " << iw << ">("
        << nt.get(ex.getIn()) << ", " << ex.getLsbAttr().getInt() << "u);\n";
     return success();
   }
   if (auto sh = dyn_cast<pyc::ShliOp>(op)) {
     unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0 || w > 64)
-      return sh.emitError("C++ emitter only supports widths 1..64 for shli in the prototype");
+    if (w == 0)
+      return sh.emitError("invalid shli width");
     os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::shl<" << w << ">(" << nt.get(sh.getIn()) << ", "
        << sh.getAmountAttr().getInt() << "u);\n";
     return success();
   }
   if (auto sh = dyn_cast<pyc::LshriOp>(op)) {
     unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0 || w > 64)
-      return sh.emitError("C++ emitter only supports widths 1..64 for lshri in the prototype");
+    if (w == 0)
+      return sh.emitError("invalid lshri width");
     os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::lshr<" << w << ">(" << nt.get(sh.getIn()) << ", "
        << sh.getAmountAttr().getInt() << "u);\n";
     return success();
   }
   if (auto sh = dyn_cast<pyc::AshriOp>(op)) {
     unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0 || w > 64)
-      return sh.emitError("C++ emitter only supports widths 1..64 for ashri in the prototype");
+    if (w == 0)
+      return sh.emitError("invalid ashri width");
     os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::ashr<" << w << ">(" << nt.get(sh.getIn()) << ", "
        << sh.getAmountAttr().getInt() << "u);\n";
     return success();
   }
   if (auto c = dyn_cast<pyc::ConcatOp>(op)) {
     unsigned w = bitWidth(c.getResult().getType());
-    if (w == 0 || w > 64)
-      return c.emitError("C++ emitter only supports total widths 1..64 for concat in the prototype");
+    if (w == 0)
+      return c.emitError("invalid concat width");
     os << "    " << nt.get(c.getResult()) << " = pyc::cpp::concat(";
     for (auto [i, v] : llvm::enumerate(c.getInputs())) {
       if (i)
@@ -430,14 +439,14 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os) {
 
   for (auto r : regs) {
     unsigned w = bitWidth(r.getQ().getType());
-    if (w == 0 || w > 64)
-      return r.emitError("C++ emitter only supports reg widths 1..64 in the prototype");
+    if (w == 0)
+      return r.emitError("invalid reg width");
     os << "  pyc::cpp::pyc_reg<" << w << "> " << nt.get(r.getQ()) << "_inst;\n";
   }
   for (auto fifo : fifos) {
     unsigned w = bitWidth(fifo.getOutData().getType());
-    if (w == 0 || w > 64)
-      return fifo.emitError("C++ emitter only supports fifo widths 1..64 in the prototype");
+    if (w == 0)
+      return fifo.emitError("invalid fifo width");
     auto depthAttr = fifo->getAttrOfType<IntegerAttr>("depth");
     if (!depthAttr)
       return fifo.emitError("missing integer attribute `depth`");

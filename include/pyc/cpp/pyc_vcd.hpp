@@ -38,12 +38,13 @@ public:
       return false;
     SignalDef d;
     d.width = W;
+    d.words = (W + 63u) / 64u;
     d.name = sanitizeName(name);
     d.id = makeId(sigs_.size());
     d.ptr = &w;
-    d.read = [](const void *p) -> std::uint64_t { return static_cast<const Wire<W> *>(p)->value(); };
+    d.read = &readWords<W>;
     d.has_last = false;
-    d.last = 0;
+    d.last.resize(d.words, 0);
     out_ << "$var wire " << d.width << " " << d.id << " " << d.name << " $end\n";
     sigs_.push_back(std::move(d));
     return true;
@@ -58,9 +59,8 @@ public:
       // Initial values at time 0.
       out_ << "#0\n";
       for (auto &s : sigs_) {
-        std::uint64_t v = s.read(s.ptr);
-        emitValue(out_, s.width, v, s.id);
-        s.last = v;
+        s.read(s.ptr, s.last.data());
+        emitValue(out_, s.width, s.last, s.id);
         s.has_last = true;
       }
       finalized_ = true;
@@ -72,11 +72,13 @@ public:
       cur_time_ = time;
     }
 
+    std::vector<std::uint64_t> tmp{};
     for (auto &s : sigs_) {
-      std::uint64_t v = s.read(s.ptr);
-      if (!s.has_last || v != s.last) {
-        emitValue(out_, s.width, v, s.id);
-        s.last = v;
+      tmp.assign(s.words, 0);
+      s.read(s.ptr, tmp.data());
+      if (!s.has_last || tmp != s.last) {
+        emitValue(out_, s.width, tmp, s.id);
+        s.last = tmp;
         s.has_last = true;
       }
     }
@@ -85,12 +87,13 @@ public:
 private:
   struct SignalDef {
     unsigned width = 1;
+    unsigned words = 1;
     std::string name{};
     std::string id{};
     const void *ptr = nullptr;
-    std::uint64_t (*read)(const void *) = nullptr;
+    void (*read)(const void *, std::uint64_t *) = nullptr;
     bool has_last = false;
-    std::uint64_t last = 0;
+    std::vector<std::uint64_t> last{};
   };
 
   static std::string sanitizeName(const std::string &s) {
@@ -117,16 +120,28 @@ private:
     return out;
   }
 
-  static void emitValue(std::ostream &os, unsigned width, std::uint64_t value, const std::string &id) {
+  static void emitValue(std::ostream &os, unsigned width, const std::vector<std::uint64_t> &words, const std::string &id) {
     if (width <= 1) {
-      os << ((value & 1u) ? '1' : '0') << id << "\n";
+      os << (((words.empty() ? 0u : words[0]) & 1u) ? '1' : '0') << id << "\n";
       return;
     }
     os << 'b';
     for (int b = static_cast<int>(width) - 1; b >= 0; --b) {
-      os << (((value >> static_cast<unsigned>(b)) & 1u) ? '1' : '0');
+      unsigned bi = static_cast<unsigned>(b);
+      unsigned wi = bi / 64u;
+      unsigned bj = bi % 64u;
+      std::uint64_t w = (wi < words.size()) ? words[wi] : 0u;
+      os << (((w >> bj) & 1u) ? '1' : '0');
     }
     os << ' ' << id << "\n";
+  }
+
+  template <unsigned W>
+  static void readWords(const void *p, std::uint64_t *dst) {
+    constexpr unsigned words = (W + 63u) / 64u;
+    const auto *w = static_cast<const Wire<W> *>(p);
+    for (unsigned i = 0; i < words; i++)
+      dst[i] = w->word(i);
   }
 
   std::ofstream out_{};
@@ -136,4 +151,3 @@ private:
 };
 
 } // namespace pyc::cpp
-

@@ -169,9 +169,9 @@ class _Compiler:
         elif isinstance(v, Signal):
             w = Wire(self.m, v)
         elif isinstance(v, bool):
-            w = self.m.const_wire(int(v), width=self._ty_width(expected_ty))
+            w = self.m.const(int(v), width=self._ty_width(expected_ty))
         elif isinstance(v, int):
-            w = self.m.const_wire(int(v), width=self._ty_width(expected_ty))
+            w = self.m.const(int(v), width=self._ty_width(expected_ty))
         else:
             raise JitError(f"{ctx}: expected Wire/Reg/Signal/int, got {type(v).__name__}")
 
@@ -680,7 +680,7 @@ class _Compiler:
 
         def int_width(v: int) -> int:
             if v < 0:
-                raise JitError("cannot infer width for negative integer constant in dynamic if; use m.const_wire(..., width=...)")
+                raise JitError("cannot infer width for negative integer constant in dynamic if; use m.const(..., width=...)")
             return max(1, int(v).bit_length())
 
         # Compile branches first (captured), then infer phi types from their final values.

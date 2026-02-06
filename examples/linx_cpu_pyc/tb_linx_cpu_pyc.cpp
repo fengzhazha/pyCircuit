@@ -44,13 +44,17 @@ static bool loadMemh(pyc::cpp::pyc_byte_mem<AddrWidth, DataWidth, DepthBytes> &m
 }
 
 static bool runProgram(const char *name, const char *memhPath, std::uint64_t bootPc, std::optional<std::uint32_t> expectedMem100,
-                       std::optional<std::uint64_t> expectedA0) {
+                       std::optional<std::uint64_t> expectedA0, std::optional<std::uint32_t> expectedExitCode = std::nullopt) {
   pyc::gen::linx_cpu_pyc dut{};
-  if (!loadMemh(dut.mem, memhPath))
+  if (!loadMemh(dut.imem, memhPath))
+    return false;
+  if (!loadMemh(dut.dmem, memhPath))
     return false;
 
   dut.boot_pc = Wire<64>(bootPc);
   dut.boot_sp = Wire<64>(kBootSp);
+  dut.irq = Wire<1>(0);
+  dut.irq_vector = Wire<64>(0);
 
   Testbench<pyc::gen::linx_cpu_pyc> tb(dut);
 
@@ -73,7 +77,12 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
       tb.vcdTrace(dut.rst, "rst");
       tb.vcdTrace(dut.boot_pc, "boot_pc");
       tb.vcdTrace(dut.boot_sp, "boot_sp");
+      tb.vcdTrace(dut.irq, "irq");
+      tb.vcdTrace(dut.irq_vector, "irq_vector");
       tb.vcdTrace(dut.halted, "halted");
+      tb.vcdTrace(dut.exit_code, "exit_code");
+      tb.vcdTrace(dut.uart_valid, "uart_valid");
+      tb.vcdTrace(dut.uart_byte, "uart_byte");
       tb.vcdTrace(dut.pc, "pc");
       tb.vcdTrace(dut.stage, "stage");
       tb.vcdTrace(dut.cycles, "cycles");
@@ -96,6 +105,13 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
   std::uint64_t insnCount = 0;
 
   for (std::uint64_t i = 0; i < 200000; i++) {
+    if (dut.uart_valid.toBool()) {
+      const char c = static_cast<char>(dut.uart_byte.value() & 0xFFu);
+      if (trace_log) {
+        tb.log() << c;
+      }
+      std::cout << c << std::flush;
+    }
     if (trace_log && dut.stage.value() == 4 && !dut.halted.toBool()) { // ST_WB
       insnCount++;
       tb.log() << "[wb #" << std::dec << insnCount << "] pc=0x" << std::hex << dut.pc.value()
@@ -115,17 +131,29 @@ static bool runProgram(const char *name, const char *memhPath, std::uint64_t boo
     return false;
   }
 
-  if (expectedA0.has_value()) {
-    std::uint64_t got = dut.a0.value();
-    if (got != *expectedA0) {
-      std::cerr << "FAIL " << name << ": a0=0x" << std::hex << got << " expected 0x" << *expectedA0
-                << " (pc=0x" << dut.pc.value() << " a1=0x" << dut.a1.value() << " ra=0x" << dut.ra.value()
-                << " sp=0x" << dut.sp.value() << ")" << std::dec << "\n";
+  if (expectedExitCode.has_value()) {
+    std::uint32_t got = static_cast<std::uint32_t>(dut.exit_code.value());
+    if (got != *expectedExitCode) {
+      std::cerr << "FAIL " << name << ": exit_code=0x" << std::hex << got << " expected 0x" << *expectedExitCode
+                << std::dec << "\n";
       return false;
     }
   }
 
-  std::uint32_t got = dut.mem.peek32(0x100);
+  if (expectedA0.has_value()) {
+    std::uint64_t got = dut.a0.value();
+    if (got != *expectedA0) {
+      std::uint32_t mem0 = dut.dmem.peek32(0x0);
+      std::uint32_t mem20000 = dut.dmem.peek32(0x20000);
+      std::cerr << "FAIL " << name << ": a0=0x" << std::hex << got << " expected 0x" << *expectedA0
+                << " (pc=0x" << dut.pc.value() << " a1=0x" << dut.a1.value() << " ra=0x" << dut.ra.value()
+                 << " sp=0x" << dut.sp.value() << " mem[0]=0x" << mem0 << " mem[0x20000]=0x" << mem20000 << ")"
+                << std::dec << "\n";
+      return false;
+    }
+  }
+
+  std::uint32_t got = dut.dmem.peek32(0x100);
   if (expectedMem100.has_value()) {
     if (got != *expectedMem100) {
       std::cerr << "FAIL " << name << ": mem[0x100]=0x" << std::hex << got << " expected 0x" << *expectedMem100
@@ -155,7 +183,11 @@ int main(int argc, char **argv) {
     if (const char *env = std::getenv("PYC_BOOT_PC")) {
       bootPc = static_cast<std::uint64_t>(std::stoull(env, nullptr, 0));
     }
-    return runProgram("program", memh, bootPc, expectedMem100, expectedA0) ? 0 : 1;
+    std::optional<std::uint32_t> expectedExit{};
+    if (const char *env = std::getenv("PYC_EXPECT_EXIT")) {
+      expectedExit = static_cast<std::uint32_t>(std::stoul(env, nullptr, 0));
+    }
+    return runProgram("program", memh, bootPc, expectedMem100, expectedA0, expectedExit) ? 0 : 1;
   }
 
   // Default regression tests (memh fixtures checked into the repo).

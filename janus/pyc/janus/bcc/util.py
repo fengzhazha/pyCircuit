@@ -18,7 +18,7 @@ class Consts:
 
 
 def make_consts(m: Circuit) -> Consts:
-    c = m.const_wire
+    c = m.const
     return Consts(
         one1=c(1, width=1),
         zero1=c(0, width=1),
@@ -32,6 +32,5 @@ def make_consts(m: Circuit) -> Consts:
 
 
 def masked_eq(m: Circuit, x: Wire, *, width: int, mask: int, match: int) -> Wire:
-    c = m.const_wire
+    c = m.const
     return (x & c(mask, width=width)).eq(c(match, width=width))
-

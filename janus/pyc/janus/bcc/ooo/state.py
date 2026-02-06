@@ -77,7 +77,7 @@ class IqRegs:
 
 
 def make_core_ctrl_regs(m: Circuit, clk: Signal, rst: Signal, *, boot_pc: Wire, consts: Consts) -> CoreCtrlRegs:
-    c = m.const_wire
+    c = m.const
     with m.scope("state"):
         halted = m.out("halted", clk=clk, rst=rst, width=1, init=consts.zero1, en=consts.one1)
         cycles = m.out("cycles", clk=clk, rst=rst, width=64, init=consts.zero64, en=consts.one1)
@@ -134,7 +134,7 @@ def make_prf(m: Circuit, clk: Signal, rst: Signal, *, boot_sp: Wire, consts: Con
 
 
 def make_rename_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: OooParams) -> RenameRegs:
-    c = m.const_wire
+    c = m.const
     with m.scope("rename"):
         smap: list[Reg] = []
         cmap: list[Reg] = []
@@ -150,7 +150,7 @@ def make_rename_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p:
 
 
 def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: OooParams) -> RobRegs:
-    c = m.const_wire
+    c = m.const
     tag0 = c(0, width=p.ptag_w)
 
     with m.scope("rob"):
@@ -205,7 +205,7 @@ def make_rob_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: Oo
 
 
 def make_iq_regs(m: Circuit, clk: Signal, rst: Signal, *, consts: Consts, p: OooParams, name: str = "iq") -> IqRegs:
-    c = m.const_wire
+    c = m.const
     tag0 = c(0, width=p.ptag_w)
 
     with m.scope(name):

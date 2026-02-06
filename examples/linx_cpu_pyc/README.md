@@ -8,8 +8,10 @@ The design is split across multiple Python files:
 - `examples/linx_cpu_pyc/isa.py`: opcode + state encodings
 - `examples/linx_cpu_pyc/decode.py`: instruction decode
 - `examples/linx_cpu_pyc/regfile.py`: GPR + T/U stacks
+- `examples/linx_cpu_pyc/pipeline.py`: pipeline reg bundles / state containers
 - `examples/linx_cpu_pyc/stages/*.py`: IF/ID/EX/MEM/WB stage logic
 - `examples/linx_cpu_pyc/memory.py`: internal byte-addressed memory instantiation
+- `examples/linx_cpu_pyc/util.py`: small helpers used across the design
 
 The CPU includes an internal unified byte-addressed memory (instruction + data)
 implemented via the `pyc.byte_mem` op (C++ + Verilog backends).

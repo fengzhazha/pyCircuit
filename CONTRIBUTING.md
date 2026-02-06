@@ -23,10 +23,10 @@ ninja -C build pyc-compile pyc-opt
 
 ### Regenerate checked-in outputs
 
-This repo checks in golden SV/C++ outputs under `examples/generated/`.
+This repo checks in golden Verilog/C++ outputs under `examples/generated/`.
 
 ```bash
-bash examples/update_generated.sh
+scripts/pyc regen
 git diff
 ```
 
@@ -46,4 +46,3 @@ bash tools/run_linx_cpu_pyc_cpp.sh
 ```
 
 CI also regenerates goldens and checks that no diffs are produced.
-

@@ -29,7 +29,18 @@ template <unsigned Width>
 inline void printBits(std::ostream &os, Bits<Width> v) {
   constexpr unsigned digits = (Width + 3) / 4;
   StreamStateGuard guard(os);
-  os << Width << "'h" << std::hex << std::setw(digits) << std::setfill('0') << v.value();
+  os << Width << "'h" << std::hex << std::setfill('0');
+  constexpr unsigned words = Bits<Width>::kWords;
+  for (int wi = static_cast<int>(words) - 1; wi >= 0; --wi) {
+    unsigned widx = static_cast<unsigned>(wi);
+    unsigned wd = 16;
+    if (widx == (words - 1)) {
+      unsigned rem = digits % 16;
+      if (rem != 0)
+        wd = rem;
+    }
+    os << std::setw(wd) << v.word(widx);
+  }
 }
 
 } // namespace detail

@@ -45,9 +45,9 @@ struct Counter {
   }
 
   inline void eval_comb_1() {
-    pyc_constant_1 = pyc::cpp::Wire<8>(1ull);
-    pyc_constant_2 = pyc::cpp::Wire<8>(0ull);
-    pyc_constant_3 = pyc::cpp::Wire<1>(1ull);
+    pyc_constant_1 = pyc::cpp::Wire<8>({0x1ull});
+    pyc_constant_2 = pyc::cpp::Wire<8>({0x0ull});
+    pyc_constant_3 = pyc::cpp::Wire<1>({0x1ull});
     do__counter__L9 = en;
     pyc_comb_4 = pyc_constant_1;
     pyc_comb_5 = pyc_constant_2;

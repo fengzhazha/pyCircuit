@@ -67,7 +67,7 @@ def exec_uop(
     consts: Consts,
 ) -> ExecOut:
     with m.scope("exec"):
-        c = m.const_wire
+        c = m.const
 
         pc = pc.out()
         op = op.out()
@@ -181,4 +181,3 @@ def exec_uop(
         ex = _apply(m, ex, op_sdi, alu=consts.zero64, is_load=consts.zero1, is_store=consts.one1, size=c(8, width=3), addr=sdi_addr, wdata=srcl_val)
 
         return ex
-

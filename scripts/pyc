@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+
+# shellcheck source=lib.sh
+source "${SCRIPT_DIR}/lib.sh"
+
+usage() {
+  cat <<EOF
+Usage: scripts/pyc <command>
+
+Commands:
+  build        Configure+build pyc-compile/pyc-opt into ./build
+  regen        Regenerate checked-in outputs (examples/ + janus/)
+  test         Run C++ regressions (linx_cpu + janus)
+
+Env:
+  LLVM_DIR, MLIR_DIR   Optional. If unset, scripts/pyc tries to infer via llvm-config.
+  PYC_COMPILE          Path to pyc-compile (overrides auto-detect).
+EOF
+}
+
+find_llvm_config() {
+  if command -v llvm-config >/dev/null 2>&1; then
+    command -v llvm-config
+    return 0
+  fi
+  for v in 19 18 17 16 15; do
+    if command -v "llvm-config-${v}" >/dev/null 2>&1; then
+      command -v "llvm-config-${v}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "${cmd}" in
+  -h|--help|help)
+    usage
+    ;;
+
+  build)
+    if [[ -z "${LLVM_DIR:-}" || -z "${MLIR_DIR:-}" ]]; then
+      if LLVM_CONFIG="$(find_llvm_config)"; then
+        pyc_log "inferring LLVM_DIR/MLIR_DIR via ${LLVM_CONFIG}"
+        LLVM_DIR="$("${LLVM_CONFIG}" --cmakedir)"
+        MLIR_DIR="$(dirname "${LLVM_DIR}")/mlir"
+        export LLVM_DIR MLIR_DIR
+      else
+        pyc_die "set LLVM_DIR and MLIR_DIR (or install llvm-config) before building"
+      fi
+    fi
+
+    pyc_log "configure (build/)"
+    cmake -G Ninja -S "${ROOT_DIR}" -B "${ROOT_DIR}/build" \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DLLVM_DIR="${LLVM_DIR}" \
+      -DMLIR_DIR="${MLIR_DIR}" \
+      -DPYC_BUILD_CPP_EXAMPLES=OFF
+
+    pyc_log "build pyc-compile/pyc-opt"
+    ninja -C "${ROOT_DIR}/build" pyc-compile pyc-opt
+    pyc_log "ok: ${ROOT_DIR}/build/bin/pyc-compile"
+    ;;
+
+  regen)
+    pyc_find_pyc_compile
+    pyc_log "regen examples/generated/*"
+    PYC_COMPILE="${PYC_COMPILE}" bash "${ROOT_DIR}/examples/update_generated.sh"
+    pyc_log "regen janus/generated/*"
+    PYC_COMPILE="${PYC_COMPILE}" bash "${ROOT_DIR}/janus/update_generated.sh"
+    pyc_log "ok"
+    ;;
+
+  test)
+    pyc_find_pyc_compile
+    pyc_log "linx cpu regression (C++)"
+    PYC_COMPILE="${PYC_COMPILE}" bash "${ROOT_DIR}/tools/run_linx_cpu_pyc_cpp.sh"
+    pyc_log "janus bcc regression (C++)"
+    PYC_COMPILE="${PYC_COMPILE}" bash "${ROOT_DIR}/janus/tools/run_janus_bcc_pyc_cpp.sh"
+    pyc_log "janus bcc ooo regression (C++)"
+    PYC_COMPILE="${PYC_COMPILE}" bash "${ROOT_DIR}/janus/tools/run_janus_bcc_ooo_pyc_cpp.sh"
+    pyc_log "ok"
+    ;;
+
+  *)
+    pyc_die "unknown command: ${cmd} (run: scripts/pyc help)"
+    ;;
+esac
+

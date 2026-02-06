@@ -150,40 +150,51 @@ struct JitCache {
   pyc::cpp::Wire<4> cache__wstrb0__jit_cache__L175{};
   pyc::cpp::Wire<1> cache__wvalid0__jit_cache__L172{};
   pyc::cpp::Wire<1> pyc_add_191{};
-  pyc::cpp::Wire<1> pyc_add_217{};
-  pyc::cpp::Wire<1> pyc_add_236{};
-  pyc::cpp::Wire<1> pyc_add_255{};
-  pyc::cpp::Wire<1> pyc_add_274{};
-  pyc::cpp::Wire<1> pyc_add_293{};
-  pyc::cpp::Wire<1> pyc_add_312{};
-  pyc::cpp::Wire<1> pyc_add_331{};
+  pyc::cpp::Wire<1> pyc_add_218{};
+  pyc::cpp::Wire<1> pyc_add_238{};
+  pyc::cpp::Wire<1> pyc_add_258{};
+  pyc::cpp::Wire<1> pyc_add_278{};
+  pyc::cpp::Wire<1> pyc_add_298{};
+  pyc::cpp::Wire<1> pyc_add_318{};
+  pyc::cpp::Wire<1> pyc_add_338{};
+  pyc::cpp::Wire<1> pyc_and_103{};
   pyc::cpp::Wire<1> pyc_and_135{};
+  pyc::cpp::Wire<1> pyc_and_137{};
   pyc::cpp::Wire<1> pyc_and_162{};
   pyc::cpp::Wire<1> pyc_and_181{};
+  pyc::cpp::Wire<1> pyc_and_182{};
   pyc::cpp::Wire<1> pyc_and_190{};
-  pyc::cpp::Wire<1> pyc_and_201{};
-  pyc::cpp::Wire<1> pyc_and_209{};
-  pyc::cpp::Wire<1> pyc_and_216{};
-  pyc::cpp::Wire<1> pyc_and_223{};
-  pyc::cpp::Wire<1> pyc_and_229{};
-  pyc::cpp::Wire<1> pyc_and_235{};
-  pyc::cpp::Wire<1> pyc_and_242{};
-  pyc::cpp::Wire<1> pyc_and_248{};
-  pyc::cpp::Wire<1> pyc_and_254{};
+  pyc::cpp::Wire<1> pyc_and_194{};
+  pyc::cpp::Wire<1> pyc_and_202{};
+  pyc::cpp::Wire<1> pyc_and_210{};
+  pyc::cpp::Wire<1> pyc_and_217{};
+  pyc::cpp::Wire<1> pyc_and_221{};
+  pyc::cpp::Wire<1> pyc_and_225{};
+  pyc::cpp::Wire<1> pyc_and_231{};
+  pyc::cpp::Wire<1> pyc_and_237{};
+  pyc::cpp::Wire<1> pyc_and_241{};
+  pyc::cpp::Wire<1> pyc_and_245{};
+  pyc::cpp::Wire<1> pyc_and_251{};
+  pyc::cpp::Wire<1> pyc_and_257{};
   pyc::cpp::Wire<1> pyc_and_261{};
-  pyc::cpp::Wire<1> pyc_and_267{};
-  pyc::cpp::Wire<1> pyc_and_273{};
-  pyc::cpp::Wire<1> pyc_and_280{};
-  pyc::cpp::Wire<1> pyc_and_286{};
-  pyc::cpp::Wire<1> pyc_and_292{};
-  pyc::cpp::Wire<1> pyc_and_299{};
+  pyc::cpp::Wire<1> pyc_and_265{};
+  pyc::cpp::Wire<1> pyc_and_271{};
+  pyc::cpp::Wire<1> pyc_and_277{};
+  pyc::cpp::Wire<1> pyc_and_281{};
+  pyc::cpp::Wire<1> pyc_and_285{};
+  pyc::cpp::Wire<1> pyc_and_291{};
+  pyc::cpp::Wire<1> pyc_and_297{};
+  pyc::cpp::Wire<1> pyc_and_301{};
   pyc::cpp::Wire<1> pyc_and_305{};
   pyc::cpp::Wire<1> pyc_and_311{};
-  pyc::cpp::Wire<1> pyc_and_318{};
-  pyc::cpp::Wire<1> pyc_and_324{};
-  pyc::cpp::Wire<1> pyc_and_330{};
+  pyc::cpp::Wire<1> pyc_and_317{};
+  pyc::cpp::Wire<1> pyc_and_321{};
+  pyc::cpp::Wire<1> pyc_and_325{};
+  pyc::cpp::Wire<1> pyc_and_331{};
   pyc::cpp::Wire<1> pyc_and_337{};
-  pyc::cpp::Wire<1> pyc_and_343{};
+  pyc::cpp::Wire<1> pyc_and_341{};
+  pyc::cpp::Wire<1> pyc_and_345{};
+  pyc::cpp::Wire<1> pyc_and_351{};
   pyc::cpp::Wire<1> pyc_and_99{};
   pyc::cpp::Wire<32> pyc_byte_mem_179{};
   pyc::cpp::Wire<3> pyc_comb_14{};
@@ -206,76 +217,76 @@ struct JitCache {
   pyc::cpp::Wire<32> pyc_comb_178{};
   pyc::cpp::Wire<3> pyc_comb_18{};
   pyc::cpp::Wire<3> pyc_comb_19{};
-  pyc::cpp::Wire<32> pyc_comb_195{};
-  pyc::cpp::Wire<1> pyc_comb_196{};
+  pyc::cpp::Wire<32> pyc_comb_196{};
   pyc::cpp::Wire<1> pyc_comb_197{};
   pyc::cpp::Wire<1> pyc_comb_198{};
   pyc::cpp::Wire<1> pyc_comb_199{};
   pyc::cpp::Wire<3> pyc_comb_20{};
-  pyc::cpp::Wire<1> pyc_comb_203{};
+  pyc::cpp::Wire<1> pyc_comb_200{};
   pyc::cpp::Wire<1> pyc_comb_204{};
   pyc::cpp::Wire<1> pyc_comb_205{};
+  pyc::cpp::Wire<1> pyc_comb_206{};
   pyc::cpp::Wire<3> pyc_comb_21{};
-  pyc::cpp::Wire<1> pyc_comb_211{};
   pyc::cpp::Wire<1> pyc_comb_212{};
   pyc::cpp::Wire<1> pyc_comb_213{};
+  pyc::cpp::Wire<1> pyc_comb_214{};
   pyc::cpp::Wire<27> pyc_comb_22{};
-  pyc::cpp::Wire<1> pyc_comb_221{};
-  pyc::cpp::Wire<1> pyc_comb_222{};
-  pyc::cpp::Wire<1> pyc_comb_225{};
-  pyc::cpp::Wire<1> pyc_comb_226{};
+  pyc::cpp::Wire<1> pyc_comb_223{};
+  pyc::cpp::Wire<1> pyc_comb_224{};
+  pyc::cpp::Wire<1> pyc_comb_227{};
+  pyc::cpp::Wire<1> pyc_comb_228{};
   pyc::cpp::Wire<1> pyc_comb_23{};
-  pyc::cpp::Wire<1> pyc_comb_231{};
-  pyc::cpp::Wire<1> pyc_comb_232{};
+  pyc::cpp::Wire<1> pyc_comb_233{};
+  pyc::cpp::Wire<1> pyc_comb_234{};
   pyc::cpp::Wire<32> pyc_comb_24{};
-  pyc::cpp::Wire<1> pyc_comb_240{};
-  pyc::cpp::Wire<1> pyc_comb_241{};
+  pyc::cpp::Wire<1> pyc_comb_243{};
   pyc::cpp::Wire<1> pyc_comb_244{};
-  pyc::cpp::Wire<1> pyc_comb_245{};
+  pyc::cpp::Wire<1> pyc_comb_247{};
+  pyc::cpp::Wire<1> pyc_comb_248{};
   pyc::cpp::Wire<1> pyc_comb_25{};
-  pyc::cpp::Wire<1> pyc_comb_250{};
-  pyc::cpp::Wire<1> pyc_comb_251{};
-  pyc::cpp::Wire<1> pyc_comb_259{};
+  pyc::cpp::Wire<1> pyc_comb_253{};
+  pyc::cpp::Wire<1> pyc_comb_254{};
   pyc::cpp::Wire<1> pyc_comb_26{};
-  pyc::cpp::Wire<1> pyc_comb_260{};
   pyc::cpp::Wire<1> pyc_comb_263{};
   pyc::cpp::Wire<1> pyc_comb_264{};
-  pyc::cpp::Wire<1> pyc_comb_269{};
+  pyc::cpp::Wire<1> pyc_comb_267{};
+  pyc::cpp::Wire<1> pyc_comb_268{};
   pyc::cpp::Wire<32> pyc_comb_27{};
-  pyc::cpp::Wire<1> pyc_comb_270{};
-  pyc::cpp::Wire<1> pyc_comb_278{};
-  pyc::cpp::Wire<1> pyc_comb_279{};
+  pyc::cpp::Wire<1> pyc_comb_273{};
+  pyc::cpp::Wire<1> pyc_comb_274{};
   pyc::cpp::Wire<1> pyc_comb_28{};
-  pyc::cpp::Wire<1> pyc_comb_282{};
   pyc::cpp::Wire<1> pyc_comb_283{};
+  pyc::cpp::Wire<1> pyc_comb_284{};
+  pyc::cpp::Wire<1> pyc_comb_287{};
   pyc::cpp::Wire<1> pyc_comb_288{};
-  pyc::cpp::Wire<1> pyc_comb_289{};
   pyc::cpp::Wire<1> pyc_comb_29{};
-  pyc::cpp::Wire<1> pyc_comb_297{};
-  pyc::cpp::Wire<1> pyc_comb_298{};
+  pyc::cpp::Wire<1> pyc_comb_293{};
+  pyc::cpp::Wire<1> pyc_comb_294{};
   pyc::cpp::Wire<32> pyc_comb_30{};
-  pyc::cpp::Wire<1> pyc_comb_301{};
-  pyc::cpp::Wire<1> pyc_comb_302{};
+  pyc::cpp::Wire<1> pyc_comb_303{};
+  pyc::cpp::Wire<1> pyc_comb_304{};
   pyc::cpp::Wire<1> pyc_comb_307{};
   pyc::cpp::Wire<1> pyc_comb_308{};
   pyc::cpp::Wire<32> pyc_comb_31{};
-  pyc::cpp::Wire<1> pyc_comb_316{};
-  pyc::cpp::Wire<1> pyc_comb_317{};
+  pyc::cpp::Wire<1> pyc_comb_313{};
+  pyc::cpp::Wire<1> pyc_comb_314{};
   pyc::cpp::Wire<4> pyc_comb_32{};
-  pyc::cpp::Wire<1> pyc_comb_320{};
-  pyc::cpp::Wire<1> pyc_comb_321{};
-  pyc::cpp::Wire<1> pyc_comb_326{};
+  pyc::cpp::Wire<1> pyc_comb_323{};
+  pyc::cpp::Wire<1> pyc_comb_324{};
   pyc::cpp::Wire<1> pyc_comb_327{};
-  pyc::cpp::Wire<1> pyc_comb_335{};
-  pyc::cpp::Wire<1> pyc_comb_336{};
-  pyc::cpp::Wire<1> pyc_comb_339{};
-  pyc::cpp::Wire<1> pyc_comb_340{};
-  pyc::cpp::Wire<1> pyc_comb_345{};
-  pyc::cpp::Wire<1> pyc_comb_346{};
-  pyc::cpp::Wire<33> pyc_comb_351{};
+  pyc::cpp::Wire<1> pyc_comb_328{};
+  pyc::cpp::Wire<1> pyc_comb_333{};
+  pyc::cpp::Wire<1> pyc_comb_334{};
+  pyc::cpp::Wire<1> pyc_comb_343{};
+  pyc::cpp::Wire<1> pyc_comb_344{};
+  pyc::cpp::Wire<1> pyc_comb_347{};
+  pyc::cpp::Wire<1> pyc_comb_348{};
+  pyc::cpp::Wire<1> pyc_comb_353{};
+  pyc::cpp::Wire<1> pyc_comb_354{};
+  pyc::cpp::Wire<33> pyc_comb_359{};
   pyc::cpp::Wire<1> pyc_comb_41{};
   pyc::cpp::Wire<32> pyc_comb_42{};
-  pyc::cpp::Wire<33> pyc_concat_350{};
+  pyc::cpp::Wire<33> pyc_concat_358{};
   pyc::cpp::Wire<3> pyc_constant_1{};
   pyc::cpp::Wire<1> pyc_constant_10{};
   pyc::cpp::Wire<4> pyc_constant_11{};
@@ -300,15 +311,15 @@ struct JitCache {
   pyc::cpp::Wire<1> pyc_eq_134{};
   pyc::cpp::Wire<1> pyc_eq_161{};
   pyc::cpp::Wire<1> pyc_eq_192{};
-  pyc::cpp::Wire<1> pyc_eq_200{};
-  pyc::cpp::Wire<1> pyc_eq_208{};
-  pyc::cpp::Wire<1> pyc_eq_218{};
-  pyc::cpp::Wire<1> pyc_eq_237{};
-  pyc::cpp::Wire<1> pyc_eq_256{};
-  pyc::cpp::Wire<1> pyc_eq_275{};
-  pyc::cpp::Wire<1> pyc_eq_294{};
-  pyc::cpp::Wire<1> pyc_eq_313{};
-  pyc::cpp::Wire<1> pyc_eq_332{};
+  pyc::cpp::Wire<1> pyc_eq_201{};
+  pyc::cpp::Wire<1> pyc_eq_209{};
+  pyc::cpp::Wire<1> pyc_eq_219{};
+  pyc::cpp::Wire<1> pyc_eq_239{};
+  pyc::cpp::Wire<1> pyc_eq_259{};
+  pyc::cpp::Wire<1> pyc_eq_279{};
+  pyc::cpp::Wire<1> pyc_eq_299{};
+  pyc::cpp::Wire<1> pyc_eq_319{};
+  pyc::cpp::Wire<1> pyc_eq_339{};
   pyc::cpp::Wire<3> pyc_extract_100{};
   pyc::cpp::Wire<27> pyc_extract_101{};
   pyc::cpp::Wire<1> pyc_extract_39{};
@@ -319,7 +330,6 @@ struct JitCache {
   pyc::cpp::Wire<1> pyc_fifo_36{};
   pyc::cpp::Wire<1> pyc_fifo_37{};
   pyc::cpp::Wire<33> pyc_fifo_38{};
-  pyc::cpp::Wire<1> pyc_mux_103{};
   pyc::cpp::Wire<1> pyc_mux_105{};
   pyc::cpp::Wire<1> pyc_mux_107{};
   pyc::cpp::Wire<1> pyc_mux_109{};
@@ -344,7 +354,6 @@ struct JitCache {
   pyc::cpp::Wire<32> pyc_mux_132{};
   pyc::cpp::Wire<32> pyc_mux_133{};
   pyc::cpp::Wire<32> pyc_mux_136{};
-  pyc::cpp::Wire<1> pyc_mux_137{};
   pyc::cpp::Wire<1> pyc_mux_138{};
   pyc::cpp::Wire<1> pyc_mux_139{};
   pyc::cpp::Wire<1> pyc_mux_140{};
@@ -369,7 +378,6 @@ struct JitCache {
   pyc::cpp::Wire<32> pyc_mux_159{};
   pyc::cpp::Wire<32> pyc_mux_160{};
   pyc::cpp::Wire<32> pyc_mux_164{};
-  pyc::cpp::Wire<1> pyc_mux_182{};
   pyc::cpp::Wire<1> pyc_mux_183{};
   pyc::cpp::Wire<1> pyc_mux_184{};
   pyc::cpp::Wire<1> pyc_mux_185{};
@@ -377,73 +385,73 @@ struct JitCache {
   pyc::cpp::Wire<1> pyc_mux_187{};
   pyc::cpp::Wire<1> pyc_mux_188{};
   pyc::cpp::Wire<1> pyc_mux_189{};
-  pyc::cpp::Wire<1> pyc_mux_193{};
-  pyc::cpp::Wire<1> pyc_mux_194{};
-  pyc::cpp::Wire<1> pyc_mux_202{};
-  pyc::cpp::Wire<27> pyc_mux_206{};
-  pyc::cpp::Wire<32> pyc_mux_207{};
-  pyc::cpp::Wire<1> pyc_mux_210{};
-  pyc::cpp::Wire<27> pyc_mux_214{};
-  pyc::cpp::Wire<32> pyc_mux_215{};
-  pyc::cpp::Wire<1> pyc_mux_219{};
-  pyc::cpp::Wire<1> pyc_mux_220{};
-  pyc::cpp::Wire<1> pyc_mux_224{};
-  pyc::cpp::Wire<27> pyc_mux_227{};
-  pyc::cpp::Wire<32> pyc_mux_228{};
-  pyc::cpp::Wire<1> pyc_mux_230{};
-  pyc::cpp::Wire<27> pyc_mux_233{};
-  pyc::cpp::Wire<32> pyc_mux_234{};
-  pyc::cpp::Wire<1> pyc_mux_238{};
-  pyc::cpp::Wire<1> pyc_mux_239{};
-  pyc::cpp::Wire<1> pyc_mux_243{};
-  pyc::cpp::Wire<27> pyc_mux_246{};
-  pyc::cpp::Wire<32> pyc_mux_247{};
-  pyc::cpp::Wire<1> pyc_mux_249{};
-  pyc::cpp::Wire<27> pyc_mux_252{};
-  pyc::cpp::Wire<32> pyc_mux_253{};
-  pyc::cpp::Wire<1> pyc_mux_257{};
-  pyc::cpp::Wire<1> pyc_mux_258{};
+  pyc::cpp::Wire<1> pyc_mux_195{};
+  pyc::cpp::Wire<27> pyc_mux_207{};
+  pyc::cpp::Wire<32> pyc_mux_208{};
+  pyc::cpp::Wire<27> pyc_mux_215{};
+  pyc::cpp::Wire<32> pyc_mux_216{};
+  pyc::cpp::Wire<1> pyc_mux_222{};
+  pyc::cpp::Wire<27> pyc_mux_229{};
+  pyc::cpp::Wire<32> pyc_mux_230{};
+  pyc::cpp::Wire<27> pyc_mux_235{};
+  pyc::cpp::Wire<32> pyc_mux_236{};
+  pyc::cpp::Wire<1> pyc_mux_242{};
+  pyc::cpp::Wire<27> pyc_mux_249{};
+  pyc::cpp::Wire<32> pyc_mux_250{};
+  pyc::cpp::Wire<27> pyc_mux_255{};
+  pyc::cpp::Wire<32> pyc_mux_256{};
   pyc::cpp::Wire<1> pyc_mux_262{};
-  pyc::cpp::Wire<27> pyc_mux_265{};
-  pyc::cpp::Wire<32> pyc_mux_266{};
-  pyc::cpp::Wire<1> pyc_mux_268{};
-  pyc::cpp::Wire<27> pyc_mux_271{};
-  pyc::cpp::Wire<32> pyc_mux_272{};
-  pyc::cpp::Wire<1> pyc_mux_276{};
-  pyc::cpp::Wire<1> pyc_mux_277{};
-  pyc::cpp::Wire<1> pyc_mux_281{};
-  pyc::cpp::Wire<27> pyc_mux_284{};
-  pyc::cpp::Wire<32> pyc_mux_285{};
-  pyc::cpp::Wire<1> pyc_mux_287{};
-  pyc::cpp::Wire<27> pyc_mux_290{};
-  pyc::cpp::Wire<32> pyc_mux_291{};
-  pyc::cpp::Wire<1> pyc_mux_295{};
-  pyc::cpp::Wire<1> pyc_mux_296{};
-  pyc::cpp::Wire<1> pyc_mux_300{};
-  pyc::cpp::Wire<27> pyc_mux_303{};
-  pyc::cpp::Wire<32> pyc_mux_304{};
-  pyc::cpp::Wire<1> pyc_mux_306{};
+  pyc::cpp::Wire<27> pyc_mux_269{};
+  pyc::cpp::Wire<32> pyc_mux_270{};
+  pyc::cpp::Wire<27> pyc_mux_275{};
+  pyc::cpp::Wire<32> pyc_mux_276{};
+  pyc::cpp::Wire<1> pyc_mux_282{};
+  pyc::cpp::Wire<27> pyc_mux_289{};
+  pyc::cpp::Wire<32> pyc_mux_290{};
+  pyc::cpp::Wire<27> pyc_mux_295{};
+  pyc::cpp::Wire<32> pyc_mux_296{};
+  pyc::cpp::Wire<1> pyc_mux_302{};
   pyc::cpp::Wire<27> pyc_mux_309{};
   pyc::cpp::Wire<32> pyc_mux_310{};
-  pyc::cpp::Wire<1> pyc_mux_314{};
-  pyc::cpp::Wire<1> pyc_mux_315{};
-  pyc::cpp::Wire<1> pyc_mux_319{};
-  pyc::cpp::Wire<27> pyc_mux_322{};
-  pyc::cpp::Wire<32> pyc_mux_323{};
-  pyc::cpp::Wire<1> pyc_mux_325{};
-  pyc::cpp::Wire<27> pyc_mux_328{};
-  pyc::cpp::Wire<32> pyc_mux_329{};
-  pyc::cpp::Wire<1> pyc_mux_333{};
-  pyc::cpp::Wire<1> pyc_mux_334{};
-  pyc::cpp::Wire<1> pyc_mux_338{};
-  pyc::cpp::Wire<27> pyc_mux_341{};
-  pyc::cpp::Wire<32> pyc_mux_342{};
-  pyc::cpp::Wire<1> pyc_mux_344{};
-  pyc::cpp::Wire<27> pyc_mux_347{};
-  pyc::cpp::Wire<32> pyc_mux_348{};
-  pyc::cpp::Wire<32> pyc_mux_349{};
+  pyc::cpp::Wire<27> pyc_mux_315{};
+  pyc::cpp::Wire<32> pyc_mux_316{};
+  pyc::cpp::Wire<1> pyc_mux_322{};
+  pyc::cpp::Wire<27> pyc_mux_329{};
+  pyc::cpp::Wire<32> pyc_mux_330{};
+  pyc::cpp::Wire<27> pyc_mux_335{};
+  pyc::cpp::Wire<32> pyc_mux_336{};
+  pyc::cpp::Wire<1> pyc_mux_342{};
+  pyc::cpp::Wire<27> pyc_mux_349{};
+  pyc::cpp::Wire<32> pyc_mux_350{};
+  pyc::cpp::Wire<27> pyc_mux_355{};
+  pyc::cpp::Wire<32> pyc_mux_356{};
+  pyc::cpp::Wire<32> pyc_mux_357{};
   pyc::cpp::Wire<1> pyc_not_180{};
+  pyc::cpp::Wire<1> pyc_not_193{};
+  pyc::cpp::Wire<1> pyc_not_220{};
+  pyc::cpp::Wire<1> pyc_not_240{};
+  pyc::cpp::Wire<1> pyc_not_260{};
+  pyc::cpp::Wire<1> pyc_not_280{};
+  pyc::cpp::Wire<1> pyc_not_300{};
+  pyc::cpp::Wire<1> pyc_not_320{};
+  pyc::cpp::Wire<1> pyc_not_340{};
   pyc::cpp::Wire<1> pyc_or_163{};
+  pyc::cpp::Wire<1> pyc_or_203{};
+  pyc::cpp::Wire<1> pyc_or_211{};
+  pyc::cpp::Wire<1> pyc_or_226{};
+  pyc::cpp::Wire<1> pyc_or_232{};
+  pyc::cpp::Wire<1> pyc_or_246{};
+  pyc::cpp::Wire<1> pyc_or_252{};
+  pyc::cpp::Wire<1> pyc_or_266{};
+  pyc::cpp::Wire<1> pyc_or_272{};
+  pyc::cpp::Wire<1> pyc_or_286{};
+  pyc::cpp::Wire<1> pyc_or_292{};
+  pyc::cpp::Wire<1> pyc_or_306{};
+  pyc::cpp::Wire<1> pyc_or_312{};
+  pyc::cpp::Wire<1> pyc_or_326{};
+  pyc::cpp::Wire<1> pyc_or_332{};
+  pyc::cpp::Wire<1> pyc_or_346{};
+  pyc::cpp::Wire<1> pyc_or_352{};
   pyc::cpp::Wire<1> pyc_reg_43{};
   pyc::cpp::Wire<1> pyc_reg_44{};
   pyc::cpp::Wire<1> pyc_reg_45{};
@@ -621,29 +629,32 @@ struct JitCache {
       pyc_reg_96_inst(sys_clk, sys_rst, pyc_comb_23, cache__rr__s5__next, pyc_comb_25, pyc_reg_96),
       pyc_reg_97_inst(sys_clk, sys_rst, pyc_comb_23, cache__rr__s6__next, pyc_comb_25, pyc_reg_97),
       pyc_reg_98_inst(sys_clk, sys_rst, pyc_comb_23, cache__rr__s7__next, pyc_comb_25, pyc_reg_98),
-      pyc_fifo_33_inst(sys_clk, sys_rst, cache__req_q__in_valid, pyc_fifo_33, cache__req_q__in_data, pyc_fifo_34, cache__req_q__out_ready, pyc_fifo_35),
-      pyc_fifo_36_inst(sys_clk, sys_rst, cache__rsp_q__in_valid, pyc_fifo_36, cache__rsp_q__in_data, pyc_fifo_37, cache__rsp_q__out_ready, pyc_fifo_38),
+      pyc_fifo_33_inst(sys_clk, sys_rst, pyc_comb_26, pyc_fifo_33, pyc_comb_27, pyc_fifo_34, cache__req_q__out_ready, pyc_fifo_35),
+      pyc_fifo_36_inst(sys_clk, sys_rst, cache__rsp_q__in_valid, pyc_fifo_36, cache__rsp_q__in_data, pyc_fifo_37, pyc_comb_28, pyc_fifo_38),
       main_mem(sys_clk, sys_rst, pyc_comb_167, pyc_byte_mem_179, pyc_comb_29, pyc_comb_30, pyc_comb_31, pyc_comb_32) {
     eval();
   }
 
   inline void eval_comb_0() {
-    pyc_constant_1 = pyc::cpp::Wire<3>(7ull);
-    pyc_constant_2 = pyc::cpp::Wire<3>(6ull);
-    pyc_constant_3 = pyc::cpp::Wire<3>(5ull);
-    pyc_constant_4 = pyc::cpp::Wire<3>(4ull);
-    pyc_constant_5 = pyc::cpp::Wire<3>(3ull);
-    pyc_constant_6 = pyc::cpp::Wire<3>(2ull);
-    pyc_constant_7 = pyc::cpp::Wire<3>(1ull);
-    pyc_constant_8 = pyc::cpp::Wire<3>(0ull);
-    pyc_constant_9 = pyc::cpp::Wire<27>(0ull);
-    pyc_constant_10 = pyc::cpp::Wire<1>(1ull);
-    pyc_constant_11 = pyc::cpp::Wire<4>(0ull);
-    pyc_constant_12 = pyc::cpp::Wire<32>(0ull);
-    pyc_constant_13 = pyc::cpp::Wire<1>(0ull);
+    pyc_constant_1 = pyc::cpp::Wire<3>({0x7ull});
+    pyc_constant_2 = pyc::cpp::Wire<3>({0x6ull});
+    pyc_constant_3 = pyc::cpp::Wire<3>({0x5ull});
+    pyc_constant_4 = pyc::cpp::Wire<3>({0x4ull});
+    pyc_constant_5 = pyc::cpp::Wire<3>({0x3ull});
+    pyc_constant_6 = pyc::cpp::Wire<3>({0x2ull});
+    pyc_constant_7 = pyc::cpp::Wire<3>({0x1ull});
+    pyc_constant_8 = pyc::cpp::Wire<3>({0x0ull});
+    pyc_constant_9 = pyc::cpp::Wire<27>({0x0ull});
+    pyc_constant_10 = pyc::cpp::Wire<1>({0x1ull});
+    pyc_constant_11 = pyc::cpp::Wire<4>({0x0ull});
+    pyc_constant_12 = pyc::cpp::Wire<32>({0x0ull});
+    pyc_constant_13 = pyc::cpp::Wire<1>({0x0ull});
     req_valid__jit_cache__L166 = req_valid;
+    cache__req_q__in_valid = req_valid__jit_cache__L166;
     req_addr__jit_cache__L167 = req_addr;
+    cache__req_q__in_data = req_addr__jit_cache__L167;
     rsp_ready__jit_cache__L168 = rsp_ready;
+    cache__rsp_q__out_ready = rsp_ready__jit_cache__L168;
     cache__wvalid0__jit_cache__L172 = pyc_constant_13;
     cache__waddr0__jit_cache__L173 = pyc_constant_12;
     cache__wdata0__jit_cache__L174 = pyc_constant_12;
@@ -660,9 +671,9 @@ struct JitCache {
     pyc_comb_23 = pyc_constant_10;
     pyc_comb_24 = pyc_constant_12;
     pyc_comb_25 = pyc_constant_13;
-    pyc_comb_26 = req_valid__jit_cache__L166;
-    pyc_comb_27 = req_addr__jit_cache__L167;
-    pyc_comb_28 = rsp_ready__jit_cache__L168;
+    pyc_comb_26 = cache__req_q__in_valid;
+    pyc_comb_27 = cache__req_q__in_data;
+    pyc_comb_28 = cache__rsp_q__out_ready;
     pyc_comb_29 = cache__wvalid0__jit_cache__L172;
     pyc_comb_30 = cache__waddr0__jit_cache__L173;
     pyc_comb_31 = cache__wdata0__jit_cache__L174;
@@ -679,9 +690,9 @@ struct JitCache {
     pyc_extract_101 = pyc::cpp::extract<27, 32>(cache__addr__jit_cache__L196, 5u);
     cache__tag__jit_cache__L198 = pyc_extract_101;
     pyc_eq_102 = pyc::cpp::Wire<1>((cache__set_idx__jit_cache__L197 == pyc_comb_21) ? 1u : 0u);
-    pyc_mux_103 = (pyc_eq_102.toBool() ? cache__valid__s0__w0 : pyc_comb_25);
+    pyc_and_103 = (pyc_eq_102 & cache__valid__s0__w0);
     pyc_eq_104 = pyc::cpp::Wire<1>((cache__set_idx__jit_cache__L197 == pyc_comb_20) ? 1u : 0u);
-    pyc_mux_105 = (pyc_eq_104.toBool() ? cache__valid__s1__w0 : pyc_mux_103);
+    pyc_mux_105 = (pyc_eq_104.toBool() ? cache__valid__s1__w0 : pyc_and_103);
     pyc_eq_106 = pyc::cpp::Wire<1>((cache__set_idx__jit_cache__L197 == pyc_comb_19) ? 1u : 0u);
     pyc_mux_107 = (pyc_eq_106.toBool() ? cache__valid__s2__w0 : pyc_mux_105);
     pyc_eq_108 = pyc::cpp::Wire<1>((cache__set_idx__jit_cache__L197 == pyc_comb_18) ? 1u : 0u);
@@ -713,8 +724,8 @@ struct JitCache {
     pyc_eq_134 = pyc::cpp::Wire<1>((pyc_mux_125 == cache__tag__jit_cache__L198) ? 1u : 0u);
     pyc_and_135 = (pyc_mux_117 & pyc_eq_134);
     pyc_mux_136 = (pyc_and_135.toBool() ? pyc_mux_133 : pyc_comb_24);
-    pyc_mux_137 = (pyc_eq_102.toBool() ? cache__valid__s0__w1 : pyc_comb_25);
-    pyc_mux_138 = (pyc_eq_104.toBool() ? cache__valid__s1__w1 : pyc_mux_137);
+    pyc_and_137 = (pyc_eq_102 & cache__valid__s0__w1);
+    pyc_mux_138 = (pyc_eq_104.toBool() ? cache__valid__s1__w1 : pyc_and_137);
     pyc_mux_139 = (pyc_eq_106.toBool() ? cache__valid__s2__w1 : pyc_mux_138);
     pyc_mux_140 = (pyc_eq_108.toBool() ? cache__valid__s3__w1 : pyc_mux_139);
     pyc_mux_141 = (pyc_eq_110.toBool() ? cache__valid__s4__w1 : pyc_mux_140);
@@ -764,8 +775,8 @@ struct JitCache {
     pyc_not_180 = (~pyc_comb_177);
     pyc_and_181 = (pyc_comb_166 & pyc_not_180);
     cache__miss__jit_cache__L218 = pyc_and_181;
-    pyc_mux_182 = (pyc_comb_169.toBool() ? cache__rr__s0 : pyc_comb_25);
-    pyc_mux_183 = (pyc_comb_170.toBool() ? cache__rr__s1 : pyc_mux_182);
+    pyc_and_182 = (pyc_comb_169 & cache__rr__s0);
+    pyc_mux_183 = (pyc_comb_170.toBool() ? cache__rr__s1 : pyc_and_182);
     pyc_mux_184 = (pyc_comb_171.toBool() ? cache__rr__s2 : pyc_mux_183);
     pyc_mux_185 = (pyc_comb_172.toBool() ? cache__rr__s3 : pyc_mux_184);
     pyc_mux_186 = (pyc_comb_173.toBool() ? cache__rr__s4 : pyc_mux_185);
@@ -776,207 +787,215 @@ struct JitCache {
     pyc_and_190 = (cache__miss__jit_cache__L218 & pyc_comb_169);
     pyc_add_191 = (cache__rr__s0 + pyc_comb_23);
     pyc_eq_192 = pyc::cpp::Wire<1>((cache__rr__s0 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_193 = (pyc_eq_192.toBool() ? pyc_comb_25 : pyc_add_191);
-    pyc_mux_194 = (pyc_and_190.toBool() ? pyc_mux_193 : cache__rr__s0);
-    pyc_comb_195 = cache__mem_rdata__jit_cache__L206;
-    pyc_comb_196 = cache__miss__jit_cache__L218;
-    pyc_comb_197 = cache__repl_way__jit_cache__L219;
-    pyc_comb_198 = pyc_and_190;
-    pyc_comb_199 = pyc_mux_194;
+    pyc_not_193 = (~pyc_eq_192);
+    pyc_and_194 = (pyc_not_193 & pyc_add_191);
+    pyc_mux_195 = (pyc_and_190.toBool() ? pyc_and_194 : cache__rr__s0);
+    pyc_comb_196 = cache__mem_rdata__jit_cache__L206;
+    pyc_comb_197 = cache__miss__jit_cache__L218;
+    pyc_comb_198 = cache__repl_way__jit_cache__L219;
+    pyc_comb_199 = pyc_and_190;
+    pyc_comb_200 = pyc_mux_195;
   }
 
   inline void eval_comb_3() {
-    pyc_eq_200 = pyc::cpp::Wire<1>((pyc_comb_197 == pyc_comb_25) ? 1u : 0u);
-    pyc_and_201 = (pyc_comb_198 & pyc_eq_200);
-    pyc_mux_202 = (pyc_and_201.toBool() ? pyc_comb_23 : cache__valid__s0__w0);
-    pyc_comb_203 = pyc_eq_200;
-    pyc_comb_204 = pyc_and_201;
-    pyc_comb_205 = pyc_mux_202;
+    pyc_eq_201 = pyc::cpp::Wire<1>((pyc_comb_198 == pyc_comb_25) ? 1u : 0u);
+    pyc_and_202 = (pyc_comb_199 & pyc_eq_201);
+    pyc_or_203 = (pyc_and_202 | cache__valid__s0__w0);
+    pyc_comb_204 = pyc_eq_201;
+    pyc_comb_205 = pyc_and_202;
+    pyc_comb_206 = pyc_or_203;
   }
 
   inline void eval_comb_4() {
-    pyc_eq_208 = pyc::cpp::Wire<1>((pyc_comb_197 == pyc_comb_23) ? 1u : 0u);
-    pyc_and_209 = (pyc_comb_198 & pyc_eq_208);
-    pyc_mux_210 = (pyc_and_209.toBool() ? pyc_comb_23 : cache__valid__s0__w1);
-    pyc_comb_211 = pyc_eq_208;
-    pyc_comb_212 = pyc_and_209;
-    pyc_comb_213 = pyc_mux_210;
+    pyc_eq_209 = pyc::cpp::Wire<1>((pyc_comb_198 == pyc_comb_23) ? 1u : 0u);
+    pyc_and_210 = (pyc_comb_199 & pyc_eq_209);
+    pyc_or_211 = (pyc_and_210 | cache__valid__s0__w1);
+    pyc_comb_212 = pyc_eq_209;
+    pyc_comb_213 = pyc_and_210;
+    pyc_comb_214 = pyc_or_211;
   }
 
   inline void eval_comb_5() {
-    pyc_and_216 = (pyc_comb_196 & pyc_comb_170);
-    pyc_add_217 = (cache__rr__s1 + pyc_comb_23);
-    pyc_eq_218 = pyc::cpp::Wire<1>((cache__rr__s1 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_219 = (pyc_eq_218.toBool() ? pyc_comb_25 : pyc_add_217);
-    pyc_mux_220 = (pyc_and_216.toBool() ? pyc_mux_219 : cache__rr__s1);
-    pyc_comb_221 = pyc_and_216;
-    pyc_comb_222 = pyc_mux_220;
+    pyc_and_217 = (pyc_comb_197 & pyc_comb_170);
+    pyc_add_218 = (cache__rr__s1 + pyc_comb_23);
+    pyc_eq_219 = pyc::cpp::Wire<1>((cache__rr__s1 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_220 = (~pyc_eq_219);
+    pyc_and_221 = (pyc_not_220 & pyc_add_218);
+    pyc_mux_222 = (pyc_and_217.toBool() ? pyc_and_221 : cache__rr__s1);
+    pyc_comb_223 = pyc_and_217;
+    pyc_comb_224 = pyc_mux_222;
   }
 
   inline void eval_comb_6() {
-    pyc_and_223 = (pyc_comb_221 & pyc_comb_203);
-    pyc_mux_224 = (pyc_and_223.toBool() ? pyc_comb_23 : cache__valid__s1__w0);
-    pyc_comb_225 = pyc_and_223;
-    pyc_comb_226 = pyc_mux_224;
+    pyc_and_225 = (pyc_comb_223 & pyc_comb_204);
+    pyc_or_226 = (pyc_and_225 | cache__valid__s1__w0);
+    pyc_comb_227 = pyc_and_225;
+    pyc_comb_228 = pyc_or_226;
   }
 
   inline void eval_comb_7() {
-    pyc_and_229 = (pyc_comb_221 & pyc_comb_211);
-    pyc_mux_230 = (pyc_and_229.toBool() ? pyc_comb_23 : cache__valid__s1__w1);
-    pyc_comb_231 = pyc_and_229;
-    pyc_comb_232 = pyc_mux_230;
+    pyc_and_231 = (pyc_comb_223 & pyc_comb_212);
+    pyc_or_232 = (pyc_and_231 | cache__valid__s1__w1);
+    pyc_comb_233 = pyc_and_231;
+    pyc_comb_234 = pyc_or_232;
   }
 
   inline void eval_comb_8() {
-    pyc_and_235 = (pyc_comb_196 & pyc_comb_171);
-    pyc_add_236 = (cache__rr__s2 + pyc_comb_23);
-    pyc_eq_237 = pyc::cpp::Wire<1>((cache__rr__s2 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_238 = (pyc_eq_237.toBool() ? pyc_comb_25 : pyc_add_236);
-    pyc_mux_239 = (pyc_and_235.toBool() ? pyc_mux_238 : cache__rr__s2);
-    pyc_comb_240 = pyc_and_235;
-    pyc_comb_241 = pyc_mux_239;
+    pyc_and_237 = (pyc_comb_197 & pyc_comb_171);
+    pyc_add_238 = (cache__rr__s2 + pyc_comb_23);
+    pyc_eq_239 = pyc::cpp::Wire<1>((cache__rr__s2 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_240 = (~pyc_eq_239);
+    pyc_and_241 = (pyc_not_240 & pyc_add_238);
+    pyc_mux_242 = (pyc_and_237.toBool() ? pyc_and_241 : cache__rr__s2);
+    pyc_comb_243 = pyc_and_237;
+    pyc_comb_244 = pyc_mux_242;
   }
 
   inline void eval_comb_9() {
-    pyc_and_242 = (pyc_comb_240 & pyc_comb_203);
-    pyc_mux_243 = (pyc_and_242.toBool() ? pyc_comb_23 : cache__valid__s2__w0);
-    pyc_comb_244 = pyc_and_242;
-    pyc_comb_245 = pyc_mux_243;
+    pyc_and_245 = (pyc_comb_243 & pyc_comb_204);
+    pyc_or_246 = (pyc_and_245 | cache__valid__s2__w0);
+    pyc_comb_247 = pyc_and_245;
+    pyc_comb_248 = pyc_or_246;
   }
 
   inline void eval_comb_10() {
-    pyc_and_248 = (pyc_comb_240 & pyc_comb_211);
-    pyc_mux_249 = (pyc_and_248.toBool() ? pyc_comb_23 : cache__valid__s2__w1);
-    pyc_comb_250 = pyc_and_248;
-    pyc_comb_251 = pyc_mux_249;
+    pyc_and_251 = (pyc_comb_243 & pyc_comb_212);
+    pyc_or_252 = (pyc_and_251 | cache__valid__s2__w1);
+    pyc_comb_253 = pyc_and_251;
+    pyc_comb_254 = pyc_or_252;
   }
 
   inline void eval_comb_11() {
-    pyc_and_254 = (pyc_comb_196 & pyc_comb_172);
-    pyc_add_255 = (cache__rr__s3 + pyc_comb_23);
-    pyc_eq_256 = pyc::cpp::Wire<1>((cache__rr__s3 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_257 = (pyc_eq_256.toBool() ? pyc_comb_25 : pyc_add_255);
-    pyc_mux_258 = (pyc_and_254.toBool() ? pyc_mux_257 : cache__rr__s3);
-    pyc_comb_259 = pyc_and_254;
-    pyc_comb_260 = pyc_mux_258;
-  }
-
-  inline void eval_comb_12() {
-    pyc_and_261 = (pyc_comb_259 & pyc_comb_203);
-    pyc_mux_262 = (pyc_and_261.toBool() ? pyc_comb_23 : cache__valid__s3__w0);
-    pyc_comb_263 = pyc_and_261;
+    pyc_and_257 = (pyc_comb_197 & pyc_comb_172);
+    pyc_add_258 = (cache__rr__s3 + pyc_comb_23);
+    pyc_eq_259 = pyc::cpp::Wire<1>((cache__rr__s3 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_260 = (~pyc_eq_259);
+    pyc_and_261 = (pyc_not_260 & pyc_add_258);
+    pyc_mux_262 = (pyc_and_257.toBool() ? pyc_and_261 : cache__rr__s3);
+    pyc_comb_263 = pyc_and_257;
     pyc_comb_264 = pyc_mux_262;
   }
 
+  inline void eval_comb_12() {
+    pyc_and_265 = (pyc_comb_263 & pyc_comb_204);
+    pyc_or_266 = (pyc_and_265 | cache__valid__s3__w0);
+    pyc_comb_267 = pyc_and_265;
+    pyc_comb_268 = pyc_or_266;
+  }
+
   inline void eval_comb_13() {
-    pyc_and_267 = (pyc_comb_259 & pyc_comb_211);
-    pyc_mux_268 = (pyc_and_267.toBool() ? pyc_comb_23 : cache__valid__s3__w1);
-    pyc_comb_269 = pyc_and_267;
-    pyc_comb_270 = pyc_mux_268;
+    pyc_and_271 = (pyc_comb_263 & pyc_comb_212);
+    pyc_or_272 = (pyc_and_271 | cache__valid__s3__w1);
+    pyc_comb_273 = pyc_and_271;
+    pyc_comb_274 = pyc_or_272;
   }
 
   inline void eval_comb_14() {
-    pyc_and_273 = (pyc_comb_196 & pyc_comb_173);
-    pyc_add_274 = (cache__rr__s4 + pyc_comb_23);
-    pyc_eq_275 = pyc::cpp::Wire<1>((cache__rr__s4 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_276 = (pyc_eq_275.toBool() ? pyc_comb_25 : pyc_add_274);
-    pyc_mux_277 = (pyc_and_273.toBool() ? pyc_mux_276 : cache__rr__s4);
-    pyc_comb_278 = pyc_and_273;
-    pyc_comb_279 = pyc_mux_277;
+    pyc_and_277 = (pyc_comb_197 & pyc_comb_173);
+    pyc_add_278 = (cache__rr__s4 + pyc_comb_23);
+    pyc_eq_279 = pyc::cpp::Wire<1>((cache__rr__s4 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_280 = (~pyc_eq_279);
+    pyc_and_281 = (pyc_not_280 & pyc_add_278);
+    pyc_mux_282 = (pyc_and_277.toBool() ? pyc_and_281 : cache__rr__s4);
+    pyc_comb_283 = pyc_and_277;
+    pyc_comb_284 = pyc_mux_282;
   }
 
   inline void eval_comb_15() {
-    pyc_and_280 = (pyc_comb_278 & pyc_comb_203);
-    pyc_mux_281 = (pyc_and_280.toBool() ? pyc_comb_23 : cache__valid__s4__w0);
-    pyc_comb_282 = pyc_and_280;
-    pyc_comb_283 = pyc_mux_281;
+    pyc_and_285 = (pyc_comb_283 & pyc_comb_204);
+    pyc_or_286 = (pyc_and_285 | cache__valid__s4__w0);
+    pyc_comb_287 = pyc_and_285;
+    pyc_comb_288 = pyc_or_286;
   }
 
   inline void eval_comb_16() {
-    pyc_and_286 = (pyc_comb_278 & pyc_comb_211);
-    pyc_mux_287 = (pyc_and_286.toBool() ? pyc_comb_23 : cache__valid__s4__w1);
-    pyc_comb_288 = pyc_and_286;
-    pyc_comb_289 = pyc_mux_287;
+    pyc_and_291 = (pyc_comb_283 & pyc_comb_212);
+    pyc_or_292 = (pyc_and_291 | cache__valid__s4__w1);
+    pyc_comb_293 = pyc_and_291;
+    pyc_comb_294 = pyc_or_292;
   }
 
   inline void eval_comb_17() {
-    pyc_and_292 = (pyc_comb_196 & pyc_comb_174);
-    pyc_add_293 = (cache__rr__s5 + pyc_comb_23);
-    pyc_eq_294 = pyc::cpp::Wire<1>((cache__rr__s5 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_295 = (pyc_eq_294.toBool() ? pyc_comb_25 : pyc_add_293);
-    pyc_mux_296 = (pyc_and_292.toBool() ? pyc_mux_295 : cache__rr__s5);
-    pyc_comb_297 = pyc_and_292;
-    pyc_comb_298 = pyc_mux_296;
+    pyc_and_297 = (pyc_comb_197 & pyc_comb_174);
+    pyc_add_298 = (cache__rr__s5 + pyc_comb_23);
+    pyc_eq_299 = pyc::cpp::Wire<1>((cache__rr__s5 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_300 = (~pyc_eq_299);
+    pyc_and_301 = (pyc_not_300 & pyc_add_298);
+    pyc_mux_302 = (pyc_and_297.toBool() ? pyc_and_301 : cache__rr__s5);
+    pyc_comb_303 = pyc_and_297;
+    pyc_comb_304 = pyc_mux_302;
   }
 
   inline void eval_comb_18() {
-    pyc_and_299 = (pyc_comb_297 & pyc_comb_203);
-    pyc_mux_300 = (pyc_and_299.toBool() ? pyc_comb_23 : cache__valid__s5__w0);
-    pyc_comb_301 = pyc_and_299;
-    pyc_comb_302 = pyc_mux_300;
+    pyc_and_305 = (pyc_comb_303 & pyc_comb_204);
+    pyc_or_306 = (pyc_and_305 | cache__valid__s5__w0);
+    pyc_comb_307 = pyc_and_305;
+    pyc_comb_308 = pyc_or_306;
   }
 
   inline void eval_comb_19() {
-    pyc_and_305 = (pyc_comb_297 & pyc_comb_211);
-    pyc_mux_306 = (pyc_and_305.toBool() ? pyc_comb_23 : cache__valid__s5__w1);
-    pyc_comb_307 = pyc_and_305;
-    pyc_comb_308 = pyc_mux_306;
+    pyc_and_311 = (pyc_comb_303 & pyc_comb_212);
+    pyc_or_312 = (pyc_and_311 | cache__valid__s5__w1);
+    pyc_comb_313 = pyc_and_311;
+    pyc_comb_314 = pyc_or_312;
   }
 
   inline void eval_comb_20() {
-    pyc_and_311 = (pyc_comb_196 & pyc_comb_175);
-    pyc_add_312 = (cache__rr__s6 + pyc_comb_23);
-    pyc_eq_313 = pyc::cpp::Wire<1>((cache__rr__s6 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_314 = (pyc_eq_313.toBool() ? pyc_comb_25 : pyc_add_312);
-    pyc_mux_315 = (pyc_and_311.toBool() ? pyc_mux_314 : cache__rr__s6);
-    pyc_comb_316 = pyc_and_311;
-    pyc_comb_317 = pyc_mux_315;
+    pyc_and_317 = (pyc_comb_197 & pyc_comb_175);
+    pyc_add_318 = (cache__rr__s6 + pyc_comb_23);
+    pyc_eq_319 = pyc::cpp::Wire<1>((cache__rr__s6 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_320 = (~pyc_eq_319);
+    pyc_and_321 = (pyc_not_320 & pyc_add_318);
+    pyc_mux_322 = (pyc_and_317.toBool() ? pyc_and_321 : cache__rr__s6);
+    pyc_comb_323 = pyc_and_317;
+    pyc_comb_324 = pyc_mux_322;
   }
 
   inline void eval_comb_21() {
-    pyc_and_318 = (pyc_comb_316 & pyc_comb_203);
-    pyc_mux_319 = (pyc_and_318.toBool() ? pyc_comb_23 : cache__valid__s6__w0);
-    pyc_comb_320 = pyc_and_318;
-    pyc_comb_321 = pyc_mux_319;
+    pyc_and_325 = (pyc_comb_323 & pyc_comb_204);
+    pyc_or_326 = (pyc_and_325 | cache__valid__s6__w0);
+    pyc_comb_327 = pyc_and_325;
+    pyc_comb_328 = pyc_or_326;
   }
 
   inline void eval_comb_22() {
-    pyc_and_324 = (pyc_comb_316 & pyc_comb_211);
-    pyc_mux_325 = (pyc_and_324.toBool() ? pyc_comb_23 : cache__valid__s6__w1);
-    pyc_comb_326 = pyc_and_324;
-    pyc_comb_327 = pyc_mux_325;
+    pyc_and_331 = (pyc_comb_323 & pyc_comb_212);
+    pyc_or_332 = (pyc_and_331 | cache__valid__s6__w1);
+    pyc_comb_333 = pyc_and_331;
+    pyc_comb_334 = pyc_or_332;
   }
 
   inline void eval_comb_23() {
-    pyc_and_330 = (pyc_comb_196 & pyc_comb_176);
-    pyc_add_331 = (pyc_comb_165 + pyc_comb_23);
-    pyc_eq_332 = pyc::cpp::Wire<1>((pyc_comb_165 == pyc_comb_23) ? 1u : 0u);
-    pyc_mux_333 = (pyc_eq_332.toBool() ? pyc_comb_25 : pyc_add_331);
-    pyc_mux_334 = (pyc_and_330.toBool() ? pyc_mux_333 : pyc_comb_165);
-    pyc_comb_335 = pyc_and_330;
-    pyc_comb_336 = pyc_mux_334;
+    pyc_and_337 = (pyc_comb_197 & pyc_comb_176);
+    pyc_add_338 = (pyc_comb_165 + pyc_comb_23);
+    pyc_eq_339 = pyc::cpp::Wire<1>((pyc_comb_165 == pyc_comb_23) ? 1u : 0u);
+    pyc_not_340 = (~pyc_eq_339);
+    pyc_and_341 = (pyc_not_340 & pyc_add_338);
+    pyc_mux_342 = (pyc_and_337.toBool() ? pyc_and_341 : pyc_comb_165);
+    pyc_comb_343 = pyc_and_337;
+    pyc_comb_344 = pyc_mux_342;
   }
 
   inline void eval_comb_24() {
-    pyc_and_337 = (pyc_comb_335 & pyc_comb_203);
-    pyc_mux_338 = (pyc_and_337.toBool() ? pyc_comb_23 : cache__valid__s7__w0);
-    pyc_comb_339 = pyc_and_337;
-    pyc_comb_340 = pyc_mux_338;
+    pyc_and_345 = (pyc_comb_343 & pyc_comb_204);
+    pyc_or_346 = (pyc_and_345 | cache__valid__s7__w0);
+    pyc_comb_347 = pyc_and_345;
+    pyc_comb_348 = pyc_or_346;
   }
 
   inline void eval_comb_25() {
-    pyc_and_343 = (pyc_comb_335 & pyc_comb_211);
-    pyc_mux_344 = (pyc_and_343.toBool() ? pyc_comb_23 : cache__valid__s7__w1);
-    pyc_comb_345 = pyc_and_343;
-    pyc_comb_346 = pyc_mux_344;
+    pyc_and_351 = (pyc_comb_343 & pyc_comb_212);
+    pyc_or_352 = (pyc_and_351 | cache__valid__s7__w1);
+    pyc_comb_353 = pyc_and_351;
+    pyc_comb_354 = pyc_or_352;
   }
 
   inline void eval_comb_26() {
-    pyc_mux_349 = (pyc_comb_177.toBool() ? pyc_comb_178 : pyc_comb_195);
-    cache__rdata__jit_cache__L232 = pyc_mux_349;
-    pyc_concat_350 = pyc::cpp::concat(pyc_comb_177, cache__rdata__jit_cache__L232);
-    cache__rsp_pkt__jit_cache__L233 = pyc_concat_350;
-    pyc_comb_351 = cache__rsp_pkt__jit_cache__L233;
+    pyc_mux_357 = (pyc_comb_177.toBool() ? pyc_comb_178 : pyc_comb_196);
+    cache__rdata__jit_cache__L232 = pyc_mux_357;
+    pyc_concat_358 = pyc::cpp::concat(pyc_comb_177, cache__rdata__jit_cache__L232);
+    cache__rsp_pkt__jit_cache__L233 = pyc_concat_358;
+    pyc_comb_359 = cache__rsp_pkt__jit_cache__L233;
   }
 
   inline void eval_comb_27() {
@@ -1046,126 +1065,123 @@ struct JitCache {
     cache__valid__s7__w0 = pyc_reg_57;
     cache__valid__s7__w1 = pyc_reg_58;
     eval_comb_0();
-    cache__req_q__in_data = pyc_comb_27;
-    cache__req_q__in_valid = pyc_comb_26;
-    cache__rsp_q__out_ready = pyc_comb_28;
     eval_comb_1();
     cache__rsp_q__in_valid = pyc_comb_166;
     eval_comb_2();
-    cache__rr__s0__next = pyc_comb_199;
+    cache__rr__s0__next = pyc_comb_200;
     eval_comb_3();
-    cache__valid__s0__w0__next = pyc_comb_205;
+    cache__valid__s0__w0__next = pyc_comb_206;
     eval_comb_4();
-    cache__valid__s0__w1__next = pyc_comb_213;
+    cache__valid__s0__w1__next = pyc_comb_214;
     eval_comb_5();
-    cache__rr__s1__next = pyc_comb_222;
+    cache__rr__s1__next = pyc_comb_224;
     eval_comb_6();
-    cache__valid__s1__w0__next = pyc_comb_226;
+    cache__valid__s1__w0__next = pyc_comb_228;
     eval_comb_7();
-    cache__valid__s1__w1__next = pyc_comb_232;
+    cache__valid__s1__w1__next = pyc_comb_234;
     eval_comb_8();
-    cache__rr__s2__next = pyc_comb_241;
+    cache__rr__s2__next = pyc_comb_244;
     eval_comb_9();
-    cache__valid__s2__w0__next = pyc_comb_245;
+    cache__valid__s2__w0__next = pyc_comb_248;
     eval_comb_10();
-    cache__valid__s2__w1__next = pyc_comb_251;
+    cache__valid__s2__w1__next = pyc_comb_254;
     eval_comb_11();
-    cache__rr__s3__next = pyc_comb_260;
+    cache__rr__s3__next = pyc_comb_264;
     eval_comb_12();
-    cache__valid__s3__w0__next = pyc_comb_264;
+    cache__valid__s3__w0__next = pyc_comb_268;
     eval_comb_13();
-    cache__valid__s3__w1__next = pyc_comb_270;
+    cache__valid__s3__w1__next = pyc_comb_274;
     eval_comb_14();
-    cache__rr__s4__next = pyc_comb_279;
+    cache__rr__s4__next = pyc_comb_284;
     eval_comb_15();
-    cache__valid__s4__w0__next = pyc_comb_283;
+    cache__valid__s4__w0__next = pyc_comb_288;
     eval_comb_16();
-    cache__valid__s4__w1__next = pyc_comb_289;
+    cache__valid__s4__w1__next = pyc_comb_294;
     eval_comb_17();
-    cache__rr__s5__next = pyc_comb_298;
+    cache__rr__s5__next = pyc_comb_304;
     eval_comb_18();
-    cache__valid__s5__w0__next = pyc_comb_302;
+    cache__valid__s5__w0__next = pyc_comb_308;
     eval_comb_19();
-    cache__valid__s5__w1__next = pyc_comb_308;
+    cache__valid__s5__w1__next = pyc_comb_314;
     eval_comb_20();
-    cache__rr__s6__next = pyc_comb_317;
+    cache__rr__s6__next = pyc_comb_324;
     eval_comb_21();
-    cache__valid__s6__w0__next = pyc_comb_321;
+    cache__valid__s6__w0__next = pyc_comb_328;
     eval_comb_22();
-    cache__valid__s6__w1__next = pyc_comb_327;
+    cache__valid__s6__w1__next = pyc_comb_334;
     eval_comb_23();
-    cache__rr__s7__next = pyc_comb_336;
+    cache__rr__s7__next = pyc_comb_344;
     eval_comb_24();
-    cache__valid__s7__w0__next = pyc_comb_340;
+    cache__valid__s7__w0__next = pyc_comb_348;
     eval_comb_25();
-    cache__valid__s7__w1__next = pyc_comb_346;
+    cache__valid__s7__w1__next = pyc_comb_354;
     eval_comb_26();
-    cache__rsp_q__in_data = pyc_comb_351;
+    cache__rsp_q__in_data = pyc_comb_359;
     eval_comb_27();
-    pyc_mux_206 = (pyc_comb_204.toBool() ? pyc_comb_168 : cache__tag__s0__w0);
-    cache__tag__s0__w0__next = pyc_mux_206;
-    pyc_mux_207 = (pyc_comb_204.toBool() ? pyc_comb_195 : cache__data__s0__w0);
-    cache__data__s0__w0__next = pyc_mux_207;
-    pyc_mux_214 = (pyc_comb_212.toBool() ? pyc_comb_168 : cache__tag__s0__w1);
-    cache__tag__s0__w1__next = pyc_mux_214;
-    pyc_mux_215 = (pyc_comb_212.toBool() ? pyc_comb_195 : cache__data__s0__w1);
-    cache__data__s0__w1__next = pyc_mux_215;
-    pyc_mux_227 = (pyc_comb_225.toBool() ? pyc_comb_168 : cache__tag__s1__w0);
-    cache__tag__s1__w0__next = pyc_mux_227;
-    pyc_mux_228 = (pyc_comb_225.toBool() ? pyc_comb_195 : cache__data__s1__w0);
-    cache__data__s1__w0__next = pyc_mux_228;
-    pyc_mux_233 = (pyc_comb_231.toBool() ? pyc_comb_168 : cache__tag__s1__w1);
-    cache__tag__s1__w1__next = pyc_mux_233;
-    pyc_mux_234 = (pyc_comb_231.toBool() ? pyc_comb_195 : cache__data__s1__w1);
-    cache__data__s1__w1__next = pyc_mux_234;
-    pyc_mux_246 = (pyc_comb_244.toBool() ? pyc_comb_168 : cache__tag__s2__w0);
-    cache__tag__s2__w0__next = pyc_mux_246;
-    pyc_mux_247 = (pyc_comb_244.toBool() ? pyc_comb_195 : cache__data__s2__w0);
-    cache__data__s2__w0__next = pyc_mux_247;
-    pyc_mux_252 = (pyc_comb_250.toBool() ? pyc_comb_168 : cache__tag__s2__w1);
-    cache__tag__s2__w1__next = pyc_mux_252;
-    pyc_mux_253 = (pyc_comb_250.toBool() ? pyc_comb_195 : cache__data__s2__w1);
-    cache__data__s2__w1__next = pyc_mux_253;
-    pyc_mux_265 = (pyc_comb_263.toBool() ? pyc_comb_168 : cache__tag__s3__w0);
-    cache__tag__s3__w0__next = pyc_mux_265;
-    pyc_mux_266 = (pyc_comb_263.toBool() ? pyc_comb_195 : cache__data__s3__w0);
-    cache__data__s3__w0__next = pyc_mux_266;
-    pyc_mux_271 = (pyc_comb_269.toBool() ? pyc_comb_168 : cache__tag__s3__w1);
-    cache__tag__s3__w1__next = pyc_mux_271;
-    pyc_mux_272 = (pyc_comb_269.toBool() ? pyc_comb_195 : cache__data__s3__w1);
-    cache__data__s3__w1__next = pyc_mux_272;
-    pyc_mux_284 = (pyc_comb_282.toBool() ? pyc_comb_168 : cache__tag__s4__w0);
-    cache__tag__s4__w0__next = pyc_mux_284;
-    pyc_mux_285 = (pyc_comb_282.toBool() ? pyc_comb_195 : cache__data__s4__w0);
-    cache__data__s4__w0__next = pyc_mux_285;
-    pyc_mux_290 = (pyc_comb_288.toBool() ? pyc_comb_168 : cache__tag__s4__w1);
-    cache__tag__s4__w1__next = pyc_mux_290;
-    pyc_mux_291 = (pyc_comb_288.toBool() ? pyc_comb_195 : cache__data__s4__w1);
-    cache__data__s4__w1__next = pyc_mux_291;
-    pyc_mux_303 = (pyc_comb_301.toBool() ? pyc_comb_168 : cache__tag__s5__w0);
-    cache__tag__s5__w0__next = pyc_mux_303;
-    pyc_mux_304 = (pyc_comb_301.toBool() ? pyc_comb_195 : cache__data__s5__w0);
-    cache__data__s5__w0__next = pyc_mux_304;
-    pyc_mux_309 = (pyc_comb_307.toBool() ? pyc_comb_168 : cache__tag__s5__w1);
-    cache__tag__s5__w1__next = pyc_mux_309;
-    pyc_mux_310 = (pyc_comb_307.toBool() ? pyc_comb_195 : cache__data__s5__w1);
-    cache__data__s5__w1__next = pyc_mux_310;
-    pyc_mux_322 = (pyc_comb_320.toBool() ? pyc_comb_168 : cache__tag__s6__w0);
-    cache__tag__s6__w0__next = pyc_mux_322;
-    pyc_mux_323 = (pyc_comb_320.toBool() ? pyc_comb_195 : cache__data__s6__w0);
-    cache__data__s6__w0__next = pyc_mux_323;
-    pyc_mux_328 = (pyc_comb_326.toBool() ? pyc_comb_168 : cache__tag__s6__w1);
-    cache__tag__s6__w1__next = pyc_mux_328;
-    pyc_mux_329 = (pyc_comb_326.toBool() ? pyc_comb_195 : cache__data__s6__w1);
-    cache__data__s6__w1__next = pyc_mux_329;
-    pyc_mux_341 = (pyc_comb_339.toBool() ? pyc_comb_168 : cache__tag__s7__w0);
-    cache__tag__s7__w0__next = pyc_mux_341;
-    pyc_mux_342 = (pyc_comb_339.toBool() ? pyc_comb_195 : cache__data__s7__w0);
-    cache__data__s7__w0__next = pyc_mux_342;
-    pyc_mux_347 = (pyc_comb_345.toBool() ? pyc_comb_168 : cache__tag__s7__w1);
-    cache__tag__s7__w1__next = pyc_mux_347;
-    pyc_mux_348 = (pyc_comb_345.toBool() ? pyc_comb_195 : cache__data__s7__w1);
-    cache__data__s7__w1__next = pyc_mux_348;
+    pyc_mux_207 = (pyc_comb_205.toBool() ? pyc_comb_168 : cache__tag__s0__w0);
+    cache__tag__s0__w0__next = pyc_mux_207;
+    pyc_mux_208 = (pyc_comb_205.toBool() ? pyc_comb_196 : cache__data__s0__w0);
+    cache__data__s0__w0__next = pyc_mux_208;
+    pyc_mux_215 = (pyc_comb_213.toBool() ? pyc_comb_168 : cache__tag__s0__w1);
+    cache__tag__s0__w1__next = pyc_mux_215;
+    pyc_mux_216 = (pyc_comb_213.toBool() ? pyc_comb_196 : cache__data__s0__w1);
+    cache__data__s0__w1__next = pyc_mux_216;
+    pyc_mux_229 = (pyc_comb_227.toBool() ? pyc_comb_168 : cache__tag__s1__w0);
+    cache__tag__s1__w0__next = pyc_mux_229;
+    pyc_mux_230 = (pyc_comb_227.toBool() ? pyc_comb_196 : cache__data__s1__w0);
+    cache__data__s1__w0__next = pyc_mux_230;
+    pyc_mux_235 = (pyc_comb_233.toBool() ? pyc_comb_168 : cache__tag__s1__w1);
+    cache__tag__s1__w1__next = pyc_mux_235;
+    pyc_mux_236 = (pyc_comb_233.toBool() ? pyc_comb_196 : cache__data__s1__w1);
+    cache__data__s1__w1__next = pyc_mux_236;
+    pyc_mux_249 = (pyc_comb_247.toBool() ? pyc_comb_168 : cache__tag__s2__w0);
+    cache__tag__s2__w0__next = pyc_mux_249;
+    pyc_mux_250 = (pyc_comb_247.toBool() ? pyc_comb_196 : cache__data__s2__w0);
+    cache__data__s2__w0__next = pyc_mux_250;
+    pyc_mux_255 = (pyc_comb_253.toBool() ? pyc_comb_168 : cache__tag__s2__w1);
+    cache__tag__s2__w1__next = pyc_mux_255;
+    pyc_mux_256 = (pyc_comb_253.toBool() ? pyc_comb_196 : cache__data__s2__w1);
+    cache__data__s2__w1__next = pyc_mux_256;
+    pyc_mux_269 = (pyc_comb_267.toBool() ? pyc_comb_168 : cache__tag__s3__w0);
+    cache__tag__s3__w0__next = pyc_mux_269;
+    pyc_mux_270 = (pyc_comb_267.toBool() ? pyc_comb_196 : cache__data__s3__w0);
+    cache__data__s3__w0__next = pyc_mux_270;
+    pyc_mux_275 = (pyc_comb_273.toBool() ? pyc_comb_168 : cache__tag__s3__w1);
+    cache__tag__s3__w1__next = pyc_mux_275;
+    pyc_mux_276 = (pyc_comb_273.toBool() ? pyc_comb_196 : cache__data__s3__w1);
+    cache__data__s3__w1__next = pyc_mux_276;
+    pyc_mux_289 = (pyc_comb_287.toBool() ? pyc_comb_168 : cache__tag__s4__w0);
+    cache__tag__s4__w0__next = pyc_mux_289;
+    pyc_mux_290 = (pyc_comb_287.toBool() ? pyc_comb_196 : cache__data__s4__w0);
+    cache__data__s4__w0__next = pyc_mux_290;
+    pyc_mux_295 = (pyc_comb_293.toBool() ? pyc_comb_168 : cache__tag__s4__w1);
+    cache__tag__s4__w1__next = pyc_mux_295;
+    pyc_mux_296 = (pyc_comb_293.toBool() ? pyc_comb_196 : cache__data__s4__w1);
+    cache__data__s4__w1__next = pyc_mux_296;
+    pyc_mux_309 = (pyc_comb_307.toBool() ? pyc_comb_168 : cache__tag__s5__w0);
+    cache__tag__s5__w0__next = pyc_mux_309;
+    pyc_mux_310 = (pyc_comb_307.toBool() ? pyc_comb_196 : cache__data__s5__w0);
+    cache__data__s5__w0__next = pyc_mux_310;
+    pyc_mux_315 = (pyc_comb_313.toBool() ? pyc_comb_168 : cache__tag__s5__w1);
+    cache__tag__s5__w1__next = pyc_mux_315;
+    pyc_mux_316 = (pyc_comb_313.toBool() ? pyc_comb_196 : cache__data__s5__w1);
+    cache__data__s5__w1__next = pyc_mux_316;
+    pyc_mux_329 = (pyc_comb_327.toBool() ? pyc_comb_168 : cache__tag__s6__w0);
+    cache__tag__s6__w0__next = pyc_mux_329;
+    pyc_mux_330 = (pyc_comb_327.toBool() ? pyc_comb_196 : cache__data__s6__w0);
+    cache__data__s6__w0__next = pyc_mux_330;
+    pyc_mux_335 = (pyc_comb_333.toBool() ? pyc_comb_168 : cache__tag__s6__w1);
+    cache__tag__s6__w1__next = pyc_mux_335;
+    pyc_mux_336 = (pyc_comb_333.toBool() ? pyc_comb_196 : cache__data__s6__w1);
+    cache__data__s6__w1__next = pyc_mux_336;
+    pyc_mux_349 = (pyc_comb_347.toBool() ? pyc_comb_168 : cache__tag__s7__w0);
+    cache__tag__s7__w0__next = pyc_mux_349;
+    pyc_mux_350 = (pyc_comb_347.toBool() ? pyc_comb_196 : cache__data__s7__w0);
+    cache__data__s7__w0__next = pyc_mux_350;
+    pyc_mux_355 = (pyc_comb_353.toBool() ? pyc_comb_168 : cache__tag__s7__w1);
+    cache__tag__s7__w1__next = pyc_mux_355;
+    pyc_mux_356 = (pyc_comb_353.toBool() ? pyc_comb_196 : cache__data__s7__w1);
+    cache__data__s7__w1__next = pyc_mux_356;
   }
 
   void eval() {

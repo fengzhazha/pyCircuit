@@ -9,7 +9,7 @@ description = "pyCircuit prototype Python frontend for the PYC MLIR hardware IR.
 requires-python = ">=3.9"
 readme = "README.md"
 license = { file = "LICENSE" }
-keywords = ["hardware", "rtl", "verilog", "systemverilog", "mlir"]
+keywords = ["hardware", "rtl", "verilog", "mlir"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
@@ -20,7 +20,7 @@ classifiers = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["binding/python"]
+where = ["python"]
 
 [project.scripts]
 pycircuit = "pycircuit.cli:main"

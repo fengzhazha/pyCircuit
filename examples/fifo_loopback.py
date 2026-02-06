@@ -7,9 +7,9 @@ def build(m: Circuit) -> None:
     clk = m.clock("clk")
     rst = m.reset("rst")
 
-    in_valid = m.in_wire("in_valid", width=1)
-    in_data = m.in_wire("in_data", width=8)
-    out_ready = m.in_wire("out_ready", width=1)
+    in_valid = m.input("in_valid", width=1)
+    in_data = m.input("in_data", width=8)
+    out_ready = m.input("out_ready", width=1)
 
     q = m.queue("q", clk=clk, rst=rst, width=8, depth=2)
     q.push(in_data, when=in_valid)

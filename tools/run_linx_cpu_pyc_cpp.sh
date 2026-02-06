@@ -3,6 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+# shellcheck source=../scripts/lib.sh
+source "${ROOT_DIR}/scripts/lib.sh"
+pyc_find_pyc_compile
 
 MEMH=""
 ELF=""
@@ -63,21 +66,6 @@ EOF
   esac
 done
 
-PYC_COMPILE="${PYC_COMPILE:-${ROOT_DIR}/pyc/mlir/build/bin/pyc-compile}"
-if [[ ! -x "${PYC_COMPILE}" ]]; then
-  if [[ -x "${ROOT_DIR}/build/bin/pyc-compile" ]]; then
-    PYC_COMPILE="${ROOT_DIR}/build/bin/pyc-compile"
-  elif command -v pyc-compile >/dev/null 2>&1; then
-    PYC_COMPILE="$(command -v pyc-compile)"
-  else
-    echo "error: missing pyc-compile (tried: ${ROOT_DIR}/pyc/mlir/build/bin/pyc-compile, ${ROOT_DIR}/build/bin/pyc-compile, \$PATH)" >&2
-    echo "build it with:" >&2
-    echo "  cmake -G Ninja -S . -B build -DMLIR_DIR=... -DLLVM_DIR=..." >&2
-    echo "  ninja -C build pyc-compile" >&2
-    exit 1
-  fi
-fi
-
 WORK_DIR="$(mktemp -d -t linx_cpu_pyc.XXXXXX)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
@@ -91,7 +79,8 @@ if [[ -n "${ELF}" ]]; then
   fi
 fi
 
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="${ROOT_DIR}/binding/python" python3 -m pycircuit.cli emit examples/linx_cpu_pyc/linx_cpu_pyc.py -o "${WORK_DIR}/linx_cpu_pyc.pyc"
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$(pyc_pythonpath)" \
+  python3 -m pycircuit.cli emit examples/linx_cpu_pyc/linx_cpu_pyc.py -o "${WORK_DIR}/linx_cpu_pyc.pyc"
 
 "${PYC_COMPILE}" "${WORK_DIR}/linx_cpu_pyc.pyc" --emit=cpp -o "${WORK_DIR}/linx_cpu_pyc_gen.hpp"
 

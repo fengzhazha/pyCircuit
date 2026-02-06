@@ -62,7 +62,9 @@ class Wire:
         if isinstance(v, int):
             if width is None:
                 width = self.width
-            const_sig = self.m.const(int(v), width=int(width))
+            # Call the base `Module.const` even if `Circuit.const` is overridden
+            # to return a `Wire`.
+            const_sig = Module.const(self.m, int(v), width=int(width))
             return Wire(self.m, const_sig, signed=(int(v) < 0))
         raise TypeError(f"unsupported operand type: {type(v).__name__}")
 
@@ -437,7 +439,7 @@ class Reg:
             if isinstance(v, Signal):
                 return Wire(m, v)
             if isinstance(v, int):
-                return m.const_wire(int(v), width=width)
+                return m.const(int(v), width=width)
             raise TypeError(f"unsupported value type: {type(v).__name__}")
 
         next_w = as_wire(value, width=self.width)
@@ -479,11 +481,13 @@ class Circuit(Module):
     def domain(self, name: str) -> ClockDomain:
         return ClockDomain(clk=self.clock(f"{name}_clk"), rst=self.reset(f"{name}_rst"))
 
-    def in_wire(self, name: str, *, width: int, signed: bool = False) -> Wire:
-        return Wire(self, self.input(name, width=width), signed=bool(signed))
+    def input(self, name: str, *, width: int, signed: bool = False) -> Wire:  # type: ignore[override]
+        """Declare a module input port and return it as a `Wire`."""
+        return Wire(self, super().input(name, width=width), signed=bool(signed))
 
-    def const_wire(self, value: int, *, width: int) -> Wire:
-        return Wire(self, self.const(value, width=width), signed=(int(value) < 0))
+    def const(self, value: int, *, width: int) -> Wire:  # type: ignore[override]
+        """Create an integer constant `Wire` (two's complement at `width`)."""
+        return Wire(self, super().const(int(value), width=width), signed=(int(value) < 0))
 
     def new_wire(self, *, width: int) -> Wire:
         return Wire(self, super().new_wire(width=width))
@@ -512,7 +516,7 @@ class Circuit(Module):
 
         dst_sig = as_sig(dst)
         if isinstance(src, int):
-            src_sig = self.const(int(src), width=_int_width(dst_sig.ty))
+            src_sig = super().const(int(src), width=_int_width(dst_sig.ty))
             super().assign(dst_sig, src_sig)
             return
 
@@ -569,12 +573,12 @@ class Circuit(Module):
 
         next_w = Wire(self, super().new_wire(width=width, name=f"{full}__next"))
         if isinstance(en, int):
-            en_w: Union[Wire, Signal] = self.const_wire(int(en), width=1)
+            en_w: Union[Wire, Signal] = self.const(int(en), width=1)
         else:
             en_w = en
 
         if isinstance(init, int):
-            init_w: Union[Wire, Signal] = self.const_wire(int(init), width=width)
+            init_w: Union[Wire, Signal] = self.const(int(init), width=width)
         else:
             init_w = init
 
@@ -589,7 +593,7 @@ class Circuit(Module):
         en_w = en if isinstance(en, Wire) else Wire(self, en)
         next_w = next_ if isinstance(next_, Wire) else Wire(self, next_)
         if isinstance(init, int):
-            init_w = self.const_wire(init, width=next_w.width)
+            init_w = self.const(init, width=next_w.width)
         else:
             init_w = init if isinstance(init, Wire) else Wire(self, init)
 
@@ -618,7 +622,7 @@ class Circuit(Module):
         """
         next_w = self.new_wire(width=width)
         if isinstance(en, int):
-            en_w: Union[Wire, Signal] = self.const_wire(en, width=1)
+            en_w: Union[Wire, Signal] = self.const(en, width=1)
         else:
             en_w = en
         return self.reg_wire(clk, rst, en_w, next_w, init)
@@ -904,7 +908,7 @@ class Vec:
         # Fallback: build packing from basic shifts + ors (legacy Module backends).
         if not isinstance(m, Circuit):
             raise TypeError("Vec.pack requires a Circuit/Module with a concat() builder")
-        acc = m.const_wire(0, width=out_w)
+        acc = m.const(0, width=out_w)
         lsb = 0
         for w in reversed(ws):
             part = w.zext(width=out_w)
@@ -1069,7 +1073,7 @@ class Queue:
                 raise TypeError(f"{ctx}: expected i1, got {v.ty}")
             return Wire(self.m, v)
         if isinstance(v, int):
-            return self.m.const_wire(int(v), width=1)
+            return self.m.const(int(v), width=1)
         raise TypeError(f"{ctx}: expected Wire/Signal/int, got {type(v).__name__}")
 
 
