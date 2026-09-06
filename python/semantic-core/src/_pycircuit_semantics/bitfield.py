@@ -49,7 +49,7 @@ class BitfieldLayout:
                 raise BitfieldLayoutError("bitfield field name must be non-empty")
             if name in normalized:
                 raise BitfieldLayoutError(f"duplicate bitfield field {name!r}")
-            if not isinstance(raw_range, (tuple, list)) or len(raw_range) != 2:
+            if not isinstance(raw_range, tuple | list) or len(raw_range) != 2:
                 raise BitfieldLayoutError(
                     f"bitfield field {name!r} range must be a (msb, lsb) pair, "
                     f"got {raw_range!r}"

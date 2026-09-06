@@ -15,9 +15,7 @@ def parse_bitmask(pattern: str, *, extended: bool = True) -> tuple[int, int, int
     """
 
     if not isinstance(pattern, str):
-        raise TypeError(
-            f"bit-mask pattern must be a str, got {type(pattern).__name__}"
-        )
+        raise TypeError(f"bit-mask pattern must be a str, got {type(pattern).__name__}")
     if not extended:
         invalid = next(
             (character for character in pattern if character not in {"0", "1", "x"}),
@@ -109,7 +107,6 @@ def normalize_patterns(patterns: tuple[object, ...]) -> list[str]:
     for pattern in items:
         if not isinstance(pattern, str):
             raise TypeError(
-                "bit-mask pattern must be a str, "
-                f"got {type(pattern).__name__}"
+                "bit-mask pattern must be a str, " f"got {type(pattern).__name__}"
             )
     return items  # type: ignore[return-value]

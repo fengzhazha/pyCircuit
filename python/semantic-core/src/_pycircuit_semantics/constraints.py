@@ -150,7 +150,7 @@ class ValueConstraint(_ConstraintBase):
 
         if not isinstance(self.type, ValueType):
             raise TypeError("value constraint type must be a ValueType")
-        if not isinstance(self.domain, (Constant, FiniteSet, ClosedInterval, Unknown)):
+        if not isinstance(self.domain, Constant | FiniteSet | ClosedInterval | Unknown):
             raise TypeError("value constraint domain is invalid")
         values = finite_values(self.domain)
         if isinstance(self.type, BitsType):
@@ -172,7 +172,7 @@ class ValueConstraint(_ConstraintBase):
             ):
                 raise ConstraintError("enum constraint contains an unknown member")
         elif isinstance(
-            self.type, (StructType, TupleType, ArrayType)
+            self.type, StructType | TupleType | ArrayType
         ) and not isinstance(self.domain, Unknown):
             raise ConstraintError("aggregate values require an unknown scalar domain")
 
