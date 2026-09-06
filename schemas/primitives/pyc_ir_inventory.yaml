@@ -40,13 +40,6 @@ operations:
   - {name: pyc.cdc_sync, status: normative}
   - {name: pyc.instance, status: normative}
   - {name: pyc.assert, status: normative}
-  - {name: pyc.v_get, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_create, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_broadcast, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_broadcast_dim, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_or_reduce, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_and_reduce, status: pending-removal, owner: issue-42}
-  - {name: pyc.v_add_reduce, status: pending-removal, owner: issue-42}
   - {name: pyc.comb, status: normative}
   - {name: pyc.yield, status: normative}
 types:

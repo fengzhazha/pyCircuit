@@ -27,7 +27,8 @@ ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
   // Parse: `pyc.constant <integer> : <type>`
   SMLoc loc = parser.getCurrentLocation();
 
-  // Parse the literal as an APInt (avoid consuming `: <type>` as part of the attribute).
+  // Parse the literal as an APInt (avoid consuming `: <type>` as part of the
+  // attribute).
   APInt v;
   Type type;
   if (parser.parseInteger(v) || parser.parseColonType(type))
@@ -35,7 +36,8 @@ ParseResult ConstantOp::parse(OpAsmParser &parser, OperationState &result) {
 
   auto intTy = dyn_cast<IntegerType>(type);
   if (!intTy)
-    return parser.emitError(loc, "pyc.constant requires an integer result type");
+    return parser.emitError(loc,
+                            "pyc.constant requires an integer result type");
 
   // Re-type the value to match the result type width.
   if (v.getBitWidth() != (unsigned)intTy.getWidth())
@@ -60,17 +62,7 @@ static std::optional<llvm::APInt> asIntAttr(Attribute a) {
   return std::nullopt;
 }
 
-template <typename Pred>
-static bool allDenseIntElementsMatch(DenseIntElementsAttr dense, Pred pred) {
-  for (const APInt &e : dense.getValues<APInt>()) {
-    if (!pred(e))
-      return false;
-  }
-  return true;
-}
-
-template <typename Pred>
-static bool vectorConstMatch(Value v, Pred pred) {
+template <typename Pred> static bool integerConstMatch(Value v, Pred pred) {
   if (!v)
     return false;
   if (auto c = v.getDefiningOp<ConstantOp>())
@@ -79,46 +71,28 @@ static bool vectorConstMatch(Value v, Pred pred) {
     auto attr = c.getValue();
     if (auto ia = dyn_cast<IntegerAttr>(attr))
       return pred(ia.getValue());
-    if (auto dense = dyn_cast<DenseIntElementsAttr>(attr))
-      return allDenseIntElementsMatch(dense, pred);
-    return false;
-  }
-  if (auto b = v.getDefiningOp<VBroadcastOp>())
-    return vectorConstMatch(b.getScalar(), pred);
-  if (auto c = v.getDefiningOp<VCreateOp>()) {
-    for (Value e : c.getElements()) {
-      if (!vectorConstMatch(e, pred))
-        return false;
-    }
-    return true;
   }
   return false;
 }
 
-static bool isConstZero(Value v) { return vectorConstMatch(v, [](const APInt &x) { return x.isZero(); }); }
-static bool isConstOne(Value v) { return vectorConstMatch(v, [](const APInt &x) { return x.isOne(); }); }
-static bool isConstAllOnes(Value v) { return vectorConstMatch(v, [](const APInt &x) { return x.isAllOnes(); }); }
+static bool isConstZero(Value v) {
+  return integerConstMatch(v, [](const APInt &x) { return x.isZero(); });
+}
+static bool isConstOne(Value v) {
+  return integerConstMatch(v, [](const APInt &x) { return x.isOne(); });
+}
+static bool isConstAllOnes(Value v) {
+  return integerConstMatch(v, [](const APInt &x) { return x.isAllOnes(); });
+}
 
 static IntegerAttr intAttrFor(Type ty, const llvm::APInt &v) {
   auto intTy = dyn_cast<IntegerType>(ty);
   if (!intTy)
-    return {};  // vector or non-integer type, cannot create integer constant
+    return {};
   llvm::APInt vv = v;
   if (vv.getBitWidth() != intTy.getWidth())
     vv = vv.zextOrTrunc(intTy.getWidth());
   return IntegerAttr::get(intTy, vv);
-}
-
-static std::optional<llvm::APInt> intConstOfValue(Value v, unsigned width) {
-  if (!v)
-    return std::nullopt;
-  if (auto c = v.getDefiningOp<ConstantOp>())
-    return c.getValueAttr().getValue().zextOrTrunc(width);
-  if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
-    if (auto ia = dyn_cast<IntegerAttr>(c.getValue()))
-      return ia.getValue().zextOrTrunc(width);
-  }
-  return std::nullopt;
 }
 
 static OpFoldResult foldValueIfResultTypeMatches(Value v, Type resultTy) {
@@ -387,7 +361,8 @@ OpFoldResult NotOp::fold(FoldAdaptor adaptor) {
   if (auto inner = getIn().getDefiningOp<NotOp>())
     return inner.getIn();
   auto outTy = dyn_cast<IntegerType>(getResult().getType());
-  if (!outTy) return {};
+  if (!outTy)
+    return {};
   auto a = asIntAttr(adaptor.getIn());
   if (a)
     return intAttrFor(outTy, (~(*a)).trunc(outTy.getWidth()));
@@ -417,9 +392,9 @@ OpFoldResult CmpOp::fold(FoldAdaptor adaptor) {
   auto a = asIntAttr(adaptor.getLhs());
   auto b = asIntAttr(adaptor.getRhs());
   if (a && b) {
-    bool value = predicate == "eq" ? (*a == *b)
-                : predicate == "ult" ? a->ult(*b)
-                                     : a->slt(*b);
+    bool value = predicate == "eq"    ? (*a == *b)
+                 : predicate == "ult" ? a->ult(*b)
+                                      : a->slt(*b);
     return IntegerAttr::get(IntegerType::get(getContext(), 1), value ? 1 : 0);
   }
   return {};
@@ -439,7 +414,8 @@ OpFoldResult TruncOp::fold(FoldAdaptor adaptor) {
   auto a = asIntAttr(adaptor.getIn());
   if (a) {
     auto outTy = dyn_cast<IntegerType>(getResult().getType());
-    if (!outTy) return {};
+    if (!outTy)
+      return {};
     return intAttrFor(getResult().getType(), a->trunc(outTy.getWidth()));
   }
   return {};
@@ -451,7 +427,8 @@ OpFoldResult ZextOp::fold(FoldAdaptor adaptor) {
   auto a = asIntAttr(adaptor.getIn());
   if (a) {
     auto outTy = dyn_cast<IntegerType>(getResult().getType());
-    if (!outTy) return {};
+    if (!outTy)
+      return {};
     return intAttrFor(getResult().getType(), a->zext(outTy.getWidth()));
   }
   return {};
@@ -463,7 +440,8 @@ OpFoldResult SextOp::fold(FoldAdaptor adaptor) {
   auto a = asIntAttr(adaptor.getIn());
   if (a) {
     auto outTy = dyn_cast<IntegerType>(getResult().getType());
-    if (!outTy) return {};
+    if (!outTy)
+      return {};
     return intAttrFor(getResult().getType(), a->sext(outTy.getWidth()));
   }
   return {};
@@ -523,32 +501,32 @@ static OpFoldResult foldShift(Value input, Attribute inputAttr,
     return {};
   llvm::APInt result = kind == "shl"    ? (*value << shift)
                        : kind == "lshr" ? value->lshr(shift)
-                                         : value->ashr(shift);
+                                        : value->ashr(shift);
   return intAttrFor(resultType, result.trunc(outTy.getWidth()));
 }
 
 OpFoldResult ShlOp::fold(FoldAdaptor adaptor) {
-  return foldShift(getIn(), adaptor.getIn(),
-                   adaptor.getAmount(), getResult().getType(), "shl");
+  return foldShift(getIn(), adaptor.getIn(), adaptor.getAmount(),
+                   getResult().getType(), "shl");
 }
 
 OpFoldResult LshrOp::fold(FoldAdaptor adaptor) {
-  return foldShift(getIn(), adaptor.getIn(),
-                   adaptor.getAmount(), getResult().getType(), "lshr");
+  return foldShift(getIn(), adaptor.getIn(), adaptor.getAmount(),
+                   getResult().getType(), "lshr");
 }
 
 OpFoldResult AshrOp::fold(FoldAdaptor adaptor) {
-  return foldShift(getIn(), adaptor.getIn(),
-                   adaptor.getAmount(), getResult().getType(), "ashr");
+  return foldShift(getIn(), adaptor.getIn(), adaptor.getAmount(),
+                   getResult().getType(), "ashr");
 }
-
 
 OpFoldResult ConcatOp::fold(FoldAdaptor adaptor) {
   if (getInputs().size() == 1)
     return getInputs().front();
 
   auto outTy = dyn_cast<IntegerType>(getResult().getType());
-  if (!outTy) return {};
+  if (!outTy)
+    return {};
   llvm::APInt acc(outTy.getWidth(), 0);
 
   bool allConst = true;
@@ -570,259 +548,19 @@ OpFoldResult ConcatOp::fold(FoldAdaptor adaptor) {
   return {};
 }
 
-enum class VectorReduceKind { Or, And, Add };
-
-static bool collectVectorConstantLeaves(Value value, unsigned width, SmallVectorImpl<APInt> &leaves) {
-  if (auto constant = intConstOfValue(value, width)) {
-    leaves.push_back(*constant);
-    return true;
-  }
-  if (auto broadcast = value.getDefiningOp<VBroadcastOp>()) {
-    auto vectorTy = dyn_cast<VectorType>(value.getType());
-    if (!vectorTy)
-      return false;
-    auto scalar = intConstOfValue(broadcast.getScalar(), width);
-    if (!scalar)
-      return false;
-    leaves.append(static_cast<size_t>(vectorTy.getNumElements()), *scalar);
-    return true;
-  }
-  if (auto create = value.getDefiningOp<VCreateOp>()) {
-    for (Value element : create.getElements())
-      if (!collectVectorConstantLeaves(element, width, leaves))
-        return false;
-    return true;
-  }
-  return false;
-}
-
-template <typename ReduceOp>
-static OpFoldResult foldVectorReduce(ReduceOp op, Attribute adaptedVec, VectorReduceKind kind) {
-  auto vecTy = dyn_cast<VectorType>(op.getVec().getType());
-  if (!vecTy)
-    return {};
-  auto elemTy = dyn_cast<IntegerType>(vecTy.getElementType());
-  if (!elemTy)
-    return {};
-  const bool reduceAllDimensions = !op.getDim().has_value();
-  int64_t dim = op.getDim().value_or(0);
-  if (dim < 0 || dim >= vecTy.getRank())
-    return {};
-
-  if (auto c = op.getVec().template getDefiningOp<VCreateOp>()) {
-    if (vecTy.getRank() == 1 && c.getElements().size() == 1)
-      return c.getElements().front();
-    if (vecTy.getRank() == 2 && dim == 0 && c.getElements().size() == 1)
-      return c.getElements().front();
-  }
-
-  auto reduceAPInt = [&](llvm::APInt acc, const llvm::APInt &e) {
-    if (kind == VectorReduceKind::Or)
-      acc |= e.zextOrTrunc(acc.getBitWidth());
-    else if (kind == VectorReduceKind::And)
-      acc &= e.zextOrTrunc(acc.getBitWidth());
-    else
-      acc = (acc + e.zextOrTrunc(acc.getBitWidth())).trunc(acc.getBitWidth());
-    return acc;
-  };
-
-  if (reduceAllDimensions) {
-    auto outTy = dyn_cast<IntegerType>(op.getResult().getType());
-    if (!outTy)
-      return {};
-    SmallVector<APInt> leaves;
-    if (collectVectorConstantLeaves(op.getVec(), outTy.getWidth(), leaves) &&
-        leaves.size() == static_cast<size_t>(vecTy.getNumElements())) {
-      llvm::APInt acc = kind == VectorReduceKind::And
-                             ? llvm::APInt::getAllOnes(outTy.getWidth())
-                             : llvm::APInt(outTy.getWidth(), 0);
-      for (const APInt &leaf : leaves)
-        acc = reduceAPInt(acc, leaf);
-      return intAttrFor(outTy, acc);
-    }
-  }
-
-  if (auto dense = dyn_cast_or_null<DenseIntElementsAttr>(adaptedVec)) {
-    unsigned width = elemTy.getWidth();
-    llvm::APInt identity =
-        kind == VectorReduceKind::And ? llvm::APInt::getAllOnes(width) : llvm::APInt(width, 0);
-    if (vecTy.getRank() == 1) {
-      llvm::APInt acc = identity;
-      for (const APInt &e : dense.getValues<APInt>())
-        acc = reduceAPInt(acc, e);
-      return intAttrFor(op.getResult().getType(), acc);
-    }
-    if (vecTy.getRank() == 2) {
-      auto resultVT = dyn_cast<VectorType>(op.getResult().getType());
-      if (!resultVT)
-        return {};
-      int64_t rows = vecTy.getShape()[0];
-      int64_t cols = vecTy.getShape()[1];
-      SmallVector<APInt> inputVals;
-      for (const APInt &e : dense.getValues<APInt>())
-        inputVals.push_back(e.zextOrTrunc(width));
-      SmallVector<APInt> outVals;
-      if (dim == 0) {
-        outVals.reserve(cols);
-        for (int64_t c = 0; c < cols; ++c) {
-          llvm::APInt acc = identity;
-          for (int64_t r = 0; r < rows; ++r)
-            acc = reduceAPInt(acc, inputVals[r * cols + c]);
-          outVals.push_back(acc);
-        }
-      } else if (dim == 1) {
-        outVals.reserve(rows);
-        for (int64_t r = 0; r < rows; ++r) {
-          llvm::APInt acc = identity;
-          for (int64_t c = 0; c < cols; ++c)
-            acc = reduceAPInt(acc, inputVals[r * cols + c]);
-          outVals.push_back(acc);
-        }
-      } else {
-        return {};
-      }
-      return DenseIntElementsAttr::get(resultVT, outVals);
-    }
-  }
-
-  auto outTy = dyn_cast<IntegerType>(op.getResult().getType());
-  if (!outTy)
-    return {};
-
-  unsigned width = outTy.getWidth();
-  if (isConstZero(op.getVec()))
-    return intAttrFor(outTy, llvm::APInt(width, 0));
-  if (kind == VectorReduceKind::And && isConstAllOnes(op.getVec()))
-    return intAttrFor(outTy, llvm::APInt::getAllOnes(width));
-
-  if (kind != VectorReduceKind::Add) {
-    if (auto b = op.getVec().template getDefiningOp<VBroadcastOp>())
-      return b.getScalar();
-  }
-  if (auto c = op.getVec().template getDefiningOp<VCreateOp>()) {
-    llvm::APInt acc =
-        kind == VectorReduceKind::And ? llvm::APInt::getAllOnes(width) : llvm::APInt(width, 0);
-    bool allConst = true;
-    for (Value e : c.getElements()) {
-      auto ei = intConstOfValue(e, width);
-      if (!ei) {
-        allConst = false;
-        break;
-      }
-      if (kind == VectorReduceKind::Or)
-        acc |= *ei;
-      else if (kind == VectorReduceKind::And)
-        acc &= *ei;
-      else
-        acc = (acc + *ei).trunc(width);
-    }
-    if (allConst)
-      return intAttrFor(outTy, acc);
-  }
-
-  return {};
-}
-
-OpFoldResult VOrReduceOp::fold(FoldAdaptor adaptor) {
-  return foldVectorReduce(*this, adaptor.getVec(), VectorReduceKind::Or);
-}
-
-OpFoldResult VAndReduceOp::fold(FoldAdaptor adaptor) {
-  return foldVectorReduce(*this, adaptor.getVec(), VectorReduceKind::And);
-}
-
-OpFoldResult VAddReduceOp::fold(FoldAdaptor adaptor) {
-  return foldVectorReduce(*this, adaptor.getVec(), VectorReduceKind::Add);
-}
-
 OpFoldResult AliasOp::fold(FoldAdaptor) {
-  // Preserve alias ops that carry a debug name (used for codegen name mangling).
+  // Preserve alias ops that carry a debug name (used for codegen name
+  // mangling).
   if (auto nAttr = (*this)->getAttrOfType<StringAttr>("pyc.name"))
     return {};
   return getIn();
 }
 
-OpFoldResult VGetOp::fold(FoldAdaptor) {
-  if (auto create = getVec().getDefiningOp<VCreateOp>()) {
-    const int64_t index = getIndexAttr().getInt();
-    if (index >= 0 && index < static_cast<int64_t>(create.getElements().size()))
-      return create.getElements()[index];
-  }
-  if (auto broadcast = getVec().getDefiningOp<VBroadcastOp>())
-    if (broadcast.getScalar().getType() == getResult().getType())
-      return broadcast.getScalar();
-  return {};
-}
-
-OpFoldResult VCreateOp::fold(FoldAdaptor) {
-  return {};
-}
-
-OpFoldResult VBroadcastOp::fold(FoldAdaptor) {
-  return {};
-}
-
-OpFoldResult VBroadcastDimOp::fold(FoldAdaptor) {
-  return {};
-}
-
 LogicalResult SelectOp::verify() {
-  auto selTy = getSel().getType();
-  auto aTy = getA().getType();
-  auto bTy = getB().getType();
-  auto rTy = getResult().getType();
-  auto leafInteger = [](Type ty) {
-    while (auto vt = dyn_cast<VectorType>(ty))
-      ty = vt.getElementType();
-    return dyn_cast<IntegerType>(ty);
-  };
-
-  // Determine the value type (the vector when mixing scalar+vector, or the
-  // common type when both arms are the same).
-  auto aVT = dyn_cast<VectorType>(aTy);
-  auto bVT = dyn_cast<VectorType>(bTy);
-  Type valueTy;
-  if (aTy == bTy) {
-    valueTy = aTy; // both same — scalar or vector, either is fine
-  } else if (aVT && !bVT) {
-    // a is vector, b is scalar — scalar implicitly broadcasts.
-    valueTy = aTy;
-    if (rTy != aTy)
-      return emitOpError("result type must match vector arm when mixing scalar+vector");
-    auto aElem = leafInteger(aTy);
-    auto bInt = dyn_cast<IntegerType>(bTy);
-    if (!aElem || !bInt || aElem.getWidth() != bInt.getWidth())
-      return emitOpError("scalar arm width must match vector element width for mixed select");
-  } else if (bVT && !aVT) {
-    // b is vector, a is scalar.
-    valueTy = bTy;
-    if (rTy != bTy)
-      return emitOpError("result type must match vector arm when mixing scalar+vector");
-    auto bElem = leafInteger(bTy);
-    auto aInt = dyn_cast<IntegerType>(aTy);
-    if (!bElem || !aInt || bElem.getWidth() != aInt.getWidth())
-      return emitOpError("scalar arm width must match vector element width for mixed select");
-  } else {
-    return emitOpError("requires a and b to have the same type, or one vector + one scalar");
-  }
-  if (rTy != valueTy)
+  if (getA().getType() != getB().getType())
+    return emitOpError("selected values must have the same integer type");
+  if (getResult().getType() != getA().getType())
     return emitOpError("result type must match the selected value type");
-
-  // Select type check.
-  if (auto selI1 = dyn_cast<IntegerType>(selTy)) {
-    if (selI1.getWidth() != 1)
-      return emitOpError("requires i1 select");
-    return success();
-  }
-  auto selVT = dyn_cast<VectorType>(selTy);
-  auto valueVT = dyn_cast<VectorType>(valueTy);
-  if (!selVT || !valueVT)
-    return emitOpError("requires i1 select or same-shape vector-of-i1 select for vector a/b");
-  auto selElemTy = leafInteger(selTy);
-  if (!selElemTy || selElemTy.getWidth() != 1)
-    return emitOpError("vector select element type must be i1, got ") << selTy;
-  if (selVT.getShape() != valueVT.getShape())
-    return emitOpError("vector select shape must match a/b shape: ") << selVT << " vs " << valueVT;
   return success();
 }
 
@@ -832,31 +570,13 @@ LogicalResult NotOp::verify() {
   return success();
 }
 
-/// Returns the scalar element type if both types are integer or vector-of-integer
-/// with matching shapes, or null if the types are incompatible.
-static Type matchVectorShape(Type inTyRaw, Type outTyRaw) {
-  auto inVT = dyn_cast<VectorType>(inTyRaw);
-  auto outVT = dyn_cast<VectorType>(outTyRaw);
-  if (inVT && outVT) {
-    if (inVT.getShape() != outVT.getShape())
-      return {};
-    return matchVectorShape(inVT.getElementType(), outVT.getElementType());
-  }
-  if (inVT || outVT)
-    return {};
-  return inTyRaw;
-}
-
-static LogicalResult verifyIntCast(Operation *op, Type inTyRaw, Type outTyRaw, bool requireWiden, bool signExtend) {
+static LogicalResult verifyIntCast(Operation *op, Type inTyRaw, Type outTyRaw,
+                                   bool requireWiden, bool signExtend) {
   (void)signExtend;
-  // Check structural compatibility (same vector shape if any).
-  Type scalarIn = matchVectorShape(inTyRaw, outTyRaw);
-  if (!scalarIn)
-    return op->emitOpError("incompatible types for width cast");
-  auto inTy = dyn_cast<IntegerType>(scalarIn);
-  auto outTy = dyn_cast<IntegerType>(matchVectorShape(outTyRaw, inTyRaw));
+  auto inTy = dyn_cast<IntegerType>(inTyRaw);
+  auto outTy = dyn_cast<IntegerType>(outTyRaw);
   if (!inTy || !outTy)
-    return op->emitOpError("only supports integer or vector-of-integer types");
+    return op->emitOpError("only supports scalar integer types");
   if (requireWiden) {
     if (outTy.getWidth() < inTy.getWidth())
       return op->emitOpError("result width must be >= input width");
@@ -867,30 +587,39 @@ static LogicalResult verifyIntCast(Operation *op, Type inTyRaw, Type outTyRaw, b
   return success();
 }
 
-LogicalResult TruncOp::verify() { return verifyIntCast(*this, getIn().getType(), getResult().getType(), /*requireWiden=*/false, /*signExtend=*/false); }
+LogicalResult TruncOp::verify() {
+  return verifyIntCast(*this, getIn().getType(), getResult().getType(),
+                       /*requireWiden=*/false, /*signExtend=*/false);
+}
 
-LogicalResult ZextOp::verify() { return verifyIntCast(*this, getIn().getType(), getResult().getType(), /*requireWiden=*/true, /*signExtend=*/false); }
+LogicalResult ZextOp::verify() {
+  return verifyIntCast(*this, getIn().getType(), getResult().getType(),
+                       /*requireWiden=*/true, /*signExtend=*/false);
+}
 
-LogicalResult SextOp::verify() { return verifyIntCast(*this, getIn().getType(), getResult().getType(), /*requireWiden=*/true, /*signExtend=*/true); }
+LogicalResult SextOp::verify() {
+  return verifyIntCast(*this, getIn().getType(), getResult().getType(),
+                       /*requireWiden=*/true, /*signExtend=*/true);
+}
 
 LogicalResult ExtractOp::verify() {
-  Type scalarIn = matchVectorShape(getIn().getType(), getResult().getType());
-  auto inTy = dyn_cast<IntegerType>(scalarIn);
-  auto outTy = dyn_cast<IntegerType>(
-      matchVectorShape(getResult().getType(), getIn().getType()));
+  auto inTy = dyn_cast<IntegerType>(getIn().getType());
+  auto outTy = dyn_cast<IntegerType>(getResult().getType());
   if (!inTy || !outTy)
-    return emitOpError("only supports integer or vector-of-integer types with matching shapes");
+    return emitOpError("only supports scalar integer types");
   if (outTy.getWidth() == 0)
     return emitOpError("result width must be > 0");
   std::int64_t lsb = getLsbAttr().getInt();
   if (lsb < 0)
     return emitOpError("lsb must be >= 0");
-  if (static_cast<std::uint64_t>(lsb) + static_cast<std::uint64_t>(outTy.getWidth()) >
+  if (static_cast<std::uint64_t>(lsb) +
+          static_cast<std::uint64_t>(outTy.getWidth()) >
       static_cast<std::uint64_t>(inTy.getWidth()))
     return emitOpError("slice out of range for input type");
   if (auto msbAttr = getMsbAttr()) {
     std::int64_t msb = msbAttr.getInt();
-    std::int64_t expected = lsb + static_cast<std::int64_t>(outTy.getWidth()) - 1;
+    std::int64_t expected =
+        lsb + static_cast<std::int64_t>(outTy.getWidth()) - 1;
     if (msb != expected)
       return emitOpError("msb must equal lsb + result_width - 1 (expected ")
              << expected << ", got " << msb << ")";
@@ -898,20 +627,30 @@ LogicalResult ExtractOp::verify() {
   return success();
 }
 
-static LogicalResult verifyDynShift(Operation *op, Type inTyRaw, Type amtTyRaw, Type outTyRaw) {
-  // amt must be scalar integer; in/out can be integer or vector-of-integer
-  if (!isa<IntegerType, VectorType>(inTyRaw) || !isa<IntegerType>(amtTyRaw) || !isa<IntegerType, VectorType>(outTyRaw))
-    return op->emitOpError("only supports integer or vector-of-integer types (amount must be scalar)");
+static LogicalResult verifyDynShift(Operation *op, Type inTyRaw, Type amtTyRaw,
+                                    Type outTyRaw) {
+  if (!isa<IntegerType>(inTyRaw) || !isa<IntegerType>(amtTyRaw) ||
+      !isa<IntegerType>(outTyRaw))
+    return op->emitOpError("only supports scalar integer types");
   if (outTyRaw != inTyRaw)
     return op->emitOpError("result type must match input type");
   return success();
 }
 
-LogicalResult ShlOp::verify() { return verifyDynShift(*this, getIn().getType(), getAmount().getType(), getResult().getType()); }
+LogicalResult ShlOp::verify() {
+  return verifyDynShift(*this, getIn().getType(), getAmount().getType(),
+                        getResult().getType());
+}
 
-LogicalResult LshrOp::verify() { return verifyDynShift(*this, getIn().getType(), getAmount().getType(), getResult().getType()); }
+LogicalResult LshrOp::verify() {
+  return verifyDynShift(*this, getIn().getType(), getAmount().getType(),
+                        getResult().getType());
+}
 
-LogicalResult AshrOp::verify() { return verifyDynShift(*this, getIn().getType(), getAmount().getType(), getResult().getType()); }
+LogicalResult AshrOp::verify() {
+  return verifyDynShift(*this, getIn().getType(), getAmount().getType(),
+                        getResult().getType());
+}
 
 LogicalResult ConcatOp::verify() {
   if (getInputs().empty())
@@ -1293,15 +1032,25 @@ LogicalResult InstanceOp::verify() {
   if (ft.getNumResults() != getNumResults())
     return emitOpError("result count does not match callee signature");
 
+  auto isBoundaryType = [](Type type) {
+    return isa<IntegerType, pyc::ClockType, pyc::ResetType>(type);
+  };
+
   for (auto [i, ty] : llvm::enumerate(ft.getInputs())) {
+    if (!isBoundaryType(ty))
+      return emitOpError() << "callee input #" << i
+                           << " must use a scalar PYC boundary type";
     if (getOperand(i).getType() != ty)
-      return emitOpError() << "operand type mismatch at #" << i << ": got " << getOperand(i).getType()
-                           << " expected " << ty;
+      return emitOpError() << "operand type mismatch at #" << i << ": got "
+                           << getOperand(i).getType() << " expected " << ty;
   }
   for (auto [i, ty] : llvm::enumerate(ft.getResults())) {
+    if (!isBoundaryType(ty))
+      return emitOpError() << "callee result #" << i
+                           << " must use a scalar PYC boundary type";
     if (getResult(i).getType() != ty)
-      return emitOpError() << "result type mismatch at #" << i << ": got " << getResult(i).getType()
-                           << " expected " << ty;
+      return emitOpError() << "result type mismatch at #" << i << ": got "
+                           << getResult(i).getType() << " expected " << ty;
   }
 
   if (auto n = getNameAttr()) {
@@ -1331,8 +1080,11 @@ LogicalResult CombOp::verify() {
     return emitOpError("body block argument count must match comb inputs");
 
   for (auto [arg, in] : llvm::zip(b.getArguments(), getInputs())) {
+    if (!isa<IntegerType>(in.getType()))
+      return emitOpError("comb inputs must be scalar integers");
     if (arg.getType() != in.getType())
-      return emitOpError("body block argument types must match comb input types");
+      return emitOpError(
+          "body block argument types must match comb input types");
   }
 
   auto yield = dyn_cast<YieldOp>(b.getTerminator());
@@ -1343,101 +1095,39 @@ LogicalResult CombOp::verify() {
     return emitOpError("pyc.yield operand count must match comb results");
 
   for (auto [v, r] : llvm::zip(yield.getOperands(), getResults())) {
+    if (!isa<IntegerType>(r.getType()))
+      return emitOpError("comb results must be scalar integers");
     if (v.getType() != r.getType())
-      return emitOpError("pyc.yield operand types must match comb result types");
+      return emitOpError(
+          "pyc.yield operand types must match comb result types");
   }
 
   return success();
 }
 
 //===----------------------------------------------------------------------===//
-// Element-wise binary op verifiers (vector-aware, scalar broadcast)
+// Scalar binary op verifiers
 //===----------------------------------------------------------------------===//
 
-static IntegerType leafIntegerType(Type ty) {
-  while (auto vt = dyn_cast<VectorType>(ty))
-    ty = vt.getElementType();
-  if (auto intTy = dyn_cast<IntegerType>(ty))
-    return intTy;
-  return {};
-}
-
-static Type elementwiseValueResultType(MLIRContext *ctx, Type lhsTy, Type rhsTy) {
-  (void)ctx;
-  auto lhsVT = dyn_cast<VectorType>(lhsTy);
-  auto rhsVT = dyn_cast<VectorType>(rhsTy);
-  return lhsVT ? Type(lhsVT) : (rhsVT ? Type(rhsVT) : lhsTy);
-}
-
-static Type elementwiseCompareResultType(MLIRContext *ctx, Type lhsTy, Type rhsTy) {
-  Type shapeTy = elementwiseValueResultType(ctx, lhsTy, rhsTy);
-  if (auto vt = dyn_cast<VectorType>(shapeTy))
-    return VectorType::get(vt.getShape(), IntegerType::get(ctx, 1));
-  return IntegerType::get(ctx, 1);
-}
-
-static bool hasSamePrintedType(Type lhs, Type rhs) {
-  if (lhs == rhs)
-    return true;
-  std::string lhsText;
-  std::string rhsText;
-  llvm::raw_string_ostream lhsStream(lhsText);
-  llvm::raw_string_ostream rhsStream(rhsText);
-  lhsStream << lhs;
-  rhsStream << rhs;
-  return lhsStream.str() == rhsStream.str();
-}
-
-static bool hasEquivalentVectorShapeAndLeaf(Type lhs, Type rhs) {
-  SmallVector<int64_t> lhsShape;
-  SmallVector<int64_t> rhsShape;
-  Type lhsLeaf = lhs;
-  Type rhsLeaf = rhs;
-  while (auto vt = dyn_cast<VectorType>(lhsLeaf)) {
-    llvm::append_range(lhsShape, vt.getShape());
-    lhsLeaf = vt.getElementType();
-  }
-  while (auto vt = dyn_cast<VectorType>(rhsLeaf)) {
-    llvm::append_range(rhsShape, vt.getShape());
-    rhsLeaf = vt.getElementType();
-  }
-  return lhsShape == rhsShape && lhsLeaf == rhsLeaf;
-}
-
-static LogicalResult verifyElementwiseBinary(Operation *op,
-                                             Type lhsTy,
-                                             Type rhsTy,
-                                             Type resultTy,
-                                             bool compareResult) {
-  auto lhsLeaf = leafIntegerType(lhsTy);
-  auto rhsLeaf = leafIntegerType(rhsTy);
-  if (!lhsLeaf || !rhsLeaf)
-    return op->emitOpError("operands must be integer or vector-of-integer");
-  if (lhsLeaf.getWidth() != rhsLeaf.getWidth())
-    return op->emitOpError("operand leaf integer widths must match: ")
-           << lhsLeaf << " vs " << rhsLeaf;
-
-  auto lhsVT = dyn_cast<VectorType>(lhsTy);
-  auto rhsVT = dyn_cast<VectorType>(rhsTy);
-  if (lhsVT && rhsVT && lhsVT.getShape() != rhsVT.getShape())
-    return op->emitOpError("vector operand shapes must match for element-wise op: ")
-           << lhsVT << " vs " << rhsVT;
-
-  Type expected = compareResult
-                      ? elementwiseCompareResultType(op->getContext(), lhsTy, rhsTy)
-                      : elementwiseValueResultType(op->getContext(), lhsTy, rhsTy);
-  if (!hasSamePrintedType(resultTy, expected) &&
-      !hasEquivalentVectorShapeAndLeaf(resultTy, expected))
-    return op->emitOpError("result type must be ") << expected
-           << " (lhs " << lhsTy << ", rhs " << rhsTy
-           << ", actual " << resultTy << ")";
+static LogicalResult verifyScalarBinary(Operation *op, Type lhsTy, Type rhsTy,
+                                        Type resultTy, bool compareResult) {
+  if (!isa<IntegerType>(lhsTy) || !isa<IntegerType>(rhsTy) ||
+      !isa<IntegerType>(resultTy))
+    return op->emitOpError("operands and result must be scalar integers");
+  if (lhsTy != rhsTy)
+    return op->emitOpError("operand integer types must match");
+  Type expected =
+      compareResult ? Type(IntegerType::get(op->getContext(), 1)) : lhsTy;
+  if (resultTy != expected)
+    return op->emitOpError("result type must be ") << expected;
   return success();
 }
 
-#define DEFINE_VALUE_BINARY_VERIFY(OP)                                                   \
-  LogicalResult OP::verify() {                                                           \
-    return verifyElementwiseBinary(getOperation(), getLhs().getType(), getRhs().getType(), \
-                                   getResult().getType(), /*compareResult=*/false);       \
+#define DEFINE_VALUE_BINARY_VERIFY(OP)                                         \
+  LogicalResult OP::verify() {                                                 \
+    return verifyScalarBinary(getOperation(), getLhs().getType(),              \
+                              getRhs().getType(), getResult().getType(),       \
+                              /*compareResult=*/false);                        \
   }
 
 DEFINE_VALUE_BINARY_VERIFY(AddOp)
@@ -1457,159 +1147,9 @@ LogicalResult CmpOp::verify() {
   StringRef predicate = getPredicate();
   if (predicate != "eq" && predicate != "ult" && predicate != "slt")
     return emitOpError("predicate must be eq, ult, or slt");
-  return verifyElementwiseBinary(getOperation(), getLhs().getType(),
-                                 getRhs().getType(), getResult().getType(),
-                                 /*compareResult=*/true);
-}
-
-//===----------------------------------------------------------------------===//
-// Vector op verifiers
-//===----------------------------------------------------------------------===//
-
-LogicalResult VGetOp::verify() {
-  auto vecTy = dyn_cast<VectorType>(getVec().getType());
-  if (!vecTy || vecTy.getRank() < 1)
-    return emitOpError("vec operand must have vector type");
-  std::int64_t idx = getIndexAttr().getInt();
-  if (idx < 0 || idx >= vecTy.getDimSize(0))
-    return emitOpError("index out of range: ") << idx
-      << " (outer dim size is " << vecTy.getDimSize(0) << ")";
-  // Builtin vectors use a flattened shape, while some rewrites may carry an
-  // already-nested element vector. Handle both representations without
-  // duplicating inner dimensions.
-  Type expectedResult;
-  if (isa<VectorType>(vecTy.getElementType())) {
-    expectedResult = vecTy.getElementType();
-  } else {
-    auto shape = vecTy.getShape().drop_front();
-    expectedResult = shape.empty()
-                         ? vecTy.getElementType()
-                         : Type(VectorType::get(shape, vecTy.getElementType()));
-  }
-  if (getResult().getType() != expectedResult)
-    return emitOpError("result type must be ") << expectedResult;
-  return success();
-}
-
-LogicalResult VCreateOp::verify() {
-  if (getElements().empty())
-    return emitOpError("requires at least one element");
-  auto resultVT = dyn_cast<VectorType>(getResult().getType());
-  if (!resultVT)
-    return emitOpError("result type must be a vector");
-  if (static_cast<std::uint64_t>(resultVT.getDimSize(0)) != getElements().size())
-    return emitOpError("element count (") << getElements().size()
-           << ") must match result vector size (" << resultVT.getDimSize(0) << ")";
-  Type firstTy = getElements().front().getType();
-  if (!isa<IntegerType, VectorType>(firstTy))
-    return emitOpError("elements must be integer or vector-of-integer");
-  for (auto [i, el] : llvm::enumerate(getElements())) {
-    if (el.getType() != firstTy)
-      return emitOpError("element #") << i << " type must match first element type: "
-               << el.getType() << " vs " << firstTy;
-  }
-  return success();
-}
-
-LogicalResult VBroadcastOp::verify() {
-  auto scalarTy = dyn_cast<IntegerType>(getScalar().getType());
-  if (!scalarTy)
-    return emitOpError("scalar operand must have integer type");
-  auto resultVT = dyn_cast<VectorType>(getResult().getType());
-  if (!resultVT || resultVT.getRank() != 1)
-    return emitOpError("result type must be a 1-D vector");
-  if (resultVT.getDimSize(0) != getSizeAttr().getInt())
-    return emitOpError("result vector size must match `size` attribute");
-  if (resultVT.getElementType() != scalarTy)
-    return emitOpError("result element type must match scalar type");
-  return success();
-}
-
-LogicalResult VBroadcastDimOp::verify() {
-  auto srcVT = dyn_cast<VectorType>(getVec().getType());
-  if (!srcVT || srcVT.getRank() < 1)
-    return emitOpError("vec operand must have a vector type");
-  auto resultVT = dyn_cast<VectorType>(getResult().getType());
-  if (!resultVT)
-    return emitOpError("result type must be a vector type");
-  int64_t size = getSizeAttr().getInt();
-  int64_t dim = getDimAttr().getInt();
-  if (dim < 0 || dim > srcVT.getRank())
-    return emitOpError("dim out of range: ") << dim << " (src rank=" << srcVT.getRank() << ")";
-  if (size <= 0)
-    return emitOpError("size must be positive");
-  if (resultVT.getRank() != srcVT.getRank() + 1)
-    return emitOpError("result rank must be src rank + 1");
-  for (int64_t s = 0; s < srcVT.getRank(); ++s) {
-    int64_t rd = s < dim ? s : s + 1;
-    if (resultVT.getDimSize(rd) != srcVT.getDimSize(s))
-      return emitOpError("result dim ") << rd << " must match src dim " << s;
-  }
-  if (resultVT.getDimSize(dim) != size)
-    return emitOpError("result dim ") << dim << " size must be " << size;
-  if (resultVT.getElementType() != srcVT.getElementType())
-    return emitOpError("result element type must match src element type");
-  return success();
-}
-
-static LogicalResult verifyVectorReduce(
-    Operation *op,
-    Value vec,
-    std::optional<int64_t> dimAttr,
-    StringAttr modeAttr,
-    Type resultTy) {
-  auto vecTy = dyn_cast<VectorType>(vec.getType());
-  if (!vecTy)
-    return op->emitOpError("vec operand must have vector type");
-  auto elemTy = dyn_cast<IntegerType>(vecTy.getElementType());
-  if (!elemTy)
-    return op->emitOpError("vec element type must be integer");
-  if (vecTy.getRank() < 1 || vecTy.getRank() > 2)
-    return op->emitOpError("currently supports rank-1/rank-2 vectors");
-  for (int64_t d : vecTy.getShape()) {
-    if (d <= 0)
-      return op->emitOpError("vec must have non-empty dimensions");
-  }
-  if (modeAttr) {
-    StringRef mode = modeAttr.getValue();
-    if (mode != "chain" && mode != "tree")
-      return op->emitOpError("mode must be \"chain\" or \"tree\"");
-  }
-
-  if (!dimAttr) {
-    if (resultTy != elemTy)
-      return op->emitOpError("result type must be ") << elemTy
-                            << " when dim is omitted (all dimensions are reduced)";
-    return success();
-  }
-
-  int64_t dim = *dimAttr;
-  if (dim < 0 || dim >= vecTy.getRank())
-    return op->emitOpError("dim out of range: ") << dim << " for rank " << vecTy.getRank();
-
-  SmallVector<int64_t> outShape;
-  for (auto [i, d] : llvm::enumerate(vecTy.getShape())) {
-    if (static_cast<int64_t>(i) != dim)
-      outShape.push_back(d);
-  }
-  Type expectedResult = outShape.empty()
-                            ? Type(elemTy)
-                            : Type(VectorType::get(outShape, elemTy));
-  if (resultTy != expectedResult)
-    return op->emitOpError("result type must be ") << expectedResult;
-  return success();
-}
-
-LogicalResult VOrReduceOp::verify() {
-  return verifyVectorReduce(getOperation(), getVec(), getDim(), getModeAttr(), getResult().getType());
-}
-
-LogicalResult VAndReduceOp::verify() {
-  return verifyVectorReduce(getOperation(), getVec(), getDim(), getModeAttr(), getResult().getType());
-}
-
-LogicalResult VAddReduceOp::verify() {
-  return verifyVectorReduce(getOperation(), getVec(), getDim(), getModeAttr(), getResult().getType());
+  return verifyScalarBinary(getOperation(), getLhs().getType(),
+                            getRhs().getType(), getResult().getType(),
+                            /*compareResult=*/true);
 }
 
 #define GET_OP_CLASSES

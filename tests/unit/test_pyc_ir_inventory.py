@@ -33,7 +33,7 @@ def test_pyc_inventory_matches_ods_and_generated_ledger() -> None:
     assert before == after
 
 
-def test_pyc_inventory_marks_only_vector_ops_for_issue_42() -> None:
+def test_pyc_inventory_contains_no_vector_operations() -> None:
     import yaml
 
     inventory = yaml.safe_load(
@@ -44,15 +44,11 @@ def test_pyc_inventory_marks_only_vector_ops_for_issue_42() -> None:
         for entry in inventory["operations"]
         if entry["status"] == "pending-removal"
     }
-    assert pending == {
-        "pyc.v_get",
-        "pyc.v_create",
-        "pyc.v_broadcast",
-        "pyc.v_broadcast_dim",
-        "pyc.v_or_reduce",
-        "pyc.v_and_reduce",
-        "pyc.v_add_reduce",
-    }
+    assert pending == set()
+    assert len(inventory["operations"]) == 41
+    assert all(
+        not entry["name"].startswith("pyc.v_") for entry in inventory["operations"]
+    )
 
 
 def test_pyc_inventory_records_exact_rtl_selection_boundary() -> None:

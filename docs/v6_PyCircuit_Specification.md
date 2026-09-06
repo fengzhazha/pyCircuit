@@ -2,7 +2,7 @@
 
 版本：6.0
 
-**适用代码基线**：`pyCircuit` 主仓库 `main` 分支（含类型化 `Data` 信号体系、`Wire[Vector]` 、Sidecar 测试调度、层次化 MLIR 发射）。
+**适用代码基线**：`pyCircuit` 主仓库 `main` 分支（含标量 `Data` 信号体系、Sidecar 测试调度、层次化 MLIR 发射）。
 
 > **包名**：Python 包为 **`pycircuit`**（全小写）。不要使用 `pyCircuit` 作为 import 目标。
 >
@@ -21,7 +21,7 @@ V6 的核心概念：
 - **周期感知信号（`CycleAwareSignal`，简称 CAS）**：设计中流动的唯一信号类型。每个信号携带「逻辑周期」标签，编译器根据周期差**自动插入 DFF** 完成流水线对齐。
 - **前向声明寄存器（`domain.signal()` + `<<=`）**：先声明后赋值，读写周期差决定寄存器级数——寄存器是**推导**出来的，不是手写的。
 - **层次化组合（`domain.call()`）**：Python 函数调用链即硬件模块层次；每个模块既能独立编译，又能被父模块组合。
-- **类型化数据体系（`Data` / `Wire[DT]`）**：`Bits` / `Vector` / `Clock` / `Reset` 四种 `Data` 子类由统一的 `Wire[DT]` 句柄承载；向量 `vector<D0x...xiW>` 是一等公民，SIMD 运算逐 lane 并行，可保留到 Verilog（packed bus）或按需标量化。
+- **标量类型体系（`Data` / `Wire[DT]`）**：`Bits` / `Clock` / `Reset` 由统一的 `Wire[DT]` 句柄承载。普通 Python list/tuple 用于静态重复结构；canonical PYC 不包含向量值或隐式逐元素运算。
 - **周期精确仿真**：同一 MLIR 同时生成 Verilog 和 C++ 仿真器，测试台（`CycleAwareTb`）用与设计对称的 `next()` 模型编写。
 
 ### 标准导入
@@ -59,7 +59,7 @@ PyCircuit V6 强制单一信号类型。以下规则**不可违反**：
 | **`wire_of()` 是唯一的 Wire 提取方式** | 仅在 `m.output()` 边界调用。 |
 | **`cas()` 包装裸 Wire** | `m.input()` 和 `m.const` 助手返回裸 `Wire`，必须用 `cas(domain, w, cycle=0)` 或 `submodule_input()` 包装后才能参与 CAS 表达式。`u(w,v)` / `s(w,v)` 字面量是 `LiteralValue`，CAS 运算符 / `mux()` / `cas()` 可直接消费，无需手动包装。 |
 | **输出 dict 存 CAS** | 子模块返回的 dict 值必须是 `CycleAwareSignal`（保留 cycle 来源信息）。 |
-| **向量走 `Wire[Vector]`** | 多 lane 同构数据统一用 `m.input(..., shape=[N])` 声明为向量 `Wire[Vector[...]]`，不要手工拆 lane 拼标量。 |
+| **重复结构用 Python 容器** | 多 lane 或多 entry 结构使用普通 Python list/tuple 和静态循环生成标量信号；typed aggregate 由 Agentic/ACIR 在 PYC 前打包。 |
 
 ```python
 # ✅ 正确
@@ -79,116 +79,38 @@ x = a.wire + b.wire             # 直接在 CAS 上运算
 
 ## 核心类型与数据类型体系
 
-PyCircuit 的所有硬件对象都建立在两个相互正交的概念之上：
-
-- **数据类型 `Data`**：描述信号承载的「值的形状」——标量位宽、向量维度、时钟/复位语义；
-- **信号句柄 `Wire[DT]`**：描述信号在电路图里的「身份」——一个端口、一条连线、一个寄存器输出。
-
-前者决定运算的合法性与 MLIR 类型；后者承载重载运算符与周期感知包装。两者通过泛型参数 `DT`（绑定到 `Data`）关联：标量是 `Wire[Bits]`，向量是 `Wire[Vector[...]]`，它们共享同一套运算符接口。
+PyCircuit 的 canonical PYC 数据路径是 scalar-only。`Data` 描述标量位宽、
+时钟或复位语义，`Wire[DT]` 承载一个标量 SSA、端口或状态值。
 
 ### Data 类型层级
 
-`pycircuit.data` 定义了一个冻结的（`frozen` dataclass）类型层级，`str(Data)` 直接给出 MLIR 类型字面量：
-
 ```text
 Data (ABC)
-├── Bits(bitwidth: int)          → iN        （标量位向量）
-├── Vector(length: int, elem: DT) → vector<Nx...xiW>  （可嵌套，多维）
-├── Clock                         → !pyc.clock
-└── Reset                         → !pyc.reset
+├── Bits(bitwidth: int)  → iN
+├── Clock                → !pyc.clock
+└── Reset                → !pyc.reset
 ```
 
-| 子类 | MLIR 字面量 | `.width` 语义 | 说明 |
-|------|------------|--------------|------|
-| `Bits(N)` | `iN` | N | N 位标量；所有算术/逻辑/比较运算的操作数 |
-| `Vector(N, elem)` | `vector<NxiW>` | 叶元素宽度 | 一维向量；`elem` 可再为 `Vector`，得到多维 `vector<NxMxiW>` |
-| `Clock` | `!pyc.clock` | 1 | 时钟信号，仅作 `pyc.reg` 的时钟输入 |
-| `Reset` | `!pyc.reset` | 1 | 复位信号，仅作 `pyc.reg` 的复位输入 |
+递归 struct/enum/tuple/fixed array 属于 semantic-core 与 ACIR 的高层
+aggregate contract。它们按 descriptor/source 顺序、MSB-first 打包成一个
+精确宽度 scalar integer 后才进入 canonical PYC。拓扑集合 `!ac.array` 与
+persistent Python list 也不构成 PYC 向量值。
 
-`Vector` 的两个辅助方法：
+### Wire[DT] —— 标量信号句柄
 
-| 方法 | 说明 |
-|------|------|
-| `.shape()` | 所有维度扁平化，外→内。`Vector(4, Vector(3, Bits(8)))` → `[4, 3]` |
-| `.datatype()` | 最内层非 `Vector` 叶元素。`Vector(4, Vector(3, Bits(8)))` → `Bits(8)` |
-| `Vector.from_shape([N, M], leaf)` | 反向构造：把 `leaf` 由外到内包成嵌套 `Vector` |
-
-> `Data` 实例可比较、可哈希（以 MLIR 字面量为键），并可用 `Data.from_str("vector<4xi8>")` 从 MLIR 文本反序列化。
-
-### Wire[DT] —— 信号句柄
-
-`Wire` 是端口语义的统一句柄，用 `DT`（绑定 `Data`）泛型参数化承载上述类型：
+`Wire` 只承载一个标量 `Bits`、`Clock` 或 `Reset`。算术、逻辑、比较、
+选择、位片段与移位都生成 scalar PYC operation。重复结构直接使用普通
+Python list/tuple 与静态循环：
 
 ```python
-a = m.input("a", width=8)                  # Wire[Bits[8]]     → i8
-v = m.input("v", width=8, shape=[4])       # Wire[Vector[Bits[8]]]  → vector<4xi8>
-mat = m.input("m", width=8, shape=[4,16])  # Wire[Vector[...]]      → vector<4x16xi8>
+lanes = [m.input(f"lane_{i}", width=8) for i in range(4)]
+biased = [lane + 1 for lane in lanes]
+any_set = biased[0] != 0
+for lane in biased[1:]:
+    any_set = any_set | (lane != 0)
 ```
 
-`Wire[Bits]` 与 `Wire[Vector[...]]` **共享同一套重载运算符**——区别仅在结果类型：
-
-```python
-r   = a + b              # Wire[Bits]  + Wire[Bits]   → Wire[Bits]
-s   = v + w              # Wire[Vector] + Wire[Vector] → Wire[Vector]（逐 lane）
-eqv = v == w             # → Wire[Vector[Bits[1]]]（逐 lane 比较）
-bc  = v + a              # 标量自动广播到每个 lane
-sel = mux(cond_vec, v, w)  # 逐 lane mux
-```
-
-完整运算符集（标量与向量语义一致，向量逐 lane 并行，标量操作数自动广播）：
-
-```python
-r = a + b;  r = a - b;  r = a * b          # 算术
-r = a & b;  r = a | b;  r = a ^ b;  r = ~a  # 位运算
-r = a == b; r = a != b                      # 比较
-r = a < b;  r = a > b;  r = a <= b; r = a >= b
-r = a << k; r = a >> k                      # 移位
-low = data[0:8];  bit5 = data[5]            # 切片 / 索引（向量：取 lane）
-```
-
-通用方法（标量与向量 `Wire` 都有）：
-
-| 方法 | 说明 |
-|------|------|
-| `select(t, f)` | 条件选择（等价 `mux(self, t, f)`） |
-| `trunc(w)` / `zext(w)` / `sext(w)` | 宽度变换 |
-| `slice(high, low)` | 位片段 |
-| `named(name)` | 调试名称 |
-| `as_signed()` / `as_unsigned()` | 符号标记（影响比较与右移语义） |
-
-> `Wire` **禁止**作为 Python `bool` 使用（`if sig:` 报错）——硬件条件必须用 `mux` / `select` 表达。
-
-### 向量专属方法（降维 / 广播 / 拼接）
-
-只有 `Wire[Vector[...]]` 才有的方法（作用于 `Vector` 维度结构）：
-
-| 方法 | 说明 | MLIR |
-|------|------|------|
-| `v.reduce_or(*, dim=None, mode="chain")` | 按位或归约；`dim=None` 全维归约成标量，`dim=int` 只归约指定维 | `pyc.v_or_reduce` |
-| `v.reduce_and(*, dim=None, mode="chain")` | 按位与归约；同上 | `pyc.v_and_reduce` |
-| `v.reduce_sum(*, dim=None, mode="chain")` | 求和归约；**保持叶元素宽度，溢出回绕**（不会自动扩展结果宽度） | `pyc.v_add_reduce` |
-| `v.broadcast(*, size, dim)` | 沿新维度重复 | `pyc.v_broadcast_dim` |
-| `priority_mux(sels, vals, *, mode="chain", default=None)` | 以 `sels`（i1 向量）为选择器在 `vals` 中选 lane；**最小索引优先**；模块级函数或 CAS 实例方法 `sels.priority_mux(vals, ...)`；`default=None` 时所有 selector 为 0 的回退值是 `vals` 的最后一个元素 | 组合展开 |
-| `priority_encode(value, *, order="low")` | 返回 `{index, valid}`；`order="low"` 选择最低置位，`"high"` 选择最高置位；保持当前 cycle；Python/PYC 不暴露实现名称 | `pyc.priority_encode`，Verilog-only pass 可选择已验证 RTL |
-| `popcount(value)` / `value.popcount()` | 统计 `N` 位输入中的置位数量；结果宽度为 `max(1, ceil(log2(N+1)))`，保持当前 cycle；Python/PYC 不暴露实现名称 | `pyc.popcount`，Verilog-only pass 可选择已验证 RTL |
-| `count_leading_zeros(value)` / `count_trailing_zeros(value)` | 分别从最高位或最低位开始统计连续零位；全零输入返回 `N`；结果宽度为 `max(1, ceil(log2(N+1)))`，保持当前 cycle | 统一为 `pyc.count_zeros {direction=...}`，Verilog-only pass 选择共享 RTL |
-| `m.cat(*lanes)` | 把多个 lane 拼成 packed 标量位向量（MSB-first） | `pyc.concat` |
-| `v[i]` | 取 lane | `pyc.v_get` |
-
-`mode` 取值：`"chain"`（默认，逻辑深度 = lanes−1）或 `"tree"`（深度 = ⌈log₂(lanes)⌉）。深度敏感的宽归约应显式选 `"tree"`。
-
-`dim` 指定多维向量的归约维度（如 `reduce_or(dim=0)` 把 `vector<4x16xi1>` 归约为 `vector<16xi1>`）；省略 `dim` 表示跨所有维归约成标量。
-
-#### 典型模式：旁路匹配矩阵
-
-```python
-# 每个源操作数 tag 与所有写回 tag 广播比较，再按维度归约
-src_b  = src_tag_vec.broadcast(dim=1, size=n_wb)       # [n_src × n_wb]
-wb_b   = wb_tag_vec.broadcast(dim=0, size=n_src)       # [n_src × n_wb]
-hit    = (src_b == wb_b) & wb_valid_b                  # 匹配矩阵
-any_hit = hit.reduce_or(dim=1)                            # 每 src 是否命中
-data0   = priority_mux(hit[0], wb_data_vec, default=zero_data)   # src 0 的旁路数据
-```
+这段代码生成四组明确的 scalar SSA，而不是一个隐式逐 lane instruction。
 
 ### CycleAwareCircuit
 
@@ -201,10 +123,10 @@ m = CycleAwareCircuit("my_circuit")
 | 方法 | 说明 |
 |------|------|
 | `create_domain(name, *, frequency_desc="", reset_active_high=False)` | 创建 `CycleAwareDomain` |
-| `input(name, *, width, signed=False, shape=None)` | 输入端口。`shape=None` 返回标量 `Wire[Bits]`；`shape=[N]` / `shape=[N,M]` 返回 `Wire[Vector[...]]`（需 `cas()` 包装后参与运算） |
-| `output(name, value)` | 注册输出端口（标量传 `wire_of(sig)`；向量 `Wire` 可直接传） |
+| `input(name, *, width, signed=False)` | 标量输入端口，返回 `Wire[Bits]`（需 `cas()` 包装后参与周期感知运算） |
+| `output(name, value)` | 注册标量输出端口（周期感知信号通过 `wire_of(sig)` 提取） |
 | `const(value, *, width)` | 常量 `Wire`（用 `cas()` 包装后参与 CAS 表达式） |
-| `vec(*elems)` / `cat(parts)` | 从已有元素构造 `Wire[Vector]`（可变参数） / 位拼接 |
+| `cat(parts)` | 将若干标量按 MSB-first 拼成一个 packed `Wire[Bits]` |
 | `emit_mlir()` | 生成 MLIR 文本。层次化编译时输出含所有子模块的多模块 `Design` |
 
 ### CycleAwareDomain
@@ -217,13 +139,13 @@ domain = m.create_domain("clk")
 
 | 方法 | 说明 |
 |------|------|
-| `signal(*, width, reset_value=0, name="", shape=None)` | **前向声明寄存器**——创建状态的唯一方式。`shape=` 时创建向量状态；返回 `ForwardSignal` |
+| `signal(*, width, reset_value=0, name="")` | **前向声明标量寄存器**——创建状态的唯一方式；返回 `ForwardSignal` |
 | `cycle(sig, reset_value=None, name="")` | 对信号插入单级 DFF，返回延后一拍的 CAS |
 | `next()` / `prev()` | 推进 / 回退当前逻辑周期 |
 | `push()` / `pop()` | 周期计数器压栈 / 出栈（必须配对） |
 | `call(fn, *, inputs=None, **kwargs)` | 调用子模块并自动 push/pop 隔离周期。扁平模式内联；层次化模式发射 `pyc.instance` |
 | `delay_to(w, *, from_cycle, to_cycle, width)` | 显式打拍对齐（自动平衡的底层机制） |
-| `create_signal(name, *, width, shape=None, signed=False)` | 创建输入端口（裸 `Wire`，标量或向量） |
+| `create_signal(name, *, width, signed=False)` | 创建标量输入端口（裸 `Wire`） |
 | `create_const(value, *, width, name="", signed=False)` | 常量 `Wire` |
 | `create_reset()` | 复位信号（有效高视图，i1 `Wire`） |
 | `cycle_index` | 属性：当前逻辑周期索引 |
@@ -323,7 +245,8 @@ x = cas(domain, m.input("x", width=8), cycle=0)
 result = mux(condition, true_value, false_value)
 ```
 
-三个参数为 CAS（或 int 字面量），返回 CAS，自动周期对齐。也接受标量 / 向量 `Wire` 操作数（分别产生标量 / 逐 lane mux）。
+三个参数为 CAS（或 int 字面量），返回 CAS，自动周期对齐。裸 `Wire`
+操作数也必须是标量，生成一个 `pyc.select`。
 
 ### wire_of()
 
@@ -616,55 +539,30 @@ pycircuit sidecar verify FILE
 
 ## MLIR 映射参考
 
-前端构图产物为 `pyc` 方言 MLIR（`.pyc` 文件）。主要映射：
-
 ### 类型
 
-| 前端 | MLIR |
-|------|------|
-| `Bits(W)` / 标量信号 width=W | `iW` |
-| `Vector(N, Bits(W))`（shape=[N]，width=W） | `vector<NxiW>` |
-| `Clock` / `Reset` | `!pyc.clock` / `!pyc.reset` |
+| Python | MLIR |
+| --- | --- |
+| `Bits(W)` | `iW` |
+| Clock | `!pyc.clock` |
+| Reset | `!pyc.reset` |
+| ACIR aggregate payload | 进入 PYC 前按 descriptor 打包为精确宽度 `iW` |
 
-### 运算（标量与逐元素向量共用）
+### 运算
 
-| 前端 | MLIR op |
-|------|---------|
-| `+ - *` | `pyc.add / sub / mul` |
-| `// %`（按符号） | `pyc.udiv / urem / sdiv / srem` |
-| `& \| ^ ~` | `pyc.and / or / xor / not` |
-| `mux / select` | `pyc.select` |
-| `== < （按符号）` | `pyc.cmp`，predicate 为 `eq / ult / slt` |
-| `trunc / zext / sext` | `pyc.trunc / zext / sext` |
-| `[lo:hi]`（标量） | `pyc.extract`（attr `lsb`） |
-| `<< >>`（常量或动态位移） | `pyc.constant` amount + `pyc.shl / lshr / ashr` |
-| `cat(...)` | `pyc.concat`（MSB-first） |
-| `.named()` | `pyc.alias`（attr `pyc.name`） |
+| Python | MLIR |
+| --- | --- |
+| arithmetic | `pyc.add/sub/mul/udiv/urem/sdiv/srem` |
+| bitwise | `pyc.and/or/xor/not` |
+| compare | `pyc.cmp` with predicate `eq`, `ult`, or `slt` |
+| `mux(c, a, b)` | `pyc.select` |
+| cast/extract/shift/concat | 对应 scalar PYC primitive |
 
-### 状态与结构
+### Aggregate lowering boundary
 
-| 前端 | MLIR op |
-|------|---------|
-| `domain.signal()` + `<<=` / 自动平衡 DFF | `pyc.reg %clk, %rst, %en, %next, %init` |
-| 可赋值 wire | `pyc.wire` + `pyc.assign` |
-| `domain.call()`（层次化） | `pyc.instance`（attr `callee`） |
-| FIFO / mem / CDC | `pyc.fifo / byte_mem / sync_mem / sync_mem_dp / async_fifo / cdc_sync` |
-| 复位有效视图 | `pyc.reset_active` |
-| 断言 | `pyc.assert` |
-
-### 向量
-
-| 前端 | MLIR op |
-|------|---------|
-| `v[i]` | `pyc.v_get` |
-| `m.vec(...)` | `pyc.v_create` |
-| 标量广播 | `pyc.v_broadcast` |
-| `broadcast(dim=)` | `pyc.v_broadcast_dim` |
-| `reduce_or / reduce_and / reduce_sum` | `pyc.v_or_reduce / v_and_reduce / v_add_reduce`（attrs `dim`, `mode`） |
-
-测试台不产生硬件 op：`@testbench` 程序序列化为模块属性 `pyc.tb.payload`（inline 模式）或外置 sidecar 容器。
-
----
+ACIR `!ac.struct`、`!ac.enum`、builtin tuple 与 `!ac.value_array` 在
+QueueGraph-to-PYC 中按稳定 MSB-first layout 变成 scalar integer。
+canonical/backend PYC 中出现 builtin vector type 或 `pyc.v_*` 是硬错误。
 
 ## Tier 分层标注（3D 堆叠扩展，Proposed）
 
@@ -719,10 +617,10 @@ outs = domain.call(alu, inputs={...}, tier=1)             # 模块级缺省 tier
 |------|------|
 | `CycleAwareCircuit(name)` | 创建顶层电路 |
 | `create_domain(name, ...)` | 时钟域 |
-| `input(name, *, width, signed=False, shape=None)` | 输入端口（`shape=None` → `Wire[Bits]`；`shape=[N]` → `Wire[Vector[...]]`） |
+| `input(name, *, width, signed=False)` | 标量输入端口（`Wire[Bits]`） |
 | `output(name, value)` | 输出端口 |
 | `const(value, *, width)` | 常量 |
-| `vec(*elems)` / `cat(parts)` | 容器构造 |
+| `cat(parts)` | scalar bit 拼接 |
 | `fifo / byte_mem / sync_mem / sync_mem_dp / async_fifo / cdc_sync / rv_queue` | 原语 |
 | `emit_mlir()` | 导出 MLIR |
 
@@ -756,17 +654,6 @@ outs = domain.call(alu, inputs={...}, tier=1)             # 模块级缺省 tier
 | `sig <<= expr` | 无条件赋值 |
 | `sig.assign(expr, when=cond)` | 条件赋值（使能） |
 | 其余读侧接口 | 与 CAS 相同 |
-
-### Wire[Vector]（向量专属方法）
-
-| 接口 | 说明 |
-|------|------|
-| 逐 lane 运算符 | `+ - * & \| ^ ~ == != < >` 等；标量自动广播 |
-| `reduce_or / reduce_and (*, dim=None, mode="chain")` | 位归约；`dim=None` 全维成标量，`dim=int` 降一维 |
-| `reduce_sum(*, dim=None, mode="chain")` | 求和归约；**保持叶宽，溢出回绕**（需加宽先用 `zext`/`sext`） |
-| `broadcast(*, size, dim)` | 维度广播 |
-| `priority_mux(sels, vals, *, mode="chain", default=None)` | lane 选择（`sels` 为 i1 选择器向量，最小索引优先；`default=None` 时回退到 `vals` 末元素）；模块级函数或 CAS 实例方法 |
-| `m.cat(*lanes)` / `[i]` | 拼成 packed 位向量 / 取 lane |
 
 ### compile_cycle_aware
 

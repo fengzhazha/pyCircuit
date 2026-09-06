@@ -1,0 +1,21 @@
+jit-cache: miss
+/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/cpp_build/src/CMakeLists.txt
+-- The CXX compiler identification is AppleClang 21.0.0.21000101
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (0.2s)
+-- Generating done (0.0s)
+-- Build files have been written to: /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/cpp_build/build
+[1/4] Building CXX object CMakeFiles/pyc_tb.dir/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/device/cpp/trace_dsl_smoke/trace_dsl_smoke.cpp.o
+[2/4] Building CXX object CMakeFiles/pyc_tb.dir/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/device/cpp/leaf__p6cd61487/leaf__p6cd61487.cpp.o
+[3/4] Building CXX object CMakeFiles/pyc_tb.dir/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/tb/tb_trace_dsl_smoke.cpp.o
+[4/4] Linking CXX executable pyc_tb
+OK
+- /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/tb/tb_trace_dsl_smoke.sv:98: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.044 2026-01-01
+- Verilator: $finish at 13ns; walltime 0.000 s; speed 265.306 us/s
+- Verilator: cpu 0.000 s on 1 threads; alloced 2 MB
+/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim_nightly/example_trace_dsl_smoke/project_manifest.json

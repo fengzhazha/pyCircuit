@@ -6,9 +6,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -38,12 +36,7 @@
         "tests/mlir/agentic-circuit/Transforms/rule-multi-input-lowering.mlir",
         "tests/python/agentic-circuit/contracts/test_contracts.py",
         "tests/unit/test_pyc_ir_inventory.py",
-        "tests/unit/test_semantic_core.py",
-        "tests/v6/test_v6_vector.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/unit/test_semantic_core.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -93,9 +86,7 @@
       ],
       "canonicalization": [
         "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -127,10 +118,7 @@
         "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
         "tests/test_bitmask_match.py",
         "tests/test_pyc_enum.py",
-        "tests/unit/test_semantic_core.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py"
+        "tests/unit/test_semantic_core.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -138,8 +126,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -160,8 +147,7 @@
       "status": "normative",
       "symbol": "PYC_AshrOp",
       "tests": [
-        "tests/mlir/pyc/canonical-ops-valid.mlir",
-        "tests/vec/cases.py"
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -208,8 +194,7 @@
         "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
         "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
         "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -232,8 +217,7 @@
       "status": "normative",
       "symbol": "PYC_AssignOp",
       "tests": [
-        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
-        "tests/vec/test_vec_ops.py"
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -335,10 +319,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -374,8 +355,7 @@
         "tests/test_bitmask_match.py",
         "tests/test_pyc_canonical_ops.py",
         "tests/test_pyc_enum.py",
-        "tests/test_signed_compare.py",
-        "tests/vec/cases.py"
+        "tests/test_signed_compare.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -387,8 +367,7 @@
         "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
         "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
         "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -493,9 +472,7 @@
         "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir",
         "tests/python/agentic-circuit/contracts/test_contracts.py",
         "tests/test_pyc_canonical_ops.py",
-        "tests/test_pyc_enum.py",
-        "tests/vec/cases.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/test_pyc_enum.py"
       ],
       "verifier": null,
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -553,8 +530,7 @@
       ],
       "canonicalization": [
         "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -580,8 +556,7 @@
         "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
         "tests/mlir/agentic-circuit/CodeGen/bit-operations.mlir",
         "tests/test_assert_fits.py",
-        "tests/test_bitfield_view.py",
-        "tests/vec/cases.py"
+        "tests/test_bitfield_view.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -682,8 +657,7 @@
       "status": "normative",
       "symbol": "PYC_InstanceOp",
       "tests": [
-        "tests/cpp/agentic-circuit/Dialect/ACSim/OpsTest.cpp",
-        "tests/vec/test_vec_ops.py"
+        "tests/cpp/agentic-circuit/Dialect/ACSim/OpsTest.cpp"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -693,8 +667,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -719,8 +692,7 @@
         "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
         "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
         "tests/mlir/pyc/canonical-ops-valid.mlir",
-        "tests/test_pyc_canonical_ops.py",
-        "tests/vec/cases.py"
+        "tests/test_pyc_canonical_ops.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -730,9 +702,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -753,10 +723,7 @@
       "status": "normative",
       "symbol": "PYC_MulOp",
       "tests": [
-        "tests/unit/test_semantic_core.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py"
+        "tests/unit/test_semantic_core.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -767,9 +734,7 @@
       ],
       "canonicalization": [
         "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -798,8 +763,7 @@
         "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
         "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
         "tests/mlir/agentic-circuit/lit.cfg.py",
-        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
-        "tests/vec/cases.py"
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -810,9 +774,7 @@
       ],
       "canonicalization": [
         "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -838,11 +800,7 @@
       "tests": [
         "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
         "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
-        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -957,8 +915,7 @@
         "compiler/mlir/lib/Transforms/CollectCompileStatsPass.cpp",
         "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
         "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp",
-        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -974,7 +931,6 @@
       "python_producer": [
         "python/pycircuit/src/pycircuit/dsl.py",
         "python/pycircuit/src/pycircuit/hierarchical.py",
-        "python/pycircuit/src/pycircuit/hw.py",
         "python/pycircuit/src/pycircuit/jit.py"
       ],
       "replacement": null,
@@ -987,9 +943,7 @@
         "tests/integration/agentic-circuit/e2e/test_credit_backend.py",
         "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
         "tests/test_bitfield_view.py",
-        "tests/unit/test_v6_forward_signal.py",
-        "tests/v6/test_v6_vector.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/unit/test_v6_forward_signal.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1069,9 +1023,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1089,10 +1041,7 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_SdivOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     },
@@ -1103,9 +1052,7 @@
       "canonicalization": [
         "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
         "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/LowerSCFToPYCStaticPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/LowerSCFToPYCStaticPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -1144,9 +1091,7 @@
         "tests/mlir/agentic-circuit/CodeGen/value-select.mlir",
         "tests/mlir/pyc/canonical-ops-valid.mlir",
         "tests/mlir/pyc/canonical-select-invalid.mlir",
-        "tests/test_pyc_canonical_ops.py",
-        "tests/vec/cases.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/test_pyc_canonical_ops.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1154,8 +1099,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1176,11 +1120,7 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_SextOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/test_vec_ops.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     },
@@ -1189,8 +1129,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1216,8 +1155,7 @@
         "tests/mlir/pyc/canonical-ops-valid.mlir",
         "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
         "tests/test_pyc_canonical_ops.py",
-        "tests/unit/test_semantic_core.py",
-        "tests/vec/cases.py"
+        "tests/unit/test_semantic_core.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1225,9 +1163,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1245,10 +1181,7 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_SremOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     },
@@ -1257,9 +1190,7 @@
         "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
       ],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [
@@ -1283,10 +1214,7 @@
       "tests": [
         "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
         "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
-        "tests/unit/test_semantic_core.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py"
+        "tests/unit/test_semantic_core.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1365,8 +1293,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1388,9 +1315,7 @@
       "status": "normative",
       "symbol": "PYC_TruncOp",
       "tests": [
-        "tests/test_assert_fits.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py"
+        "tests/test_assert_fits.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1398,9 +1323,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1418,19 +1341,14 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_UdivOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     },
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1448,235 +1366,7 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_UremOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_add_reduce",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py",
-        "python/pycircuit/src/pycircuit/hw.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VAddReduceOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/cases.py",
-        "tests/vec/test_vec_ops.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_and_reduce",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VAndReduceOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/cases.py",
-        "tests/vec/test_vec_ops.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_broadcast",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VBroadcastOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_broadcast_dim",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VBroadcastDimOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/test_vec_ops.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_create",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py",
-        "python/pycircuit/src/pycircuit/hw.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VCreateOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/test_vec_ops.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_get",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VGetOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/test_vec_ops.py"
-      ],
-      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
-    },
-    {
-      "acir_producer": [],
-      "canonicalization": [
-        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
-        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
-      ],
-      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
-      "e2e": [],
-      "examples": [],
-      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
-      "kind": "operation",
-      "name": "pyc.v_or_reduce",
-      "negative_mlir": [],
-      "positive_mlir": [],
-      "python_producer": [
-        "python/pycircuit/src/pycircuit/dsl.py"
-      ],
-      "replacement": "scalarize-before-canonical-pyc",
-      "rtl_selection": null,
-      "stage": "canonical-pyc",
-      "status": "pending-removal",
-      "symbol": "PYC_VOrReduceOp",
-      "tests": [
-        "tests/unit/test_pyc_ir_inventory.py",
-        "tests/vec/cases.py",
-        "tests/vec/test_vec_ops.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     },
@@ -1689,8 +1379,7 @@
         "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
         "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
         "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
-        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1716,9 +1405,7 @@
       "tests": [
         "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
         "tests/mlir/agentic-circuit/ACIR/interfaces-valid.mlir",
-        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
-        "tests/v6/test_v6_vector.py",
-        "tests/vec/test_vec_ops.py"
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir"
       ],
       "verifier": null,
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1729,9 +1416,7 @@
       ],
       "canonicalization": [
         "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1753,10 +1438,7 @@
       "symbol": "PYC_XorOp",
       "tests": [
         "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
-        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/oracle.py"
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py"
       ],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
@@ -1790,8 +1472,7 @@
     {
       "acir_producer": [],
       "canonicalization": [
-        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
-        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
       ],
       "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
       "e2e": [],
@@ -1812,11 +1493,7 @@
       "stage": "canonical-pyc",
       "status": "normative",
       "symbol": "PYC_ZextOp",
-      "tests": [
-        "tests/vec/cases.py",
-        "tests/vec/generate.py",
-        "tests/vec/test_vec_ops.py"
-      ],
+      "tests": [],
       "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
       "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
     }

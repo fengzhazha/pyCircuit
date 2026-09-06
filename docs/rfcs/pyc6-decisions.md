@@ -7180,3 +7180,78 @@ work early.
 - User direction (2026-09-07): maintain the repository with administrator
   merges, keep `enforce_admins=true` outside the minimal merge window, and
   finish #39, #41, #42, and #44 serially before DavinciOO implementation.
+
+## Decision 0220: canonical PYC is scalar-only and aggregates cross it as packed values
+
+**Status:** Implemented
+
+**Context / Goal**
+The first-class PYC vector model introduced builtin `vector<...>` values,
+implicit lane-wise scalar operations, `pyc.v_*`, vector-specific passes, and
+backend/runtime dispatch. That model interpreted a request for arrays of typed
+records as SIMD instructions. DavinciOO instead needs Pythonic aggregate value
+types whose layout is proven before a small reusable scalar backend.
+
+**Decision (strong constraint)**
+- Canonical and backend PYC accept only scalar builtin integers plus
+  `!pyc.clock` and `!pyc.reset`. A builtin `vector<...>` anywhere in a PYC
+  module is illegal before code generation, including function boundaries,
+  state, regions, and otherwise operation-free signatures.
+- Remove `pyc.v_get`, `pyc.v_create`, `pyc.v_broadcast`,
+  `pyc.v_broadcast_dim`, `pyc.v_or_reduce`, `pyc.v_and_reduce`, and
+  `pyc.v_add_reduce`. All remaining arithmetic, logical, compare, select, cast,
+  extract, shift, wire, assign, and register operations use scalar integer
+  types only. There are no parser aliases or compatibility passes.
+- Remove the public pyCircuit `Vector`/`Wire[Vector]` contract, `shape=` ports
+  and state, vector constants, lane iteration/indexing, broadcast/reduce, and
+  vector-aware testbench packing. Ordinary Python list/tuple iteration over
+  scalar signals is the supported structural authoring pattern.
+- Recursive semantic-core and ACIR `StructType`, `EnumType`, `TupleType`, and
+  fixed `ArrayType` remain high-level immutable value types. Persistent Python
+  lists remain inferred lexical state; topology `!ac.array` remains a module or
+  resource collection. None of these are PYC vector instructions.
+- ACIR-to-PYC scalarizes each admitted aggregate before canonical PYC using one
+  packed scalar integer ABI. Struct fields and tuple/value-array elements keep
+  descriptor/source order from most-significant to least-significant bits;
+  element zero is the most-significant element. Field/element reads and
+  immutable updates lower to scalar `pyc.extract`, `pyc.concat`, and primitive
+  operations. Aggregate payload ports and state use their exact total packed
+  width, so specialization reuse does not expand backend module definitions per
+  instance.
+- Any future aggregate reduction uses stable ascending element order and a
+  deterministic pairwise balanced tree, carrying the last unpaired element to
+  the next level. No aggregate reduction is admitted until the frontend or
+  ACIR explicitly generates that scalar tree.
+- Aggregate names, field paths, descriptors, and layout fingerprints remain in
+  ACIR/QueueGraph manifests. Debug/probe/trace tooling reconstructs a logical
+  aggregate view from that metadata and packed scalar samples; canonical PYC
+  does not retain a vector type solely for observability.
+- Delete vector unroll/packing/canonicalization, vector cost/dependency rules,
+  emitter loops, and `pyc_vec` runtime support. A verifier and inventory gate
+  reject residual builtin vectors or `pyc.v_*` before either backend.
+
+**Required ordering**
+1. Freeze scalar-only PYC legality and aggregate packed ABI.
+2. Remove PYC vector operations/types and vector-producing passes.
+3. Remove vector backend/runtime dispatch.
+4. Remove the Python vector surface and rewrite retained scalar examples.
+5. Prove recursive ACIR aggregate lowering and cross-backend parity, then
+   synchronize inventory, docs, and gates.
+
+**Verification**
+- The exact PYC inventory contains 41 operations and two dialect types, with no
+  `pyc.v_*` operation or vector-accepting canonical operand constraint.
+- `pyc-check-flat-types` rejects residual builtin vectors, and removed vector
+  operations fail parsing as unregistered operations.
+- Recursive 13-bit and 28-bit ACIR aggregate payloads lower to packed scalar
+  PYC and produce equivalent C++ and Verilog observations.
+- Fresh-checkout AC G0/G1/G2, the full 18-case backend suite, normal and
+  nightly simulations, examples, and V6 semantic regressions are archived in
+  `docs/gates/logs/20260907-issue42-scalar-pyc/`.
+
+**Source**
+- PTO-ISA/pyCircuit issue #42 and its provenance audit of the first-class
+  vector implementation.
+- User direction (2026-09-07): retain array/vector-of-type aggregate modeling,
+  but keep the Python frontend simple and make canonical PYC/backend execution
+  scalar, reusable, and efficient.

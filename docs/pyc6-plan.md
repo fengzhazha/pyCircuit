@@ -153,7 +153,7 @@ PYC semantic contracts.
 
 - [x] Finish, review, merge, and confirm closure of upstream issue #39. Do not
   begin issue #41 or consumer implementation before this gate.
-- [ ] Complete Decision 0219 and upstream issue #41's non-vector primitive
+- [x] Complete Decision 0219 and upstream issue #41's non-vector primitive
   cleanup:
   - [x] Remove `ac.module.generated`, raw `ac.record.*`/`ac.packet.*`, and the
     dormant ACIR declarations/types named by #41 while preserving canonical
@@ -167,20 +167,35 @@ PYC semantic contracts.
     Agentic unsigned `shr` lowering to `lshr`.
   - [x] Add an exact machine-readable PYC inventory and generated coverage/
     producer/emitter/consumer ledger; mark unchanged vector ops as #42-owned.
-  - [ ] Run #41 closure, admin-merge its independent PR, restore
+  - [x] Run #41 closure, admin-merge its independent PR, restore
     `enforce_admins=true`, and confirm #41 closed.
 - [x] Delegate issue #41's vector section to issue #42; do not modify PYC
   vector operations, lowering, emitters, runtime, or tests in the #41 change.
-- [ ] Then complete upstream issue #42's vector hard break: remove first-class
-  PYC vector IR/backend/runtime behavior while retaining ACIR aggregate value
-  types and scalarizing them before canonical PYC.
+- [ ] Complete Decision 0220 and upstream issue #42's vector hard break:
+  - [x] Remove first-class PYC vector values, `pyc.v_*`, vector-accepting scalar
+    ops, vector passes, backend dispatch, and runtime helpers.
+  - [x] Remove the Python `Wire[Vector]`, `shape=`, vector broadcast/reduce,
+    lane iteration, and vector-port testbench surface without compatibility
+    aliases.
+  - [x] Keep recursive ACIR struct/enum/tuple/value-array aggregates and lower
+    them to stable MSB-first packed scalar PYC before the backend boundary.
+  - [x] Rewrite retained framework examples/gates with ordinary Python lists of
+    scalar signals and add fail-closed residual-vector checks.
+  - [x] Synchronize the exact PYC inventory, product documentation, and
+    C++/Verilog equivalence evidence.
+  - [ ] Run #42 closure, admin-merge its independent PR, restore
+    `enforce_admins=true`, and confirm #42 closed.
 - [ ] Then complete issue #44: allow `ac.jit(system)` to bind structural
   `ac.const` parameters while leaving ordinary typed parameters as inferred
   runtime Queue inputs. Close the framework-owned multi-input/multi-output ROB-
-  and CMT-shaped ACIR→gfsim compatibility gates before producing a consumer
-  pin, including branch-local consume-and-classify and four-output
-  backpressure/state-retention behavior.
-- [ ] Only after #39, #41, #42, and #44 are merged and closed, pin that
+  through WBA-shaped ACIR→gfsim compatibility gates before producing a
+  consumer pin, including consume-and-classify, nested identity, conflict,
+  tombstone, and independent backpressure behavior.
+- [ ] Then complete issue #46's heterogeneous optional multi-output rule
+  contract: infer one presence per result, apply backpressure only to selected
+  sinks, and commit all selected outputs, input consumption, state proposals,
+  and the mandatory acknowledgement in one transaction without dummy tokens.
+- [ ] Only after #39, #41, #42, #44, and #46 are merged and closed, pin that
   pyCircuit revision in the owning consumer repository and begin the DavinciOO
   Core. pyCircuit retains only reusable framework code and gates.
 

@@ -41,12 +41,6 @@ static bool isFusableCombOp(Operation *op) {
              pyc::ShlOp,
              pyc::LshrOp,
              pyc::AshrOp,
-             pyc::VGetOp,
-             pyc::VCreateOp,
-             pyc::VBroadcastOp,
-             pyc::VOrReduceOp,
-             pyc::VAndReduceOp,
-             pyc::VAddReduceOp,
              arith::SelectOp>(op);
 }
 

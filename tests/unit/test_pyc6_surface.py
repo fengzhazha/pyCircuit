@@ -16,6 +16,14 @@ def test_cycle_aware_frontend_is_the_pyc6_surface() -> None:
     assert pycircuit.CycleAwareDomain is pyc6.CycleAwareDomain
     assert pycircuit.compile_cycle_aware is pyc6.compile_cycle_aware
     assert not hasattr(pycircuit, "StateSignal")
+    assert not hasattr(pycircuit, "priority_mux")
+
+
+def test_pyc6_data_model_is_scalar_only() -> None:
+    from pycircuit.data import Data
+
+    with pytest.raises(ValueError, match="unsupported type literal"):
+        Data.from_str("vector<2xi8>")
 
 
 def test_priority_encode_is_vendor_neutral_on_the_public_pyc6_surface() -> None:

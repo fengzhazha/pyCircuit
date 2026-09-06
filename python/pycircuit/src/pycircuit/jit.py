@@ -9,7 +9,7 @@ from typing import Any, Hashable, Mapping, get_args, get_origin
 
 from .api_contract import removed_call_diagnostic
 from .connectors import Connector, ConnectorBundle, is_connector, is_connector_bundle
-from .data import Bits, Data, Vector
+from .data import Bits, Data
 from .diagnostics import (
     Diagnostic,
     make_diagnostic,
@@ -199,11 +199,7 @@ def _expect_wire(v: Any, *, ctx: str) -> Wire:
 
 
 def _wire_ifexpr(cond: Wire, true_v: Any, false_v: Any) -> Wire:
-    cond_is_vec = isinstance(cond.ty, Vector)
-    if cond_is_vec:
-        if cond.width != 1:
-            raise JitError("if-expression vector condition must be vector<...xi1>")
-    elif cond.ty != Bits(1):
+    if cond.ty != Bits(1):
         raise JitError("if-expression condition must be an i1 wire")
     if isinstance(true_v, Connector):
         true_v = true_v.read()
@@ -2408,41 +2404,6 @@ def compile_module(
                 )
             signed = bool(spec.get("signed", False))
             c.env[p.name] = m.input(p.name, width=width, signed=signed)
-            continue
-        if kind == "vec":
-            ty = str(spec.get("ty", "")).strip()
-            if not ty.startswith("vector<"):
-                raise JitError(
-                    f"invalid vector type in signature-bound port {p.name!r}: {ty!r}"
-                )
-            try:
-                parsed = Data.from_str(ty)
-            except ValueError as e:
-                raise JitError(
-                    f"invalid vector type in signature-bound port {p.name!r}: {ty!r}"
-                ) from e
-            if not isinstance(parsed, Vector):
-                raise JitError(
-                    f"invalid vector type in signature-bound port {p.name!r}: {ty!r}"
-                )
-            shape = parsed.shape()
-            elem_ty = parsed.datatype()
-            if not isinstance(elem_ty, Bits):
-                raise JitError(
-                    f"invalid vector element type in signature-bound port {p.name!r}: {elem_ty!r}"
-                )
-            width = elem_ty.width
-            if width <= 0:
-                raise JitError(
-                    f"invalid vector element width in signature-bound port {p.name!r}: {elem_ty!r}"
-                )
-            signed_raw = spec.get("signed", False)
-            signed = (
-                any(bool(v) for v in signed_raw)
-                if isinstance(signed_raw, list)
-                else bool(signed_raw)
-            )
-            c.env[p.name] = m.input(p.name, width=width, shape=shape, signed=signed)
             continue
         raise JitError(
             f"unsupported signature-bound port kind for {p.name!r}: {kind!r}"

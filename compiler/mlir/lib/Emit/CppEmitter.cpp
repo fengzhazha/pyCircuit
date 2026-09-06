@@ -79,15 +79,6 @@ static std::string cppType(Type ty) {
     return "pyc::cpp::Wire<1>";
   if (auto intTy = dyn_cast<IntegerType>(ty))
     return "pyc::cpp::Wire<" + std::to_string(intTy.getWidth()) + ">";
-  if (auto vt = dyn_cast<VectorType>(ty)) {
-    // Build nested pyc::cpp::Vec from the shape (outermost to innermost).
-    // vector<4x8xi32> → pyc::cpp::Vec<pyc::cpp::Vec<Wire<32>, 8>, 4>
-    auto shape = vt.getShape();
-    std::string inner = cppType(vt.getElementType());
-    for (int i = shape.size() - 1; i >= 0; --i)
-      inner = "pyc::cpp::Vec<" + inner + ", " + std::to_string(shape[i]) + ">";
-    return inner;
-  }
   std::string msg;
   llvm::raw_string_ostream os(msg);
   os << "CppEmitter: unsupported type in cppType(): " << ty;
@@ -99,21 +90,11 @@ static unsigned bitWidth(Type ty) {
     return 1;
   if (auto intTy = dyn_cast<IntegerType>(ty))
     return intTy.getWidth();
-  if (auto vt = dyn_cast<VectorType>(ty))
-    return bitWidth(vt.getElementType());  // scalar element bit width
   return 0;
 }
 
-// Emit ProbeRegistry registration for a (possibly vector) wire-kind value.
-// Scalars register directly via addWire; vectors lower to nested pyc::cpp::Vec
-// and use ProbeRegistry::addVec, which recurses to per-lane Wire<W>* leaves
-// under indexed paths (e.g. "a[0][1]").
-static void emitWireProbes(llvm::raw_ostream &os, Type ty, unsigned w,
+static void emitWireProbes(llvm::raw_ostream &os, Type, unsigned w,
                            const std::string &fieldPath, const std::string &cppExpr) {
-  if (isa<VectorType>(ty)) {
-    os << "    reg.addVec(reg_path(" << cppStringLiteral(fieldPath) << "), &" << cppExpr << ");\n";
-    return;
-  }
   os << "    reg.addWire<" << w << ">(reg_path(" << cppStringLiteral(fieldPath) << "), &" << cppExpr << ");\n";
 }
 
@@ -153,37 +134,6 @@ struct NameTable {
     return n;
   }
 };
-
-static std::string treeReduceExpr(llvm::SmallVectorImpl<std::string> &terms,
-                                  llvm::StringRef op) {
-  while (terms.size() > 1) {
-    llvm::SmallVector<std::string> next;
-    for (size_t i = 0; i < terms.size(); i += 2) {
-      if (i + 1 < terms.size())
-        next.push_back("(" + terms[i] + " " + op.str() + " " + terms[i + 1] + ")");
-      else
-        next.push_back(terms[i]);
-    }
-    terms = std::move(next);
-  }
-  return terms.empty() ? "" : terms[0];
-}
-
-static std::string chainReduceExpr(llvm::SmallVectorImpl<std::string> &terms,
-                                   llvm::StringRef op) {
-  if (terms.empty())
-    return "";
-  std::string out = terms[0];
-  for (size_t i = 1; i < terms.size(); ++i)
-    out = "(" + out + " " + op.str() + " " + terms[i] + ")";
-  return out;
-}
-
-static bool isTreeReduceMode(Operation *op) {
-  if (auto mode = op->getAttrOfType<StringAttr>("mode"))
-    return mode.getValue() == "tree";
-  return false;
-}
 
 static std::string getPortName(func::FuncOp f, unsigned idx, bool isResult) {
   if (!isResult) {
@@ -463,15 +413,10 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     unsigned w = bitWidth(m.getResult().getType());
     if (w == 0)
       return m.emitError("invalid select width");
-    bool selIsVec = isa<VectorType>(m.getSel().getType());
     assignExpr(m.getResult(), m.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
-                 if (selIsVec)
-                   e << "pyc::cpp::mux_vec<" << w << ">(" << nt.get(m.getSel()) << ", " << nt.get(m.getA()) << ", "
-                     << nt.get(m.getB()) << ")";
-                 else
-                   e << "pyc::cpp::mux<" << w << ">(" << nt.get(m.getSel()) << ", " << nt.get(m.getA()) << ", "
-                     << nt.get(m.getB()) << ")";
+                 e << "pyc::cpp::mux<" << w << ">(" << nt.get(m.getSel()) << ", " << nt.get(m.getA()) << ", "
+                   << nt.get(m.getB()) << ")";
                });
     return success();
   }
@@ -514,11 +459,9 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     unsigned ow = bitWidth(t.getResult().getType());
     if (iw == 0 || ow == 0)
       return t.emitError("invalid trunc width");
-    bool inIsVec = isa<VectorType>(t.getIn().getType());
     assignExpr(t.getResult(), t.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
-                 e << "pyc::cpp::" << (inIsVec ? "trunc_vec<" : "trunc<")
-                   << ow << ", " << iw << ">(" << nt.get(t.getIn()) << ")";
+                 e << "pyc::cpp::trunc<" << ow << ", " << iw << ">(" << nt.get(t.getIn()) << ")";
                });
     return success();
   }
@@ -527,11 +470,9 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     unsigned ow = bitWidth(z.getResult().getType());
     if (iw == 0 || ow == 0)
       return z.emitError("invalid zext width");
-    bool inIsVec = isa<VectorType>(z.getIn().getType());
     assignExpr(z.getResult(), z.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
-                 e << "pyc::cpp::" << (inIsVec ? "zext_vec<" : "zext<")
-                   << ow << ", " << iw << ">(" << nt.get(z.getIn()) << ")";
+                 e << "pyc::cpp::zext<" << ow << ", " << iw << ">(" << nt.get(z.getIn()) << ")";
                });
     return success();
   }
@@ -540,11 +481,9 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     unsigned ow = bitWidth(s.getResult().getType());
     if (iw == 0 || ow == 0)
       return s.emitError("invalid sext width");
-    bool inIsVec = isa<VectorType>(s.getIn().getType());
     assignExpr(s.getResult(), s.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
-                 e << "pyc::cpp::" << (inIsVec ? "sext_vec<" : "sext<")
-                   << ow << ", " << iw << ">(" << nt.get(s.getIn()) << ")";
+                 e << "pyc::cpp::sext<" << ow << ", " << iw << ">(" << nt.get(s.getIn()) << ")";
                });
     return success();
   }
@@ -553,11 +492,9 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     unsigned ow = bitWidth(ex.getResult().getType());
     if (iw == 0 || ow == 0)
       return ex.emitError("invalid extract width");
-    bool inIsVec = isa<VectorType>(ex.getIn().getType());
     assignExpr(ex.getResult(), ex.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
-                 e << "pyc::cpp::" << (inIsVec ? "extract_vec<" : "extract<")
-                   << ow << ", " << iw << ">(" << nt.get(ex.getIn()) << ", "
+                 e << "pyc::cpp::extract<" << ow << ", " << iw << ">(" << nt.get(ex.getIn()) << ", "
                    << ex.getLsbAttr().getInt() << "u)";
                });
     return success();
@@ -668,175 +605,6 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     os << "      }\n";
     os << "    }\n";
     return success();
-  }
-  if (auto vg = dyn_cast<pyc::VGetOp>(op)) {
-    auto vecTy = dyn_cast<VectorType>(vg.getVec().getType());
-    if (!vecTy)
-      return vg.emitError("C++ emitter expects vector operand for pyc.v_get");
-    std::int64_t idx = vg.getIndexAttr().getInt();
-    if (idx < 0 || idx >= vecTy.getDimSize(0))
-      return vg.emitError("pyc.v_get index out of range for C++ emission");
-    assignExpr(vg.getResult(), vg.getType(), os, nt,
-               [&](llvm::raw_ostream &e) { e << nt.get(vg.getVec()) << "[" << idx << "]"; });
-    return success();
-  }
-  if (auto vc = dyn_cast<pyc::VCreateOp>(op)) {
-    assignExpr(vc.getResult(), vc.getType(), os, nt,
-               [&](llvm::raw_ostream &e) {
-                 e << cppType(vc.getType()) << "{{";
-                 for (auto [i, v] : llvm::enumerate(vc.getElements())) {
-                   if (i)
-                     e << ", ";
-                   e << nt.get(v);
-                 }
-                 e << "}}";
-               }
-               );
-    return success();
-  }
-  if (auto vb = dyn_cast<pyc::VBroadcastOp>(op)) {
-    std::int64_t size = vb.getSizeAttr().getInt();
-    if (size < 0)
-      return vb.emitError("negative size is invalid for pyc.v_broadcast");
-    assignExpr(vb.getResult(), vb.getType(), os, nt,
-               [&](llvm::raw_ostream &e) {
-                 e << cppType(vb.getType()) << "{{";
-                 for (std::int64_t i = 0; i < size; ++i) {
-                   if (i)
-                     e << ", ";
-                   e << nt.get(vb.getScalar());
-                 }
-                 e << "}}";
-               }
-               );
-    return success();
-  }
-  if (auto vbd = dyn_cast<pyc::VBroadcastDimOp>(op)) {
-    auto srcVT = dyn_cast<VectorType>(vbd.getVec().getType());
-    auto dstVT = dyn_cast<VectorType>(vbd.getResult().getType());
-    if (!srcVT || !dstVT)
-      return vbd.emitError("C++ emitter expects vector types for v_broadcast_dim");
-    std::int64_t dim = vbd.getDimAttr().getInt();
-    assignExpr(vbd.getResult(), vbd.getType(), os, nt,
-               [&](llvm::raw_ostream &e) {
-                 e << cppType(dstVT) << "{{";
-                 // Walk all result lanes, mapping to source.
-                 std::function<void(unsigned, std::vector<int64_t> &)> walk;
-                 bool emittedAny = false;
-                 walk = [&](unsigned depth, std::vector<int64_t> &idx) {
-                   if (depth == static_cast<unsigned>(dstVT.getRank())) {
-                     if (emittedAny)
-                       e << ", ";
-                     emittedAny = true;
-                     // Build source index by dropping the broadcast dim.
-                     std::string srcIdx;
-                     for (unsigned d = 0; d < dstVT.getRank(); ++d)
-                       if (static_cast<int64_t>(d) != dim)
-                         srcIdx += "[" + std::to_string(idx[d]) + "]";
-                     e << nt.get(vbd.getVec()) << srcIdx;
-                     return;
-                   }
-                   for (int64_t i = 0; i < dstVT.getDimSize(depth); ++i) {
-                     idx.push_back(i);
-                     walk(depth + 1, idx);
-                     idx.pop_back();
-                   }
-                 };
-                 std::vector<int64_t> idx;
-                 walk(0, idx);
-                 e << "}}";
-               });
-    return success();
-  }
-  auto emitVectorReduce = [&](auto vr, const char *opName, const char *opToken) -> LogicalResult {
-    auto vt = dyn_cast<VectorType>(vr.getVec().getType());
-    if (!vt)
-      return vr.emitError("C++ emitter expects vector operand for pyc.") << opName;
-    if (vt.getRank() < 1 || vt.getRank() > 2)
-      return vr.emitError("C++ emitter currently supports rank-1/rank-2 pyc.") << opName;
-    for (std::int64_t lanes : vt.getShape()) {
-      if (lanes <= 0)
-        return vr.emitError("pyc.") << opName << " requires non-empty vector dimensions";
-    }
-    bool useTree = isTreeReduceMode(vr.getOperation());
-
-    if (!vr.getDim()) {
-      assignExpr(vr.getResult(), vr.getType(), os, nt,
-                 [&](llvm::raw_ostream &e) {
-                   llvm::SmallVector<std::string> terms;
-                   if (vt.getRank() == 1) {
-                     for (std::int64_t i = 0; i < vt.getShape()[0]; ++i)
-                       terms.push_back(nt.get(vr.getVec()) + "[" +
-                                       std::to_string(static_cast<long long>(i)) + "]");
-                   } else {
-                     for (std::int64_t i = 0; i < vt.getShape()[0]; ++i)
-                       for (std::int64_t j = 0; j < vt.getShape()[1]; ++j)
-                         terms.push_back(nt.get(vr.getVec()) + "[" +
-                                         std::to_string(static_cast<long long>(i)) + "][" +
-                                         std::to_string(static_cast<long long>(j)) + "]");
-                   }
-                   e << (useTree ? treeReduceExpr(terms, opToken) : chainReduceExpr(terms, opToken));
-                 });
-      return success();
-    }
-
-    std::int64_t dim = *vr.getDim();
-    if (dim < 0 || dim >= vt.getRank())
-      return vr.emitError("pyc.") << opName << " dim out of range";
-
-    std::int64_t lanes = vt.getShape()[0];
-    if (vt.getRank() == 1) {
-      assignExpr(vr.getResult(), vr.getType(), os, nt,
-                 [&](llvm::raw_ostream &e) {
-                   llvm::SmallVector<std::string> terms;
-                   for (std::int64_t i = 0; i < lanes; ++i) {
-                     terms.push_back(nt.get(vr.getVec()) + "[" +
-                                     std::to_string(static_cast<long long>(i)) + "]");
-                   }
-                   e << (useTree ? treeReduceExpr(terms, opToken) : chainReduceExpr(terms, opToken));
-                 }
-                 );
-      return success();
-    }
-
-    std::int64_t rows = vt.getShape()[0];
-    std::int64_t cols = vt.getShape()[1];
-    if (rows <= 0 || cols <= 0)
-      return vr.emitError("pyc.") << opName << " requires non-empty vector";
-    assignExpr(vr.getResult(), vr.getType(), os, nt,
-               [&](llvm::raw_ostream &e) {
-                 e << cppType(vr.getResult().getType()) << "{{";
-                 std::int64_t outLanes = (dim == 0) ? cols : rows;
-                 std::int64_t reduceLanes = (dim == 0) ? rows : cols;
-                 for (std::int64_t i = 0; i < outLanes; ++i) {
-                   if (i)
-                     e << ", ";
-                   llvm::SmallVector<std::string> terms;
-                   for (std::int64_t j = 0; j < reduceLanes; ++j) {
-                     if (dim == 0)
-                       terms.push_back(nt.get(vr.getVec()) + "[" +
-                                       std::to_string(static_cast<long long>(j)) + "][" +
-                                       std::to_string(static_cast<long long>(i)) + "]");
-                     else
-                       terms.push_back(nt.get(vr.getVec()) + "[" +
-                                       std::to_string(static_cast<long long>(i)) + "][" +
-                                       std::to_string(static_cast<long long>(j)) + "]");
-                   }
-                   e << (useTree ? treeReduceExpr(terms, opToken) : chainReduceExpr(terms, opToken));
-                 }
-                 e << "}}";
-               }
-               );
-    return success();
-  };
-  if (auto vr = dyn_cast<pyc::VOrReduceOp>(op)) {
-    return emitVectorReduce(vr, "v_or_reduce", "|");
-  }
-  if (auto vr = dyn_cast<pyc::VAndReduceOp>(op)) {
-    return emitVectorReduce(vr, "v_and_reduce", "&");
-  }
-  if (auto vr = dyn_cast<pyc::VAddReduceOp>(op)) {
-    return emitVectorReduce(vr, "v_add_reduce", "+");
   }
   return op.emitError("unsupported combinational op for C++ emission");
 }
@@ -1255,7 +1023,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
 		    unsigned w = bitWidth(f.getResultTypes()[i]);
 		    if (w == 0)
 		      return f.emitError("invalid output port width for ProbeRegistry: ") << getPortCanonicalFieldPath(f, i, /*isResult=*/true);
-		    if (outIsReg[i] && !isa<VectorType>(f.getResultTypes()[i])) {
+		    if (outIsReg[i]) {
 		      os << "    reg.addReg<" << w << ">(reg_path(" << cppStringLiteral(outCanon[i]) << "), &" << outNames[i]
 		         << ", &" << nt.get(outRegQ[i]) << "_inst->pending, &" << nt.get(outRegQ[i]) << "_inst->qNext);\n";
 		    } else {
@@ -1263,7 +1031,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
 		    }
 		  }
       for (const auto &named : namedProbes) {
-        if (named.isReg && !isa<VectorType>(named.type)) {
+        if (named.isReg) {
           os << "    reg.addReg<" << named.width << ">(reg_path(" << cppStringLiteral(named.fieldPath) << "), &"
              << named.cppValue << ", &" << named.cppRegInst << "->pending, &" << named.cppRegInst << "->qNext);\n";
         } else {
@@ -1317,10 +1085,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
 	    unsigned w = bitWidth(r.getQ().getType());
 	    if (w == 0)
 	      return r.emitError("invalid reg width");
-    if (isa<VectorType>(r.getQ().getType()))
-      os << "  pyc::cpp::pyc_vec_reg<" << cppType(r.getQ().getType()) << "> *" << nt.get(r.getQ()) << "_inst = nullptr;\n";
-    else
-      os << "  pyc::cpp::pyc_reg<" << w << "> *" << nt.get(r.getQ()) << "_inst = nullptr;\n";
+    os << "  pyc::cpp::pyc_reg<" << w << "> *" << nt.get(r.getQ()) << "_inst = nullptr;\n";
   }
   for (auto fifo : fifos) {
     unsigned w = bitWidth(fifo.getOutData().getType());
@@ -1599,11 +1364,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
     unsigned w = bitWidth(r.getQ().getType());
     if (w == 0)
       return r.emitError("invalid reg width");
-    if (isa<VectorType>(r.getQ().getType()))
-      os << "    " << nt.get(r.getQ()) << "_inst = new pyc::cpp::pyc_vec_reg<"
-         << cppType(r.getQ().getType()) << ">(";
-    else
-      os << "    " << nt.get(r.getQ()) << "_inst = new pyc::cpp::pyc_reg<" << w << ">(";
+    os << "    " << nt.get(r.getQ()) << "_inst = new pyc::cpp::pyc_reg<" << w << ">(";
     os << nt.get(r.getClk()) << ", " << nt.get(r.getRst()) << ", " << nt.get(r.getEn()) << ", "
        << nt.get(r.getNext()) << ", " << nt.get(r.getInit()) << ", " << nt.get(r.getQ()) << ");\n";
   }
@@ -1818,10 +1579,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
             pyc::PriorityEncodeOp, pyc::PopcountOp, pyc::CountZerosOp,
             pyc::AliasOp, pyc::ResetActiveOp, pyc::CmpOp,
             pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
-            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
-            pyc::VGetOp, pyc::VCreateOp, pyc::VBroadcastOp,
-            pyc::VBroadcastDimOp, pyc::VOrReduceOp, pyc::VAndReduceOp,
-            pyc::VAddReduceOp, arith::SelectOp>(*op)) {
+            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp, arith::SelectOp>(*op)) {
       if (failed(emitCombAssign(*op, os, nt)))
         return failure();
       continue;
@@ -2213,10 +1971,7 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
             pyc::PriorityEncodeOp, pyc::PopcountOp, pyc::CountZerosOp,
             pyc::AliasOp, pyc::ResetActiveOp, pyc::CmpOp,
             pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
-            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
-            pyc::VGetOp, pyc::VCreateOp, pyc::VBroadcastOp,
-            pyc::VBroadcastDimOp, pyc::VOrReduceOp, pyc::VAndReduceOp,
-            pyc::VAddReduceOp, arith::SelectOp>(*op)) {
+            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp, arith::SelectOp>(*op)) {
       if (failed(emitCombAssign(*op, os, nt)))
         return failure();
       return success();

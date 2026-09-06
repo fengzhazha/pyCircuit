@@ -162,6 +162,8 @@ class PycBackendTest(unittest.TestCase):
             self.assertIn("pyc.concat", pyc)
             self.assertIn("pyc.extract", pyc)
             self.assertNotIn("pyc.rtl.", pyc)
+            self.assertNotIn("vector<", pyc)
+            self.assertNotIn("pyc.v_", pyc)
 
             cpp_harness = root / "cpp_harness.cpp"
             cpp_executable = root / "cpp_model"
@@ -361,6 +363,8 @@ int main() {
             self.assertIn("%in_data: i28", pyc)
             self.assertIn("pyc.concat", pyc)
             self.assertIn("pyc.extract", pyc)
+            self.assertNotIn("vector<", pyc)
+            self.assertNotIn("pyc.v_", pyc)
 
             cpp_harness = root / "cpp_harness.cpp"
             cpp_executable = root / "cpp_model"

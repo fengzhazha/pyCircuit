@@ -39,12 +39,10 @@ Semantics (posedge `clk`):
 - if `rst`: `q <= init`
 - else if `en`: `q <= d`
 
-### 1.3 `Vec<T, N>`
-
-Fixed-size container (useful for regfiles, bundles of lanes, etc.).
-
-- C++: `pyc::cpp::Vec<T, N>` (`library/cpp/pyc_vec.hpp`)
-- Verilog: use unpacked arrays (`T v [0:N-1]`) or packed arrays, depending on style.
+Repeated structure is authored with ordinary Python list/tuple iteration and
+emitted as explicit scalar operations. Typed ACIR aggregates use an exact-width
+packed scalar ABI before reaching this primitive layer; the runtime does not
+provide a vector-instruction container.
 
 ## 2) Primitive operations (combinational)
 
