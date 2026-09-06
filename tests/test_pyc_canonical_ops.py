@@ -33,16 +33,10 @@ def test_frontend_emits_only_canonical_select_cmp_and_ssa_shifts() -> None:
 
 
 def _dynamic_shift(m: Circuit) -> None:
-    value = m.input("value", width=8, shape=[2])
+    value = m.input("value", width=8)
     amount = m.input("amount", width=3)
     m.output("left", value << amount)
     m.output("right", value >> amount)
-
-
-def _vector_shift_amount(m: Circuit) -> None:
-    value = m.input("value", width=8, shape=[2])
-    amount = m.input("amount", width=3, shape=[2])
-    m.output("bad", value << amount)
 
 
 def _invalid_shift_amount_type(m: Circuit) -> None:
@@ -56,9 +50,12 @@ def test_jit_accepts_typed_scalar_ssa_shift_amount() -> None:
     assert "pyc.lshr" in mlir
 
 
-def test_jit_rejects_vector_shift_amount_shape() -> None:
-    with pytest.raises(JitError, match="shift amount must be a scalar integer"):
-        compile_module(_vector_shift_amount)
+def test_frontend_rejects_removed_shape_and_vector_constant_surface() -> None:
+    m = Circuit("scalar_only")
+    with pytest.raises(TypeError, match="unexpected keyword argument 'shape'"):
+        m.input("value", width=8, shape=[2])
+    with pytest.raises(TypeError, match=r"const\(\) value must be int"):
+        m.const([1, 2], width=8)
 
 
 def test_jit_rejects_noninteger_shift_amount_type() -> None:

@@ -1,0 +1,15 @@
+cycle 0: 4 value-change events, 1 write events
+  - (tick) WRITE[reg] dut:y data=0x1
+  - (comb) dut:clk = 0x0 known=0x1 z=0x0
+  - (comb) dut:en = 0x1 known=0x1 z=0x0
+  - (comb) dut:rst = 0x0 known=0x1 z=0x0
+  - (commit) dut:y = 0x1 known=0xff z=0x0
+  - (tick) RESET_ASSERT domain=global kind=warm
+  - (tick) INVALIDATE domain=global scope=global reason=warm_reset text=tb.reset
+cycle 1: 1 value-change events, 1 write events
+  - (tick) WRITE[reg] dut:y data=0x2
+  - (commit) dut:y = 0x2 known=0xff z=0x0
+  - (tick) RESET_DEASSERT domain=global kind=warm
+cycle 2: 1 value-change events, 1 write events
+  - (tick) WRITE[reg] dut:y data=0x3
+  - (commit) dut:y = 0x3 known=0xff z=0x0

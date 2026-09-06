@@ -12,6 +12,11 @@ For the compiler pipeline and pass-by-pass behavior, see `docs/PIPELINE.md`.
 - `!pyc.reset`: a reset signal
 - Data types use MLIR integers (`i1`, `i8`, `i32`, ...).
 
+Canonical/backend PYC is scalar-only. Builtin `vector<...>` types and the
+removed `pyc.v_*` family are rejected. Recursive ACIR aggregates cross this
+boundary as exact-width packed integers with descriptor metadata retained in
+ACIR/QueueGraph manifests.
+
 ## 2) Operations
 
 All examples below live inside a standard MLIR `module { ... }` and use

@@ -2,7 +2,7 @@
 
 版本：6.0
 
-本教程通过一系列由浅入深的完整示例，教你用 PyCircuit V6 设计数字电路：从一个计数器开始，逐步覆盖流水线、层次化组合、向量（SIMD）、测试台编写与完整的构建/仿真流程。
+本教程通过一系列由浅入深的完整示例，教你用 PyCircuit V6 设计数字电路：从一个计数器开始，逐步覆盖流水线、层次化组合、标量重复结构、测试台编写与完整的构建/仿真流程。
 
 **配套文档**：
 
@@ -418,119 +418,35 @@ mlir = circ.emit_mlir()
 
 ---
 
-## 数据类型体系与向量 SIMD
+## 标量重复结构与高层聚合
 
-前面所有例子用的都是标量 `Wire`（如 `m.input("x", width=8)`）。本章系统介绍 PyCircuit 的整个**数据类型体系**：`Data` 类型层级有哪几种、`Wire[DT]` 如何用泛型参数 `DT` 统一承载它们，以及其中「向量」这一支如何用于 SIMD 设计。
-
-### 类型体系总览
-
-PyCircuit 的硬件对象建立在两个正交概念上：
-
-- **数据类型 `Data`**（`pycircuit.data`）：描述信号承载的「值的形状」——标量位宽、向量维度、时钟/复位语义；
-- **信号句柄 `Wire[DT]`**：描述信号在电路图里的「身份」。`DT` 是泛型参数，绑定到 `Data`，决定该 `Wire` 走哪种 MLIR 类型、哪些运算合法。
-
-`Data` 是一个冻结的类型层级，`str(Data)` 直接给出 MLIR 类型字面量：
-
-```text
-Data (ABC)
-├── Bits(N)              → iN              标量位向量（算术/逻辑运算的操作数）
-├── Vector(len, elem)    → vector<Nx...xiW> 向量；elem 可再为 Vector → 多维
-├── Clock                → !pyc.clock      时钟（仅作 pyc.reg 的 clk 输入）
-└── Reset                → !pyc.reset      复位（仅作 pyc.reg 的 rst 输入）
-```
-
-| 声明 | Python 类型 | MLIR 类型 |
-|------|------------|----------|
-| `m.input("x", width=8)` | `Wire[Bits[8]]` | `i8` |
-| `m.input("v", width=8, shape=[4])` | `Wire[Vector[Bits[8]]]` | `vector<4xi8>` |
-| `m.input("m", width=8, shape=[4,16])` | `Wire[Vector[...]]` | `vector<4x16xi8>` |
-
-**关键点**：标量 `Wire[Bits]` 与向量 `Wire[Vector[...]]` **共享同一套运算符**——`+ - * & | ^ ~ == != < >` 都重载了，区别只在结果类型：
+canonical PYC 是 scalar-only：每个 `Wire` 承载一个 `Bits`、`Clock` 或
+`Reset` 值。需要多 lane 或多 entry 时，用普通 Python list/tuple 与静态
+`for` 展开标量结构：
 
 ```python
-a = m.input("a", width=8)                # Wire[Bits[8]]
-v = m.input("v", width=8, shape=[4])     # Wire[Vector[Bits[8]]]
+lanes = [m.input(f"lane_{i}", width=32) for i in range(8)]
+biased = [lane + u(32, i) for i, lane in enumerate(lanes)]
 
-r   = a + a          # Wire[Bits[8]]     （标量 + 标量）
-s   = v + v          # Wire[Vector[...]] （逐 lane 加）
-bc  = v + a          # Wire[Vector[...]] （标量自动广播到每个 lane）
-eqv = v == v         # Wire[Vector[Bits[1]]]（逐 lane 比较）
+any_nonzero = biased[0] != 0
+for lane in biased[1:]:
+    any_nonzero = any_nonzero | (lane != 0)
 ```
 
-> `Clock` / `Reset` 是特殊的「语义类型」——它们宽度都是 1，但**只能**作 `pyc.reg` 的时钟/复位输入，不能参与算术运算。一般设计者不直接声明它们，而是由 `create_domain()` / `create_reset()` 产生。
+每个 list 元素保持普通标量 `Wire`，因此生成的 IR 是明确的
+`pyc.add`/`pyc.cmp`/`pyc.or` SSA 图。没有 implicit broadcast、lane
+instruction 或 backend vector runtime。
 
-本章剩余部分聚焦于 `Vector` 这一支——它是类型体系里最有表达力、最能替代手写 `for` 循环的部分。
+数组/tuple/struct/enum 作为**值类型**时由 Agentic Circuit 的递归
+descriptor 与 ACIR 表达。进入 PYC 前按稳定 descriptor/source 顺序、
+MSB-first 打包成一个精确宽度 scalar integer；字段和元素操作变成
+`pyc.extract`、`pyc.concat` 与其他 scalar primitives。这样 Python 仍可用
+class、tuple、list 和静态循环表达数据结构，而 C++/Verilog 后端只维护一套
+标量语义。
 
-### 向量端口与逐 lane 运算
-
-```python
-def simd_add(m: CycleAwareCircuit, domain: CycleAwareDomain,
-             lanes: int = 8, width: int = 32) -> None:
-    va = m.input("va", width=width, shape=[lanes])    # Wire[Vector[Bits[32]]]: 8 × i32
-    vb = m.input("vb", width=width, shape=[lanes])
-
-    vsum = va + vb              # 逐 lane 加法，一行顶 8 行
-    m.output("vsum", vsum)      # 向量 Wire 可直接作为输出
-```
-
-生成的 MLIR 中这是**一条** `pyc.add : vector<8xi32>`；Verilog 端口是 packed bus（`[lanes*width-1:0]`），C++ 仿真器用嵌套 `pyc::cpp::Vec` 模板并可走 SIMD 加速。
-
-### 归约与广播：旁路匹配
-
-场景：`n_src` 个源操作数 tag，要和 `n_wb` 个写回端口的 tag 全比较，命中的取数据。
-
-```python
-def bypass(m, domain, *, n_src=2, n_wb=4, tag_w=6, data_w=64):
-    src_tag  = m.input("src_tag",  width=tag_w,  shape=[n_src])
-    wb_valid = m.input("wb_valid", width=1,      shape=[n_wb])
-    wb_tag   = m.input("wb_tag",   width=tag_w,  shape=[n_wb])
-    wb_data  = m.input("wb_data",  width=data_w, shape=[n_wb])
-
-    # 广播成 [n_src × n_wb] 矩阵
-    src_mat = src_tag.broadcast(dim=1, size=n_wb)   # 每行重复 wb 次
-    wb_mat  = wb_tag.broadcast(dim=0, size=n_src)   # 每列重复 src 次
-    vld_mat = wb_valid.broadcast(dim=0, size=n_src)
-
-    hit_mat = (src_mat == wb_mat) & vld_mat         # 命中矩阵 [n_src × n_wb] × i1
-
-    # 沿 wb 维归约：每个 src 是否命中（树形归约控制逻辑深度）
-    any_hit = hit_mat.reduce_or(dim=1, mode="tree")     # Wire[Vector]: n_src × i1
-
-    # 选数据：以 hit 行为选择器，在 wb_data 中按最小索引优先取值；
-    # 未命中时回退到 default（必须显式给出，否则按约定回退到 vals 的最后一个元素）。
-    zero_data = u(data_w, 0)
-    for s in range(n_src):
-        data_s = priority_mux(hit_mat[s], wb_data, default=zero_data)
-        m.output(f"fwd_data_{s}", data_s)
-    m.output("fwd_hit", any_hit)
-```
-
-三个关键 API：
-
-- `broadcast(dim=, size=)`：把 1D 向量沿新维度复制成 2D 矩阵；
-- `reduce_or(dim=, mode=)` / `reduce_and` / `reduce_sum(dim=, mode=)`：沿指定维度归约。`mode="tree"` 把逻辑深度从 `lanes-1` 降到 `⌈log₂ lanes⌉`——宽归约务必用 tree；
-- `priority_mux(sels, vals, *, mode=, default=None)`：以 `sels`（i1 向量）为选择器在 `vals` 中选 lane，**最小索引优先**；`default` 为所有 selector 都为 0 时的回退值，省略时回退到 `vals` 的最后一个元素。可作为模块级函数 `priority_mux(sels, vals, ...)` 或 CAS 实例方法 `sels.priority_mux(vals, ...)` 使用。
-
-### 计数类归约
-
-```python
-pop = valid_vec.reduce_sum(mode="tree")   # popcount：数有多少 lane 有效
-```
-
-`reduce_sum` **保持叶元素宽度，溢出回绕**——即结果宽度等于输入 lane 的位宽，不会自动扩展。如果担心溢出，需要先用 `zext`/`sext` 把 lane 加宽再归约：
-
-```python
-wide = zext(valid_vec, width=4)     # 1-bit lane → 4-bit
-pop  = wide.reduce_sum(mode="tree")
-```
-
-`dim` 参数与其他归约一致：`dim=None`（默认）全维归约成标量；`dim=int` 只归约指定维，返回低一维的 Vector。
-
-### 何时不用向量
-
-lane 之间逻辑**不同构**时（比如每个表项有独立的复杂状态机），老实用 Python `for` 循环生成标量逻辑即可——那是元编程的领域，`Wire[Vector]` 是同构 SIMD 的领域。两者可以混用。
-
----
+需要优先选择或归约时，也直接对 Python list 生成确定性标量树。推荐按
+升序元素顺序两两合并，并把奇数个节点的最后一个带到下一层，这与
+Decision 0220 的 deterministic balanced-tree contract 一致。
 
 ## 存储、FIFO 与 CDC
 
@@ -790,7 +706,7 @@ designs/my_soc/
 - 完整语言定义（`Data` 类型体系 / `Wire[DT]` / MLIR 映射的权威语义）：`docs/v6_PyCircuit_Specification.md`
 - 3D 堆叠分层标注（`tier=` / `jump_tier`，Proposed）：`docs/v6_PyCircuit_Specification.md` 的“Tier 分层标注”与 `docs/rfcs/tier_annotation.md`
 - 工具链内部（pyc 方言、pass 流水线、双发射器、sidecar 运行时）：`docs/v6_PyCircuit_Software_Architecture.md`
-- 仓库内可运行示例：`examples/pycircuit/`（counter、calculator、fifo_loopback…）、`designs/blocks/BypassUnit`（向量实战）、`designs/blocks/IssueQueue`（向量 + 复杂状态）
+- 仓库内可运行示例：`examples/pycircuit/`（counter、calculator、fifo_loopback…）、`designs/blocks/BypassUnit`（标量 lane 列表）、`designs/blocks/IssueQueue`（标量重复结构 + 复杂状态）
 
 ---
 

@@ -13,19 +13,17 @@ namespace pyc {
 namespace {
 
 static bool isAllowedHardwareType(Type t) {
-  if (isa<IntegerType, pyc::ClockType, pyc::ResetType>(t))
-    return true;
-  if (auto vt = dyn_cast<VectorType>(t))
-    return isAllowedHardwareType(vt.getElementType());
-  return false;
+  return isa<IntegerType, pyc::ClockType, pyc::ResetType>(t);
 }
 
-struct CheckFlatTypesPass : public PassWrapper<CheckFlatTypesPass, OperationPass<func::FuncOp>> {
+struct CheckFlatTypesPass
+    : public PassWrapper<CheckFlatTypesPass, OperationPass<func::FuncOp>> {
   MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(CheckFlatTypesPass)
 
   StringRef getArgument() const override { return "pyc-check-flat-types"; }
   StringRef getDescription() const override {
-    return "Verify the PYC IR uses emission-supported integer or vector-of-integer hardware types";
+    return "Verify canonical PYC uses only scalar integer, clock, and reset "
+           "types";
   }
 
   void runOnOperation() override {
@@ -71,7 +69,9 @@ struct CheckFlatTypesPass : public PassWrapper<CheckFlatTypesPass, OperationPass
 
 } // namespace
 
-std::unique_ptr<::mlir::Pass> createCheckFlatTypesPass() { return std::make_unique<CheckFlatTypesPass>(); }
+std::unique_ptr<::mlir::Pass> createCheckFlatTypesPass() {
+  return std::make_unique<CheckFlatTypesPass>();
+}
 
 static PassRegistration<CheckFlatTypesPass> pass;
 

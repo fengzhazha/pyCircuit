@@ -33,18 +33,22 @@ def build(
     x_in = cas(domain, m.input("x_in", width=DATA_W), cycle=0)
     x_valid = cas(domain, m.input("x_valid", width=1), cycle=0)
 
-    # Keep state as scalar registers: Vector state assignment is not yet
-    # legal after ``pyc-vector-unroll``.  The homogeneous tap/MAC datapath is
-    # still represented as Vector operations and safely lowered by pycc.
     delay_states = [
         domain.signal(width=DATA_W, reset_value=0, name=f"delay_{i}")
         for i in range(1, TAPS)
     ]
-    delay_lanes = delay_states
-    taps = domain.vec(x_in, *delay_lanes)
-    coeffs = cas(domain, domain.create_const(list(COEFFS), width=ACC_W), cycle=0)
-    tap_ext = cas(domain, sext(wire_of(taps), width=ACC_W), cycle=taps.cycle)
-    products = tap_ext * coeffs
+    taps = [x_in, *delay_states]
+    products = []
+    for tap, coefficient in zip(taps, COEFFS, strict=True):
+        tap_ext = cas(domain, sext(wire_of(tap), width=ACC_W), cycle=tap.cycle)
+        coefficient_value = cas(
+            domain,
+            domain.create_const(
+                int(coefficient), width=ACC_W, signed=int(coefficient) < 0
+            ),
+            cycle=0,
+        )
+        products.append(tap_ext * coefficient_value)
     y_comb = products[0]
     for i in range(1, TAPS):
         y_comb = y_comb + products[i]

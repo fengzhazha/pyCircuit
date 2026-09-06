@@ -22,7 +22,7 @@
 ┌──────────────────────────  pycc  ─────────────────────────────┐
 │  合法性检查 → 内联/展平 → 优化(canonicalize/cse/sccp)         │
 │  → SCF 静态展开 → 死代码/死状态消除                            │
-│  → 向量处理(unroll 或 SLP pack) → comb 规范化                  │
+│  → scalar comb 规范化 → 层次/时钟/深度检查                  │
 │  → 组合环/时钟域/类型/逻辑深度检查 → comb 融合 → 统计         │
 └───────┬──────────────────────────────────┬────────────────────┘
         ▼                                  ▼
@@ -56,7 +56,7 @@ pyCircuit/
 │   ├── frontend/pycircuit/        # Python 前端包（pip 包 pycircuit）
 │   │   ├── dsl.py                 # 底层 MLIR 构图（Module/Signal）
 │   │   ├── hw.py                  # Circuit/Wire[DT]/Reg[DT] 硬件对象模型
-│   │   ├── data.py                # Data 类型层级（Bits/Vector/Clock/Reset）
+│   │   ├── data.py                # Data 类型层级（Bits/Clock/Reset）
 │   │   ├── v6.py                  # CycleAware* 周期感知层（V6 主路径）
 │   │   ├── design.py              # @module/@function/@const/@testbench
 │   │   ├── jit.py                 # AST JIT 追踪编译
@@ -86,12 +86,14 @@ pyCircuit/
 
 ### dsl.py — MLIR 构图层
 
-`Module` / `Signal`：直接拼装 `pyc` 方言 op 的文本发射器。提供全部标量与向量 op 的构造方法（`add`、`mux`、`v_create`、`v_or_reduce`…）以及 `emit_mlir()`。上层所有 API 最终都落到这里。
+`Module` / `Signal`：直接拼装 scalar `pyc` 方言 op 的文本发射器，提供
+`add`、`select`、`cmp`、bit/cast/shift 等构造方法以及 `emit_mlir()`。
+上层所有 PYC API 最终都落到这里。
 
 ### hw.py — 硬件对象模型
 
-- **`Circuit`**（继承 `dsl.Module`）：端口（`input`/`output`/`const`，支持 `shape=` 向量端口）、可赋值 wire、寄存器（`out`/`reg_wire`/`backedge_reg`）、原语（`fifo`/`byte_mem`/`sync_mem`/`sync_mem_dp`/`async_fifo`/`cdc_sync`/`rv_queue`）、层次实例化（`instance`/`array`）、命名作用域（`scope`）。
-- **`Wire[DT]`**：统一信号句柄，泛型参数 `DT` 绑定 `Data` 类型层级（`Bits` / `Vector` / `Clock` / `Reset`，定义在 `data.py`）。标量是 `Wire[Bits]`、向量是 `Wire[Vector[...]]`，共享全部运算符（`+ - * & \| ^ ~ == != < >` 等），逐 lane 并行、标量自动广播。向量形态额外提供归约（`reduce_or`/`reduce_and`/`reduce_sum`）、`broadcast`、`priority_mux`、`cat`、`v[i]`。禁止作 Python bool。
+- **`Circuit`**（继承 `dsl.Module`）：标量端口（`input`/`output`/`const`）、可赋值 wire、寄存器（`out`/`reg_wire`/`backedge_reg`）、原语（`fifo`/`byte_mem`/`sync_mem`/`sync_mem_dp`/`async_fifo`/`cdc_sync`/`rv_queue`）、层次实例化（`instance`/`array`）、命名作用域（`scope`）。重复数据路径用普通 Python list/tuple 静态展开。
+- **`Wire[DT]`**：统一标量信号句柄，泛型参数 `DT` 绑定 `Bits` / `Clock` / `Reset`。算术、逻辑、比较、选择、位片段与移位都生成 scalar operation；禁止作 Python bool。
 - **`Reg`**：q/next/en 三元组，`set(value, when=...)` 驱动。
 
 ### v6.py — 周期感知层（V6 设计主路径）
@@ -118,11 +120,11 @@ pyCircuit/
 
 ## pyc MLIR 方言
 
-类型：`iN`、`vector<D0x...xiN>`、`!pyc.clock`、`!pyc.reset`。
+类型：`iN`、`!pyc.clock`、`!pyc.reset`。builtin vector type 在 canonical/backend PYC 中非法。
 
 ### Op 一览（按类别）
 
-**组合 / 算术**（Pure；多数同时支持标量与逐元素向量）：
+**组合 / 算术**（Pure；全部是标量）：
 
 | Op | 语义 |
 |----|------|
@@ -131,7 +133,7 @@ pyCircuit/
 | `pyc.udiv / urem / sdiv / srem` | 除法 / 取余 |
 | `pyc.and / or / xor / not` | 位逻辑 |
 | `pyc.select` | 2:1 选择 |
-| `pyc.cmp` | 带 `eq / ult / slt` predicate 的比较（向量逐元素） |
+| `pyc.cmp` | 带 `eq / ult / slt` predicate 的标量比较 |
 | `pyc.trunc / zext / sext` | 宽度变换 |
 | `pyc.extract` | 位切片（attr `lsb`；仅标量） |
 | `pyc.shl / lshr / ashr` | SSA amount 移位；常量 amount 由 `pyc.constant` 产生 |
@@ -158,14 +160,6 @@ pyCircuit/
 | `pyc.instance` | 实例化 `func.func`（attr `callee`、可选 `name`） |
 | `pyc.comb` + `pyc.yield` | 融合组合区域（IsolatedFromAbove），发射期展开 |
 
-**向量**：
-
-| Op | 语义 |
-|----|------|
-| `pyc.v_get` / `pyc.v_create` | 取 lane / 由元素建向量 |
-| `pyc.v_broadcast` / `pyc.v_broadcast_dim` | 标量广播 / 维度广播 |
-| `pyc.v_or_reduce / v_and_reduce / v_add_reduce` | 归约（attrs `dim`、`mode="chain"\|"tree"`） |
-
 **验证**：`pyc.assert`（仿真断言；Verilog 侧包在 `` `ifndef SYNTHESIS`` 中，C++ 侧 abort）。测试台本身**没有** op——走模块属性旁路，见“测试调度”。
 
 ---
@@ -188,18 +182,17 @@ pyCircuit/
  9. pyc-lower-scf-static             scf.for 展开、scf.if → mux
 10. pyc-eliminate-wires              trivial wire/assign 消除
 11. pyc-eliminate-dead-state         不可观测 reg/fifo/mem 删除
-12. [--unroll-vector] pyc-unroll-vector   （否则）pyc-slp-pack-wires
-13. pyc-comb-canonicalize            mux/布尔/向量折叠
-14. pyc-check-comb-cycles            组合环检测
-15. pyc-check-clock-domains          跨域必须经 CDC 原语
-16. pyc-pack-i1-regs                 相邻 i1 寄存器打包
-17. [fuse 允许时] pyc-fuse-comb      连续组合 op → pyc.comb 区域
-18. canonicalize → cse
-19. pyc-eliminate-dead-instances → symbol-dce
-20. pyc-check-flat-types             仅 iN / vector / clock / reset
-21. pyc-check-no-dynamic             禁止残留 SCF / index
-22. pyc-check-logic-depth            深度 ≤ --logic-depth；写 WNS/TNS
-23. pyc-collect-compile-stats        reg/mem 计数与位数统计
+12. pyc-comb-canonicalize            select/布尔折叠
+13. pyc-check-comb-cycles            组合环检测
+14. pyc-check-clock-domains          跨域必须经 CDC 原语
+15. pyc-pack-i1-regs                 相邻 i1 寄存器打包
+16. [fuse 允许时] pyc-fuse-comb      连续组合 op → pyc.comb 区域
+17. canonicalize → cse
+18. pyc-eliminate-dead-instances → symbol-dce
+19. pyc-check-flat-types             仅 iN / clock / reset
+20. pyc-check-no-dynamic             禁止残留 SCF / index
+21. pyc-check-logic-depth            深度 ≤ --logic-depth；写 WNS/TNS
+22. pyc-collect-compile-stats        reg/mem 计数与位数统计
 ──  层次符号集校验 → 打印 stats → 发射  ──
 ```
 
@@ -216,7 +209,6 @@ fuse 条件：`--sim-mode=cpp-only` 且 `--cpp-only-preserve-ops` 时关闭（�
 | `--logic-depth` | `32` | 组合深度上限 |
 | `--target` | `default` | `fpga` 时 Verilog 加 `` `define PYC_TARGET_FPGA`` |
 | `--include-primitives` | `true` | 单文件是否内嵌原语 `include` |
-| `--unroll-vector` | off | IR 级向量标量化 |
 | `--sim-mode` / `--cpp-only-preserve-ops` | `default` / off | C++-only 模式与 op 粒度保留 |
 | `--inline-policy` | `default` | `off` \| `threshold:N` |
 | `--hierarchy-policy` | `strict` | `strict`（符号集不得变）\| `instantiate`（警告） |
@@ -227,14 +219,19 @@ fuse 条件：`--sim-mode=cpp-only` 且 `--cpp-only-preserve-ops` 时关闭（�
 
 环境变量：`PYC_PRIMITIVES_DIR`（原语库路径）、`PYC_TOOLCHAIN_ROOT`。
 
-### 向量处理策略
+### Aggregate lowering boundary
 
-- **默认（保留向量）**：向量 op 一路保留到发射器；`pyc-slp-pack-wires` 还会把前端逐 lane 展开产生的同构标量组（`v_create(and/or/xor/eq/not/mux ...)`）重新打包为向量 op。
-- **`--unroll-vector`**：两遍展开——先展开消费者（`v_get`/reduce/broadcast/向量 reg、wire、assign），再展开生产者（逐元素算术 → per-lane 标量 + `v_create`）。reduce 按 `mode` 生成链式或树形；向量 `pyc.reg` 拆为共享 clk/rst/en 的 per-lane 寄存器。
+Python list/tuple 表示静态重复结构并直接生成 scalar SSA。Agentic/ACIR 的
+递归 struct/enum/tuple/value-array 在 QueueGraph-to-PYC 前按稳定 MSB-first
+layout 打包为精确宽度 `iN`。PYC 不提供 vector unroll、SLP repacking 或
+backend vector fallback。
 
 ### 逻辑深度模型
 
-`pyc-check-logic-depth` 的代价模型：常量 / alias / wire / `v_get` / `v_create` / `v_broadcast` = 0；一般 op = 1；向量归约 `mode="tree"` = ⌈log₂ lanes⌉，链式 = lanes−1；寄存器与存储为路径切点；跨 `pyc.instance` 用 `CombDepGraph` 缓存的深度摘要传播。超限直接编译失败，同时把 `pyc.logic_depth.max/wns/tns` 写回 IR 供统计输出。
+`pyc-check-logic-depth` 的代价模型：常量 / alias / wire = 0；一般 scalar
+op = 1；寄存器与存储为路径切点；跨 `pyc.instance` 用 `CombDepGraph`
+缓存的深度摘要传播。超限直接编译失败，同时把
+`pyc.logic_depth.max/wns/tns` 写回 IR 供统计输出。
 
 ### pyc-opt
 
@@ -271,10 +268,6 @@ endmodule
 | `pyc.byte_mem` / `sync_mem` / `sync_mem_dp` | `pyc_byte_mem` / `pyc_sync_mem` / `pyc_sync_mem_dp` |
 | `pyc.async_fifo` / `cdc_sync` | `pyc_async_fifo` / `pyc_cdc_sync #(.WIDTH,.STAGES)` |
 
-### 向量端口
-
-模块边界的 `vector<NxiW>` 端口打成 **packed bus**（`[N*W-1:0]`，Yosys 友好）；模块体内用 unpacked 数组 wire，边界自动生成 pack/unpack 桥（层次实例间经 `__flat` 桥接线连接）。
-
 ### 输出形态
 
 | 方式 | 产物 |
@@ -295,7 +288,7 @@ endmodule
 
 每个模块 → `namespace pyc::gen { struct <ModuleName> {...}; }`：
 
-- 端口与内部 wire 成员：`pyc::cpp::Wire<W>`（即 `Bits<W>`）/ 嵌套 `Vec<...>`；
+- 端口与内部 wire 成员：`pyc::cpp::Wire<W>`（即 `Bits<W>`）；
 - 子模块成员（层次模式）与时序原语对象（`pyc_reg`、`pyc_sync_mem`…）；
 - 构造函数注册 ProbeRegistry（递归含子模块）并初始化运行时控制。
 
@@ -321,7 +314,6 @@ endmodule
 | 头文件 | 内容 |
 |--------|------|
 | `pyc_bits.hpp` | `Bits<Width>`：`uint64_t` 字数组表示任意宽度；全套算术/比较/移位/宽度变换自由函数；ARM NEON 加速路径 |
-| `pyc_vec.hpp` | `Vec<T,N>` 嵌套向量（`vector<4x8xi32>` → `Vec<Vec<Wire<32>,8>,4>`）；逐 lane 运算符与宽度模板函数 |
 | `pyc_tb.hpp` | `Testbench<Dut>`：时钟管理（`addClock`/`runCycles`/`runCyclesAuto`）、复位、步进语义 `comb → 时钟翻转 → tick → transfer → comb → VCD` |
 | `pyc_vcd.hpp` | `VcdWriter`：差分 VCD dump，支持窗口（`setVcdWindow`） |
 | `pyc_trace_bin.hpp` | `PycTraceBinWriter`：comb/tick/commit 三相二进制采样 |
@@ -430,12 +422,14 @@ CMake 目标：TableGen（`PYCOps.td` → `.inc`）→ `pyc_dialect` → `pyc_tr
 
 ```bash
 make smoke                                    # 示例 + 仿真冒烟
-make vec-smoke                                # 向量算子回归
-PYTHONPATH=python/pycircuit/src pytest tests/vec -m vec     # 向量框架
+python3 tools/check-pyc-inventory.py          # scalar-only IR 与覆盖台账
 PYTHONPATH=python/pycircuit/src pytest tests/test_sidecar_sections.py
 ```
 
-`tests/vec/` 是生成式测试框架：`cases.py` 定义算子用例（vv/vs/sv 形态 × add/sub/mul/logic/cmp/div/shift/reduce），`generate.py` 产出 DUT+TB，`oracle.py` 提供位精确参考模型，`runner.py` 走完整 `pycircuit build` 并可选 Verilator 对比。
+`tools/check-pyc-inventory.py` 精确核对 scalar ODS、producer、verifier、
+pass、双 emitter、RTL selection 与测试台账。Agentic recursive aggregate
+cases 负责证明 struct/enum/tuple/value-array 在进入 PYC 前成为 packed scalar，
+并在 C++/Verilog 保持周期和值等价。
 
 ---
 

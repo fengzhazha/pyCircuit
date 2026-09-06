@@ -1,0 +1,330 @@
+[pyc] Agentic Circuit closure run-id=20260907-issue42-scalar-pyc
+Obtaining file:///Users/zhoubot/linx-isa/tools/pyCircuit/python/semantic-core
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: pycircuit-semantic-core
+  Building editable for pycircuit-semantic-core (pyproject.toml): started
+  Building editable for pycircuit-semantic-core (pyproject.toml): finished with status 'done'
+  Created wheel for pycircuit-semantic-core: filename=pycircuit_semantic_core-6.0.0-0.editable-py3-none-any.whl size=1497 sha256=1d4b098a315bfc2b388b84a0512c56a4077d51d60fb817e2c3c60572b0b22f63
+  Stored in directory: /private/var/folders/dw/zd1zl_y14dndg0ydz1mdt25h0000gn/T/pip-ephem-wheel-cache-rqhj_iba/wheels/18/18/59/f590cbd4466ba08c77ce31d532c2edd518f77415ab158a24c7
+Successfully built pycircuit-semantic-core
+Installing collected packages: pycircuit-semantic-core
+  Attempting uninstall: pycircuit-semantic-core
+    Found existing installation: pycircuit-semantic-core 6.0.0
+    Uninstalling pycircuit-semantic-core-6.0.0:
+      Successfully uninstalled pycircuit-semantic-core-6.0.0
+Successfully installed pycircuit-semantic-core-6.0.0
+Obtaining file:///Users/zhoubot/linx-isa/tools/pyCircuit/python/agentic-circuit
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: pycircuit-semantic-core==6.0.0 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from agentic-circuit==0.1.0) (6.0.0)
+Requirement already satisfied: jsonschema>=4.18 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from agentic-circuit==0.1.0) (4.26.0)
+Requirement already satisfied: lit<19,>=18 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from agentic-circuit==0.1.0) (18.1.8)
+Requirement already satisfied: pyyaml>=6.0 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from agentic-circuit==0.1.0) (6.0.3)
+Requirement already satisfied: attrs>=22.2.0 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from jsonschema>=4.18->agentic-circuit==0.1.0) (26.1.0)
+Requirement already satisfied: jsonschema-specifications>=2023.03.6 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from jsonschema>=4.18->agentic-circuit==0.1.0) (2025.9.1)
+Requirement already satisfied: referencing>=0.28.4 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from jsonschema>=4.18->agentic-circuit==0.1.0) (0.37.0)
+Requirement already satisfied: rpds-py>=0.25.0 in ./.pycircuit_out/agentic-circuit/venv/lib/python3.14/site-packages (from jsonschema>=4.18->agentic-circuit==0.1.0) (2026.6.3)
+Building wheels for collected packages: agentic-circuit
+  Building editable for agentic-circuit (pyproject.toml): started
+  Building editable for agentic-circuit (pyproject.toml): finished with status 'done'
+  Created wheel for agentic-circuit: filename=agentic_circuit-0.1.0-0.editable-py3-none-any.whl size=4284 sha256=2c1a843f2c4439908182275975c121d72b2b3d87dc150f74438951f04341616d
+  Stored in directory: /private/var/folders/dw/zd1zl_y14dndg0ydz1mdt25h0000gn/T/pip-ephem-wheel-cache-r6g2wgo5/wheels/4a/52/c1/0d118760cea8f6ac5269a29f1e1932145039bb6c8a43cf6cd4
+Successfully built agentic-circuit
+Installing collected packages: agentic-circuit
+  Attempting uninstall: agentic-circuit
+    Found existing installation: agentic-circuit 0.1.0
+    Uninstalling agentic-circuit-0.1.0:
+      Successfully uninstalled agentic-circuit-0.1.0
+Successfully installed agentic-circuit-0.1.0
+[pyc] AC G0/G1: configure integrated ACIR compiler
+-- Using LLVM 22.1.8 from /opt/homebrew/opt/llvm/lib/cmake/llvm
+-- Using MLIR 22.1.8 from /opt/homebrew/opt/llvm/lib/cmake/mlir
+-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 (found suitable version "3.14.6", minimum required is "3.11") found components: Interpreter
+-- Found Python3: /opt/homebrew/Frameworks/Python.framework/Versions/3.14/bin/python3.14 (found suitable version "3.14.6", minimum required is "3.11") found components: Interpreter Development.Module
+-- Standalone Agentic Circuit build: ACIR-to-PYC toolchain target is disabled
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/acir/dev-llvm22
+ninja: no work to do.
+[0/1] Running Agentic Circuit lit tests
+-- Testing: 182 tests, 10 workers --
+PASS: AgenticCircuit :: CodeGen/full-structured-model.mlir (1 of 182)
+PASS: AgenticCircuit :: ACIR/hierarchy-invalid.mlir (2 of 182)
+PASS: AgenticCircuit :: ACIR/protocols-invalid.mlir (3 of 182)
+PASS: AgenticCircuit :: CodeGen/extension-provider.mlir (4 of 182)
+PASS: AgenticCircuit :: ACIR/resources-invalid.mlir (5 of 182)
+PASS: AgenticCircuit :: CodeGen/driver-stages.mlir (6 of 182)
+PASS: AgenticCircuit :: CodeGen/nested-modules.mlir (7 of 182)
+PASS: AgenticCircuit :: ACIR/address-time-invalid.mlir (8 of 182)
+PASS: AgenticCircuit :: CodeGen/emit-cxx-current.mlir (9 of 182)
+PASS: AgenticCircuit :: ACIR/table-invalid.mlir (10 of 182)
+PASS: AgenticCircuit :: Analysis/raw-structure-preflight.mlir (11 of 182)
+PASS: AgenticCircuit :: CodeGen/multidimensional-array.mlir (12 of 182)
+PASS: AgenticCircuit :: ACIR/interfaces-invalid.mlir (13 of 182)
+PASS: AgenticCircuit :: ACIR/var-state-invalid.mlir (14 of 182)
+PASS: AgenticCircuit :: ACIR/var-expressions-invalid.mlir (15 of 182)
+PASS: AgenticCircuit :: CodeGen/determinism.mlir (16 of 182)
+PASS: AgenticCircuit :: ACSim/ops-invalid.mlir (17 of 182)
+PASS: AgenticCircuit :: ACIR/process-invalid.mlir (18 of 182)
+PASS: AgenticCircuit :: CodeGen/table-slot-multiple-tables.mlir (19 of 182)
+PASS: AgenticCircuit :: Transforms/rule-state-driven-lowering.mlir (20 of 182)
+PASS: AgenticCircuit :: Transforms/queue-module-freeze.mlir (21 of 182)
+PASS: AgenticCircuit :: ACIR/trace-invalid.mlir (22 of 182)
+PASS: AgenticCircuit :: ACSim/generated-call-contract.mlir (23 of 182)
+PASS: AgenticCircuit :: ACIR/protocols-review-r1-invalid.mlir (24 of 182)
+PASS: AgenticCircuit :: ACIR/collections-invalid.mlir (25 of 182)
+PASS: AgenticCircuit :: ACIR/dormant-surface-invalid.mlir (26 of 182)
+PASS: AgenticCircuit :: ACIR/firing-invalid.mlir (27 of 182)
+PASS: AgenticCircuit :: Analysis/process-state-verifier.mlir (28 of 182)
+PASS: AgenticCircuit :: Transforms/rule-consume-only-lowering.mlir (29 of 182)
+PASS: AgenticCircuit :: Transforms/freeze-topology.mlir (30 of 182)
+PASS: AgenticCircuit :: ACIR/canonical-entrypoint.mlir (31 of 182)
+PASS: AgenticCircuit :: Transforms/rule-snapshot-set-lowering.mlir (32 of 182)
+PASS: AgenticCircuit :: Transforms/rule-table-lowering.mlir (33 of 182)
+PASS: AgenticCircuit :: ACIR/runtime-references-invalid.mlir (34 of 182)
+PASS: AgenticCircuit :: Transforms/rule-branch-local-lowering.mlir (35 of 182)
+PASS: AgenticCircuit :: Transforms/rule-multi-state-lowering.mlir (36 of 182)
+PASS: AgenticCircuit :: Conversion/bindings-invalid.mlir (37 of 182)
+PASS: AgenticCircuit :: Transforms/variable-module-state-lowering.mlir (38 of 182)
+PASS: AgenticCircuit :: ACIR/review-r1-invalid.mlir (39 of 182)
+PASS: AgenticCircuit :: ACIR/view-provenance.mlir (40 of 182)
+PASS: AgenticCircuit :: Transforms/variable-state-lowering.mlir (41 of 182)
+PASS: AgenticCircuit :: ACIR/queue-var-types-invalid.mlir (42 of 182)
+PASS: AgenticCircuit :: Transforms/queue-multi-rule-multi-owner-module.mlir (43 of 182)
+PASS: AgenticCircuit :: Transforms/verify-model.mlir (44 of 182)
+PASS: AgenticCircuit :: Transforms/rule-optional-output-lowering.mlir (45 of 182)
+PASS: AgenticCircuit :: Transforms/queue-stateful-module-freeze.mlir (46 of 182)
+PASS: AgenticCircuit :: CodeGen/table-endpoint-value-constraints.mlir (47 of 182)
+PASS: AgenticCircuit :: ACIR/memory-invalid.mlir (48 of 182)
+PASS: AgenticCircuit :: Transforms/variable-array-state-lowering.mlir (49 of 182)
+PASS: AgenticCircuit :: Transforms/rule-multi-input-lowering.mlir (50 of 182)
+PASS: AgenticCircuit :: CodeGen/masked-match.mlir (51 of 182)
+PASS: AgenticCircuit :: Transforms/rule-branch-join-lowering.mlir (52 of 182)
+PASS: AgenticCircuit :: Transforms/queue-multi-rule-module-freeze.mlir (53 of 182)
+PASS: AgenticCircuit :: Transforms/variable-struct-state-lowering.mlir (54 of 182)
+PASS: AgenticCircuit :: Transforms/queue-multi-owner-module-freeze.mlir (55 of 182)
+PASS: AgenticCircuit :: Transforms/rule-table-multi-input-lowering.mlir (56 of 182)
+PASS: AgenticCircuit :: Transforms/rule-lowering.mlir (57 of 182)
+PASS: AgenticCircuit :: CodeGen/bit-widths.mlir (58 of 182)
+PASS: AgenticCircuit :: ACIR/declarations-invalid.mlir (59 of 182)
+PASS: AgenticCircuit :: Transforms/rule-lowering-invalid.mlir (60 of 182)
+PASS: AgenticCircuit :: CodeGen/bit-operations.mlir (61 of 182)
+PASS: AgenticCircuit :: CodeGen/value-select.mlir (62 of 182)
+PASS: AgenticCircuit :: ACIR/interfaces-review-r1-invalid.mlir (63 of 182)
+PASS: AgenticCircuit :: ACIR/types-invalid.mlir (64 of 182)
+PASS: AgenticCircuit :: ACIR/rule-table-invalid.mlir (65 of 182)
+PASS: AgenticCircuit :: ACIR/rule-invalid.mlir (66 of 182)
+PASS: AgenticCircuit :: ACSim/types-invalid.mlir (67 of 182)
+PASS: AgenticCircuit :: CodeGen/atomic-transform.mlir (68 of 182)
+PASS: AgenticCircuit :: Transforms/queue-nested-module-freeze.mlir (69 of 182)
+PASS: AgenticCircuit :: Transforms/queue-mixed-nested-module.mlir (70 of 182)
+PASS: AgenticCircuit :: ACIR/contracts-invalid.mlir (71 of 182)
+PASS: AgenticCircuit :: ACIR/dependency-invalid.mlir (72 of 182)
+PASS: AgenticCircuit :: Transforms/queue-root-result-freeze.mlir (73 of 182)
+PASS: AgenticCircuit :: ACIR/dialect-smoke.mlir (74 of 182)
+PASS: AgenticCircuit :: ACSim/ops-valid.mlir (75 of 182)
+PASS: AgenticCircuit :: ACIR/control-feedback-invalid.mlir (76 of 182)
+PASS: AgenticCircuit :: ACIR/transform-invalid.mlir (77 of 182)
+PASS: AgenticCircuit :: ACIR/aggregate-values-invalid.mlir (78 of 182)
+PASS: AgenticCircuit :: ACIR/review-r2-invalid.mlir (79 of 182)
+PASS: AgenticCircuit :: Conversion/structure.mlir (80 of 182)
+PASS: AgenticCircuit :: ACIR/firing-footprint-invalid.mlir (81 of 182)
+PASS: AgenticCircuit :: Conversion/hierarchy.mlir (82 of 182)
+PASS: AgenticCircuit :: ACIR/masked-matching-invalid.mlir (83 of 182)
+PASS: AgenticCircuit :: Transforms/table-endpoint-value-constraints-invalid.mlir (84 of 182)
+PASS: AgenticCircuit :: Transforms/deterministic-canonicalization.mlir (85 of 182)
+PASS: AgenticCircuit :: ACIR/bitfield-schema-invalid.mlir (86 of 182)
+PASS: AgenticCircuit :: ACIR/ownership-order-review-r2.mlir (87 of 182)
+PASS: AgenticCircuit :: Conversion/bindings.mlir (88 of 182)
+PASS: AgenticCircuit :: ACIR/reorder.mlir (89 of 182)
+PASS: AgenticCircuit :: ACIR/records-invalid.mlir (90 of 182)
+PASS: AgenticCircuit :: Conversion/atomic-failure.mlir (91 of 182)
+PASS: AgenticCircuit :: ACIR/guarantees-review-r1-invalid.mlir (92 of 182)
+PASS: AgenticCircuit :: ACIR/scope-invalid.mlir (93 of 182)
+PASS: AgenticCircuit :: Bindings/resolve-empty.mlir (94 of 182)
+PASS: AgenticCircuit :: ACIR/reorder-invalid.mlir (95 of 182)
+PASS: AgenticCircuit :: Bindings/resolve-valid.mlir (96 of 182)
+PASS: AgenticCircuit :: ACIR/port-mapping-review-r2.mlir (97 of 182)
+PASS: AgenticCircuit :: ACIR/dependency.mlir (98 of 182)
+PASS: AgenticCircuit :: ACIR/credit.mlir (99 of 182)
+PASS: AgenticCircuit :: Conversion/collections.mlir (100 of 182)
+PASS: AgenticCircuit :: ACIR/address-selectors-valid.mlir (101 of 182)
+PASS: AgenticCircuit :: ACIR/var-expressions.mlir (102 of 182)
+PASS: AgenticCircuit :: ACIR/source-sink.mlir (103 of 182)
+PASS: AgenticCircuit :: ACIR/memory.mlir (104 of 182)
+PASS: AgenticCircuit :: ACIR/select.mlir (105 of 182)
+PASS: AgenticCircuit :: ACIR/state-snapshot-set-invalid.mlir (106 of 182)
+PASS: AgenticCircuit :: ACIR/transform.mlir (107 of 182)
+PASS: AgenticCircuit :: ACSim/dialect-smoke.mlir (108 of 182)
+PASS: AgenticCircuit :: ACIR/barrier-invalid.mlir (109 of 182)
+PASS: AgenticCircuit :: ACSim/reusable-modules.mlir (110 of 182)
+PASS: AgenticCircuit :: ACIR/broadcast-invalid.mlir (111 of 182)
+PASS: AgenticCircuit :: ACIR/types-valid.mlir (112 of 182)
+PASS: AgenticCircuit :: ACIR/queue-var-types.mlir (113 of 182)
+PASS: AgenticCircuit :: ACIR/enum-values-invalid.mlir (114 of 182)
+PASS: AgenticCircuit :: ACSim/types-valid.mlir (115 of 182)
+PASS: AgenticCircuit :: ACIR/trace-valid.mlir (116 of 182)
+PASS: AgenticCircuit :: Transforms/zero-delay-cycles.mlir (117 of 182)
+PASS: AgenticCircuit :: Conversion/process-control-flow.mlir (118 of 182)
+PASS: AgenticCircuit :: Conversion/whole-model.mlir (119 of 182)
+PASS: AgenticCircuit :: ACIR/contract-epoch.mlir (120 of 182)
+PASS: AgenticCircuit :: Bindings/resolve-missing.mlir (121 of 182)
+PASS: AgenticCircuit :: ACIR/bitfield-schema.mlir (122 of 182)
+PASS: AgenticCircuit :: ACIR/barrier.mlir (123 of 182)
+PASS: AgenticCircuit :: ACIR/protocols-valid.mlir (124 of 182)
+PASS: AgenticCircuit :: ACIR/select-invalid.mlir (125 of 182)
+PASS: AgenticCircuit :: ACIR/enum-values.mlir (126 of 182)
+PASS: AgenticCircuit :: ACIR/firing.mlir (127 of 182)
+PASS: AgenticCircuit :: ACIR/address-map-canonical-order.mlir (128 of 182)
+PASS: AgenticCircuit :: Transforms/value-constraints-invalid.mlir (129 of 182)
+PASS: AgenticCircuit :: ACIR/process-valid.mlir (130 of 182)
+PASS: AgenticCircuit :: ACIR/hierarchy-valid.mlir (131 of 182)
+PASS: AgenticCircuit :: ACIR/expect.mlir (132 of 182)
+PASS: AgenticCircuit :: ACIR/credit-invalid.mlir (133 of 182)
+PASS: AgenticCircuit :: ACIR/review-r1-valid.mlir (134 of 182)
+PASS: AgenticCircuit :: ACIR/contracts-valid.mlir (135 of 182)
+PASS: AgenticCircuit :: ACIR/masked-matching.mlir (136 of 182)
+PASS: AgenticCircuit :: ACIR/aggregate-values.mlir (137 of 182)
+PASS: AgenticCircuit :: ACIR/table.mlir (138 of 182)
+PASS: AgenticCircuit :: ACIR/broadcast.mlir (139 of 182)
+PASS: AgenticCircuit :: Conversion/process-live-values.mlir (140 of 182)
+PASS: AgenticCircuit :: Conversion/typed-graph.mlir (141 of 182)
+PASS: AgenticCircuit :: ACIR/address-time-valid.mlir (142 of 182)
+PASS: AgenticCircuit :: Python/cli-compile.mlir (143 of 182)
+PASS: AgenticCircuit :: ACIR/declarations-valid.mlir (144 of 182)
+PASS: AgenticCircuit :: ACIR/source-sink-invalid.mlir (145 of 182)
+PASS: AgenticCircuit :: ACIR/scope.mlir (146 of 182)
+PASS: AgenticCircuit :: ACIR/control-feedback.mlir (147 of 182)
+PASS: AgenticCircuit :: Transforms/value-constraints-rule-lowering.mlir (148 of 182)
+PASS: AgenticCircuit :: ACIR/resources-valid.mlir (149 of 182)
+PASS: AgenticCircuit :: Conversion/process-basic.mlir (150 of 182)
+PASS: AgenticCircuit :: Conversion/pure-results.mlir (151 of 182)
+PASS: AgenticCircuit :: Conversion/process-invalid.mlir (152 of 182)
+PASS: AgenticCircuit :: CodeGen/arbiter.mlir (153 of 182)
+PASS: AgenticCircuit :: CodeGen/count-leading-zeros.mlir (154 of 182)
+PASS: AgenticCircuit :: ACIR/route-invalid.mlir (155 of 182)
+PASS: AgenticCircuit :: CodeGen/popcount.mlir (156 of 182)
+PASS: AgenticCircuit :: ACIR/observe.mlir (157 of 182)
+PASS: AgenticCircuit :: Conversion/process-missing-mapping.mlir (158 of 182)
+PASS: AgenticCircuit :: ACIR/resources-forward-malformed-invalid.mlir (159 of 182)
+PASS: AgenticCircuit :: Transforms/rule-checks.mlir (160 of 182)
+PASS: AgenticCircuit :: ACIR/interfaces-valid.mlir (161 of 182)
+PASS: AgenticCircuit :: ACIR/collections-valid.mlir (162 of 182)
+PASS: AgenticCircuit :: CodeGen/arbiter-verilog.mlir (163 of 182)
+PASS: AgenticCircuit :: ACIR/expect-invalid.mlir (164 of 182)
+PASS: AgenticCircuit :: CodeGen/driver-errors.mlir (165 of 182)
+PASS: AgenticCircuit :: ACIR/topology-review-r1-invalid.mlir (166 of 182)
+PASS: AgenticCircuit :: Python/frontend-lowering.mlir (167 of 182)
+PASS: AgenticCircuit :: Conversion/time-domains.mlir (168 of 182)
+PASS: AgenticCircuit :: ACIR/fork-invalid.mlir (169 of 182)
+PASS: AgenticCircuit :: Analysis/process-state-pass.mlir (170 of 182)
+PASS: AgenticCircuit :: Transforms/queue-var-cse.mlir (171 of 182)
+PASS: AgenticCircuit :: Transforms/value-constraints.mlir (172 of 182)
+PASS: AgenticCircuit :: CodeGen/acir-build-input-contract.mlir (173 of 182)
+PASS: AgenticCircuit :: Bindings/resolve-ambiguous.mlir (174 of 182)
+PASS: AgenticCircuit :: CodeGen/opcode-catalog.mlir (175 of 182)
+PASS: AgenticCircuit :: ACIR/route.mlir (176 of 182)
+PASS: AgenticCircuit :: ACSim/generated-wrapper-activation.mlir (177 of 182)
+PASS: AgenticCircuit :: CodeGen/forbidden-generated-dependencies.mlir (178 of 182)
+PASS: AgenticCircuit :: CodeGen/process-control-flow.mlir (179 of 182)
+PASS: AgenticCircuit :: ACIR/fork.mlir (180 of 182)
+PASS: AgenticCircuit :: ACIR/records-valid.mlir (181 of 182)
+PASS: AgenticCircuit :: ACIR/observe-invalid.mlir (182 of 182)
+
+Testing Time: 20.14s
+
+Total Discovered Tests: 182
+  Passed: 182 (100.00%)
+Test project /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/acir/dev-llvm22
+      Start  1: WorkspaceE2ETests
+      Start 15: ACIRModelAnalysisTests
+      Start 16: ACIRProcessStatePlanTests
+      Start 19: CodeGenTests
+      Start  9: PycVerilogBackendTests
+      Start 12: ACIROpsTests
+ 1/20 Test  #9: PycVerilogBackendTests ..............   Passed    4.00 sec
+      Start  2: DavinciOOTraceTests
+ 2/20 Test  #2: DavinciOOTraceTests .................   Passed    1.53 sec
+      Start  4: BitfieldE2ETests
+ 3/20 Test  #4: BitfieldE2ETests ....................   Passed    1.41 sec
+      Start  6: EnumPayloadE2ETests
+ 4/20 Test  #6: EnumPayloadE2ETests .................   Passed    1.43 sec
+      Start  5: NestedPayloadE2ETests
+ 5/20 Test #12: ACIROpsTests ........................   Passed    8.56 sec
+      Start  7: AggregatePayloadE2ETests
+ 6/20 Test #16: ACIRProcessStatePlanTests ...........   Passed    8.89 sec
+      Start  8: RecursiveAggregatePayloadE2ETests
+ 7/20 Test  #5: NestedPayloadE2ETests ...............   Passed    1.49 sec
+      Start  3: RuleRetirementE2ETests
+ 8/20 Test  #7: AggregatePayloadE2ETests ............   Passed    1.62 sec
+      Start 14: ACSimOpsTests
+ 9/20 Test  #8: RecursiveAggregatePayloadE2ETests ...   Passed    1.61 sec
+      Start 20: CompilerTests
+10/20 Test #20: CompilerTests .......................   Passed    0.12 sec
+      Start 18: ACIRToACSimTests
+11/20 Test #14: ACSimOpsTests .......................   Passed    0.50 sec
+      Start 17: ACIRBindingTests
+12/20 Test #18: ACIRToACSimTests ....................   Passed    0.14 sec
+      Start 11: ACIRTypesTests
+13/20 Test #11: ACIRTypesTests ......................   Passed    0.08 sec
+      Start 13: ACSimTypesTests
+14/20 Test #17: ACIRBindingTests ....................   Passed    0.18 sec
+      Start 10: GfsimTests
+15/20 Test #13: ACSimTypesTests .....................   Passed    0.03 sec
+16/20 Test #10: GfsimTests ..........................   Passed    0.04 sec
+17/20 Test  #3: RuleRetirementE2ETests ..............   Passed    1.48 sec
+18/20 Test #15: ACIRModelAnalysisTests ..............   Passed   23.20 sec
+19/20 Test #19: CodeGenTests ........................   Passed   32.64 sec
+20/20 Test  #1: WorkspaceE2ETests ...................   Passed   59.43 sec
+
+100% tests passed, 0 tests failed out of 20
+
+Label Time Summary:
+aggregate-payload    =   3.23 sec*proc (2 tests)
+bitfield             =   1.41 sec*proc (1 test)
+davincioo            =   1.53 sec*proc (1 test)
+e2e                  =  70.00 sec*proc (8 tests)
+enum-payload         =   1.43 sec*proc (1 test)
+gfsim                =   9.04 sec*proc (6 tests)
+nested-payload       =   1.49 sec*proc (1 test)
+pyc                  =   4.00 sec*proc (1 test)
+recursive-payload    =   1.61 sec*proc (1 test)
+rule                 =   1.48 sec*proc (1 test)
+verilog              =   4.00 sec*proc (1 test)
+workspace            =  59.43 sec*proc (1 test)
+
+Total Test time (real) =  59.43 sec
+[pyc] AC G2: build and install the repo-local pyc6 + AC toolchain
+[pyc] AC G2: reusing integrated toolchain .pycircuit_out/gates/20260907-issue42-scalar-pyc/agentic-circuit/toolchain/install
+[pyc] pyCircuit 6 root contracts and documentation
+============================= test session starts ==============================
+platform darwin -- Python 3.14.6, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/zhoubot/linx-isa/tools/pyCircuit
+configfile: pyproject.toml
+collected 53 items
+
+tests/unit/test_agentic_circuit_component.py ...                         [  5%]
+tests/unit/test_cli_entrypoints.py ....                                  [ 13%]
+tests/unit/test_primitive_catalog.py ..                                  [ 16%]
+tests/unit/test_pyc6_surface.py ............                             [ 39%]
+tests/unit/test_pyc_ir_inventory.py ...                                  [ 45%]
+tests/unit/test_semantic_core.py .........................               [ 92%]
+tests/unit/test_v6_forward_signal.py ....                                [100%]
+
+============================== 53 passed in 2.38s ==============================
+ok: API hygiene check passed
+ok: decision status coverage validated (rows=220 deferred=0)
+[pyc] Agentic Circuit G0/G1/G2 closure passed

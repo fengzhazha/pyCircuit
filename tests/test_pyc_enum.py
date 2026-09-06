@@ -283,12 +283,10 @@ def test_input_enum_matching_width_ok() -> None:
     assert op.width == 2
 
 
-def test_input_enum_conflicts_with_fields_and_shape() -> None:
+def test_input_enum_conflicts_with_fields() -> None:
     m = Circuit("t")
     with pytest.raises(TypeError, match="cannot be combined"):
         m.input("op", enum=SRType, fields={"a": (1, 0)})
-    with pytest.raises(TypeError, match="cannot be combined"):
-        m.input("op", enum=SRType, shape=4)
 
 
 def test_input_enum_port_emits() -> None:

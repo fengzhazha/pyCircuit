@@ -273,7 +273,9 @@ def tracked_markdown_files():
             LINK_EXCLUDED_PREFIXES
         ):
             continue
-        paths.append(ROOT / relative)
+        path = ROOT / relative
+        if path.is_file():
+            paths.append(path)
     return paths
 
 

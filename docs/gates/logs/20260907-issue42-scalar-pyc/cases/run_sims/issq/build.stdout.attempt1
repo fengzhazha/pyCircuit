@@ -1,0 +1,10 @@
+jit-cache: miss
+[tb] cyc=0 issq occupancy=2 issued_total=0
+[tb] cyc=8 issq occupancy=4 issued_total=e
+[tb] cyc=16 issq occupancy=1 issued_total=1d
+OK
+- /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/issq/tb/tb_TbIssq.sv:611: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.044 2026-01-01
+- Verilator: $finish at 43ns; walltime 0.001 s; speed 53.086 us/s
+- Verilator: cpu 0.001 s on 1 threads; alloced 2 MB
+/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/issq/project_manifest.json

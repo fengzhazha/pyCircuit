@@ -130,63 +130,6 @@ public:
   Wire<Width> qNext{};
 };
 
-template <typename T>
-class pyc_vec_reg {
-public:
-  pyc_vec_reg(Wire<1> &clk, Wire<1> &rst, Wire<1> &en, T &d, T &init, T &q)
-      : clk(clk), rst(rst), en(en), d(d), init(init), q(q) {}
-
-  inline void tick_compute() {
-    bool clkNow = clk.toBool();
-    bool posedge = (!clkPrev) & clkNow;
-    clkPrev = clkNow;
-    if (__builtin_expect(!posedge, 1)) {
-      pending = false;
-      return;
-    }
-    posedge_compute_inner();
-  }
-
-  inline void posedge_tick_compute() {
-    clkPrev = true;
-    posedge_compute_inner();
-  }
-
-  inline void negedge_update() {
-    clkPrev = false;
-    pending = false;
-  }
-
-  inline void tick_commit() {
-    if (__builtin_expect(pending, 0)) {
-      q = qNext;
-      pending = false;
-    }
-  }
-
-private:
-  inline void posedge_compute_inner() {
-    bool r = rst.toBool();
-    bool e = en.toBool();
-    pending = r | e;
-    if (r)
-      qNext = init;
-    else
-      qNext = d;
-  }
-
-public:
-  Wire<1> &clk;
-  Wire<1> &rst;
-  Wire<1> &en;
-  T &d;
-  T &init;
-  T &q;
-  bool clkPrev = false;
-  bool pending = false;
-  T qNext{};
-};
-
 template <unsigned Width, unsigned Depth>
 class pyc_fifo {
 public:

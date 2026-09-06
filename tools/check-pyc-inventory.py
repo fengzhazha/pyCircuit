@@ -27,7 +27,7 @@ TYPE_RE = re.compile(
     r'let\s+mnemonic\s*=\s*"([^"]+)"',
     re.S,
 )
-REMOVAL_42 = {
+REMOVED_VECTOR = {
     "pyc.v_get",
     "pyc.v_create",
     "pyc.v_broadcast",
@@ -36,7 +36,7 @@ REMOVAL_42 = {
     "pyc.v_and_reduce",
     "pyc.v_add_reduce",
 }
-REMOVED = {
+REMOVED = REMOVED_VECTOR | {
     "pyc.mux",
     "pyc.eq",
     "pyc.ult",
@@ -166,15 +166,15 @@ def collect(
     pending = {
         name
         for name, entry in inventory_ops.items()
-        if entry.get("status") == "pending-removal" and entry.get("owner") == "issue-42"
+        if entry.get("status") != "normative"
     }
-    if pending != REMOVAL_42:
+    if pending:
         errors.append(
-            f"issue-42 pending-removal set must be exactly {sorted(REMOVAL_42)}"
+            f"canonical PYC inventory has non-normative entries: {sorted(pending)}"
         )
     for name, entry in inventory_ops.items():
-        if name not in REMOVAL_42 and entry.get("status") != "normative":
-            errors.append(f"{name} must be normative in issue #41 inventory")
+        if entry.get("status") != "normative":
+            errors.append(f"{name} must be normative in the PYC inventory")
 
     registration = _read(DIALECT_CPP)
     for include in ("PYCOps.cpp.inc", "PYCTypes.cpp.inc"):
@@ -192,6 +192,57 @@ def collect(
             errors.append(
                 f"removed compatibility operation remains registered: {removed}"
             )
+    for token in ("AnyIntegerOrV", "AnyVectorOfAnyRank", "vector<", "PYC_V"):
+        if token in ods_text:
+            errors.append(
+                f"scalar-only PYC ODS retains forbidden vector token: {token}"
+            )
+    for path in (
+        ROOT / "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+        ROOT / "compiler/mlir/lib/Emit/CppEmitter.cpp",
+        ROOT / "compiler/mlir/lib/Emit/VerilogEmitter.cpp",
+    ):
+        source = _read(path)
+        for token in ("VectorType", "VGetOp", "VCreateOp", "VBroadcastOp"):
+            if token in source:
+                errors.append(
+                    f"scalar-only compiler file {path.relative_to(ROOT)} retains {token}"
+                )
+    for path in (
+        ROOT / "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp",
+        ROOT / "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        ROOT / "library/cpp/pyc_vec.hpp",
+        ROOT / "docs/vec-operators.md",
+    ):
+        if path.exists():
+            errors.append(
+                f"removed vector product surface still exists: {path.relative_to(ROOT)}"
+            )
+    frontend_forbidden = {
+        ROOT / "python/pycircuit/src/pycircuit/data.py": ("class Vector",),
+        ROOT / "python/pycircuit/src/pycircuit/dsl.py": ("pyc.v_", "def v_"),
+        ROOT
+        / "python/pycircuit/src/pycircuit/hw.py": (
+            "Wire[Vector",
+            "def vec(",
+            "def priority_mux(",
+        ),
+        ROOT
+        / "python/pycircuit/src/pycircuit/v6.py": (
+            "def broadcast(",
+            "def reduce_or(",
+            "def priority_mux(",
+        ),
+        ROOT / "python/pycircuit/src/pycircuit/jit.py": ('kind == "vec"',),
+        ROOT / "python/pycircuit/src/pycircuit/cli.py": ('startswith("vector<")',),
+    }
+    for path, tokens in frontend_forbidden.items():
+        source = _read(path)
+        for token in tokens:
+            if token in source:
+                errors.append(
+                    f"scalar-only frontend file {path.relative_to(ROOT)} retains {token}"
+                )
     dialect_impl = _read(ROOT / "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp")
     if (
         'predicate != "eq" && predicate != "ult" && predicate != "slt"'
@@ -220,7 +271,7 @@ def collect(
         mnemonic = name.removeprefix("pyc.")
         symbol = ods_ops[name]
         token = rf'pyc\.{re.escape(mnemonic)}(?![\w.])|["\']{re.escape(mnemonic)}["\']'
-        class_token = rf'pyc::{re.escape(symbol.removeprefix("PYC_"))}\b'
+        class_token = rf"pyc::{re.escape(symbol.removeprefix('PYC_'))}\b"
         block = op_blocks[name]
         all_mlir = _sources(token, (ROOT / "tests/mlir",))
         negative_mlir = [path for path in all_mlir if "invalid" in Path(path).name]

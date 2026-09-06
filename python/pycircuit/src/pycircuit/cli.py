@@ -416,19 +416,11 @@ def _runtime_manifest_for_toolchain(toolchain_root: Path | None) -> dict[str, ob
 @dataclass(frozen=True)
 class _PortInfo:
     ty: str
-    shape: tuple[int, ...]
-    leaf_width: int
-
-    @property
-    def is_vector(self) -> bool:
-        return bool(self.shape)
+    width: int
 
     @property
     def total_width(self) -> int:
-        n = int(self.leaf_width)
-        for d in self.shape:
-            n *= int(d)
-        return n
+        return self.width
 
 
 def _int_width_from_ty(ty: str) -> int:
@@ -444,57 +436,12 @@ def _int_width_from_ty(ty: str) -> int:
     return width
 
 
-def _split_vector_type_parts(body: str) -> list[str]:
-    parts: list[str] = []
-    depth = 0
-    start = 0
-    for i, ch in enumerate(body):
-        if ch == "<":
-            depth += 1
-        elif ch == ">":
-            depth -= 1
-        elif ch == "x" and depth == 0:
-            parts.append(body[start:i])
-            start = i + 1
-    parts.append(body[start:])
-    return [p.strip() for p in parts]
-
-
-def _parse_vector_type_for_tb(ty: str) -> tuple[list[int], str]:
-    raw = str(ty).strip()
-    if not (raw.startswith("vector<") and raw.endswith(">")):
-        raise SystemExit(f"unsupported port type for TB generation: {ty!r}")
-    body = raw[len("vector<") : -1]
-    parts = _split_vector_type_parts(body)
-    if len(parts) < 2:
-        raise SystemExit(f"unsupported port type for TB generation: {ty!r}")
-    dims: list[int] = []
-    try:
-        for p in parts[:-1]:
-            lanes = int(p)
-            if lanes <= 0:
-                raise ValueError
-            dims.append(lanes)
-    except ValueError as e:
-        raise SystemExit(f"unsupported port type for TB generation: {ty!r}") from e
-    return dims, parts[-1]
-
-
 def _port_info(ty: str) -> _PortInfo:
     raw = str(ty).strip()
     if raw == "!pyc.clock" or raw == "!pyc.reset":
-        return _PortInfo(raw, (), 1)
+        return _PortInfo(raw, 1)
     if raw.startswith("i"):
-        return _PortInfo(raw, (), _int_width_from_ty(raw))
-    if raw.startswith("vector<"):
-        shape, elem_ty = _parse_vector_type_for_tb(raw)
-        dims = list(shape)
-        while elem_ty.startswith("vector<"):
-            sub_shape, elem_ty = _parse_vector_type_for_tb(elem_ty)
-            dims.extend(sub_shape)
-        if not dims or any(int(d) <= 0 for d in dims):
-            raise SystemExit(f"unsupported port type for TB generation: {ty!r}")
-        return _PortInfo(raw, tuple(int(d) for d in dims), _int_width_from_ty(elem_ty))
+        return _PortInfo(raw, _int_width_from_ty(raw))
     raise SystemExit(f"unsupported port type for TB generation: {ty!r}")
 
 
@@ -1229,40 +1176,11 @@ def _render_tb_cpp(
             raw_words.append(f"0x{((vv >> (64 * i)) & ((1 << 64) - 1)):x}ull")
         return f"pyc::cpp::Wire<{width}>({{{', '.join(raw_words)}}})"
 
-    def flat_indices(shape: tuple[int, ...]) -> list[tuple[int, ...]]:
-        if not shape:
-            return [()]
-        out: list[tuple[int, ...]] = []
-
-        def walk(prefix: tuple[int, ...], rest: tuple[int, ...]) -> None:
-            if not rest:
-                out.append(prefix)
-                return
-            for i in range(int(rest[0])):
-                walk((*prefix, i), rest[1:])
-
-        walk((), tuple(shape))
-        return out
-
-    def cpp_access(sn: str, idx: tuple[int, ...]) -> str:
-        return "dut." + str(sn) + "".join(f"[{i}]" for i in idx)
-
-    def lane_value(v: int | bool, info: _PortInfo, lane: int) -> int:
-        vv = mask_value(v, info.total_width)
-        return (vv >> (lane * info.leaf_width)) & ((1 << info.leaf_width) - 1)
-
     def drive_const_lines(
         sn: str, value: int | bool, ty: str, *, indent: str
     ) -> list[str]:
         info = _port_info(ty)
-        if not info.is_vector:
-            return [f"{indent}dut.{sn} = {wire_literal(value, info.leaf_width)};\n"]
-        out: list[str] = []
-        for lane, idx in enumerate(flat_indices(info.shape)):
-            out.append(
-                f"{indent}{cpp_access(sn, idx)} = {wire_literal(lane_value(value, info, lane), info.leaf_width)};\n"
-            )
-        return out
+        return [f"{indent}dut.{sn} = {wire_literal(value, info.width)};\n"]
 
     def drive_expr_lines(sn: str, expr: str, ty: str, *, indent: str) -> list[str]:
         info = _port_info(ty)
@@ -1270,16 +1188,7 @@ def _render_tb_cpp(
             raise SystemExit(
                 f"random() for i{info.total_width} not supported in C++ TB generator (prototype limitation)"
             )
-        if not info.is_vector:
-            return [f"{indent}dut.{sn} = pyc::cpp::Wire<{info.leaf_width}>({expr});\n"]
-        out: list[str] = []
-        for lane, idx in enumerate(flat_indices(info.shape)):
-            mask = (1 << info.leaf_width) - 1
-            shift = lane * info.leaf_width
-            out.append(
-                f"{indent}{cpp_access(sn, idx)} = pyc::cpp::Wire<{info.leaf_width}>((({expr}) >> {shift}) & 0x{mask:x}ull);\n"
-            )
-        return out
+        return [f"{indent}dut.{sn} = pyc::cpp::Wire<{info.width}>({expr});\n"]
 
     def packed_value_expr(sn: str, ty: str) -> str:
         info = _port_info(ty)
@@ -1287,54 +1196,25 @@ def _render_tb_cpp(
             raise SystemExit(
                 f"print() for i{info.total_width} not supported in C++ TB generator (prototype limitation)"
             )
-        if not info.is_vector:
-            return f"dut.{sn}.value()"
-        parts: list[str] = []
-        for lane, idx in enumerate(flat_indices(info.shape)):
-            mask = (1 << info.leaf_width) - 1
-            shift = lane * info.leaf_width
-            access = cpp_access(sn, idx)
-            term = f"(({access}.value() & 0x{mask:x}ull) << {shift})"
-            parts.append(term)
-        return "(" + " | ".join(parts or ["0ull"]) + ")"
+        return f"dut.{sn}.value()"
 
     def expect_lines(
         sn: str, value: int | bool, msg: str, ty: str, *, indent: str, phase: str
     ) -> list[str]:
         info = _port_info(ty)
-        if not info.is_vector:
-            vv = mask_value(value, info.leaf_width)
-            exp = wire_literal(value, info.leaf_width)
-            if info.leaf_width == 1:
-                return [
-                    f'{indent}if (dut.{sn}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {msg}: got=" << dut.{sn}.value() << " exp={vv}\\n"; return 1; }}\n'
-                ]
-            if info.leaf_width <= 64:
-                return [
-                    f'{indent}if (dut.{sn}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {msg}: got=0x" << std::hex << dut.{sn}.value() << " exp=0x{vv:x}" << std::dec << "\\n"; return 1; }}\n'
-                ]
+        vv = mask_value(value, info.width)
+        exp = wire_literal(value, info.width)
+        if info.width == 1:
             return [
-                f'{indent}if (!(dut.{sn} == {exp})) {{ std::cerr << "ERROR{phase}: {msg}\\n"; return 1; }}\n'
+                f'{indent}if (dut.{sn}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {msg}: got=" << dut.{sn}.value() << " exp={vv}\\n"; return 1; }}\n'
             ]
-
-        out: list[str] = []
-        for lane, idx in enumerate(flat_indices(info.shape)):
-            access = cpp_access(sn, idx)
-            vv = lane_value(value, info, lane)
-            lane_msg = f"{msg}[{']['.join(str(i) for i in idx)}]"
-            if info.leaf_width == 1:
-                out.append(
-                    f'{indent}if ({access}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {lane_msg}: got=" << {access}.value() << " exp={vv}\\n"; return 1; }}\n'
-                )
-            elif info.leaf_width <= 64:
-                out.append(
-                    f'{indent}if ({access}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {lane_msg}: got=0x" << std::hex << {access}.value() << " exp=0x{vv:x}" << std::dec << "\\n"; return 1; }}\n'
-                )
-            else:
-                out.append(
-                    f'{indent}if (!({access} == {wire_literal(vv, info.leaf_width)})) {{ std::cerr << "ERROR{phase}: {lane_msg}\\n"; return 1; }}\n'
-                )
-        return out
+        if info.width <= 64:
+            return [
+                f'{indent}if (dut.{sn}.value() != {vv}u) {{ std::cerr << "ERROR{phase}: {msg}: got=0x" << std::hex << dut.{sn}.value() << " exp=0x{vv:x}" << std::dec << "\\n"; return 1; }}\n'
+            ]
+        return [
+            f'{indent}if (!(dut.{sn} == {exp})) {{ std::cerr << "ERROR{phase}: {msg}\\n"; return 1; }}\n'
+        ]
 
     # Group actions by cycle for compact emission.
     drives_by: dict[int, list[tuple[str, int | bool, str]]] = {}
@@ -1755,7 +1635,6 @@ def _render_tb_sv(
 
     def decl(name: str, ty: str) -> str:
         info = _port_info(ty)
-        # Match VerilogEmitter packed vector ports (flat bus), not unpacked arrays.
         w = info.total_width
         if w == 1:
             return f"  logic {name};\n"

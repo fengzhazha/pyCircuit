@@ -1,0 +1,15 @@
+cmake --build .pycircuit_out/toolchain/build --target pyc-opt pycc -j4
+cmake --install .pycircuit_out/toolchain/build
+PYTHONPATH=python/semantic-core/src:python/pycircuit/src:python/agentic-circuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests --ignore=tests/python/agentic-circuit --ignore=tests/integration/agentic-circuit
+.pycircuit_out/venv-llvm22/bin/python tools/check-pyc-inventory.py
+.pycircuit_out/agentic-circuit/venv/bin/python tools/agentic-circuit/check-contracts.py
+python3 flows/tools/check_api_hygiene.py python/pycircuit/src/pycircuit examples/pycircuit docs README.md
+PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install ACIR_QUEUE_PYCGEN=.pycircuit_out/toolchain/install/bin/acir-queue-pycgen PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/integration/agentic-circuit/e2e .pycircuit_out/agentic-circuit/venv/bin/python -m unittest test_pyc_backend -v
+PYC_GATE_RUN_ID=20260907-issue42-scalar-pyc PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install PYC_SIM_CASE_TIMEOUT_SEC=900 PYC_SIM_RETRY_ON_TIMEOUT=0 bash flows/scripts/run_sims.sh
+PYC_GATE_RUN_ID=20260907-issue42-scalar-pyc PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install PYC_SIM_CASE_TIMEOUT_SEC=900 PYC_SIM_RETRY_ON_TIMEOUT=0 bash flows/scripts/run_sims_nightly.sh
+PYC_GATE_RUN_ID=20260907-issue42-scalar-pyc AC_GATE_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue42-scalar-pyc/agentic-circuit/toolchain/install bash flows/scripts/run_agentic_circuit.sh
+PYC_GATE_RUN_ID=20260907-issue42-scalar-pyc PYC_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue42-scalar-pyc/agentic-circuit/toolchain/install PYC_DECISION_STATUS_STRICT=1 bash flows/scripts/run_examples.sh
+PYC_GATE_RUN_ID=20260907-issue42-scalar-pyc PYC_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue42-scalar-pyc/agentic-circuit/toolchain/install bash flows/scripts/run_semantic_regressions_v6.sh
+python3 flows/tools/check_decision_status.py --rfc docs/rfcs/pyc6-decisions.md --status docs/gates/decision_status_v6.md --out .pycircuit_out/gates/20260907-issue42-scalar-pyc/decision_status_report.json --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
+mkdocs build --strict
+pre-commit run --all-files

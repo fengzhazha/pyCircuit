@@ -77,7 +77,6 @@ static void addRemoveDeadValuesPassIfSupported(PassManager &pm) {
   pm.addPass(createRemoveDeadValuesPass());
 #endif
 }
-
 template <typename T, typename = void>
 struct GreedyRewriteConfigHasSetters : std::false_type {};
 
@@ -173,11 +172,6 @@ static llvm::cl::opt<std::string> simMode("sim-mode", llvm::cl::desc("Simulation
 static llvm::cl::opt<bool> cppOnlyPreserveOps(
     "cpp-only-preserve-ops",
     llvm::cl::desc("Preserve operation-granular C++ scheduling in --sim-mode=cpp-only (disables comb fusion)"),
-    llvm::cl::init(false));
-
-static llvm::cl::opt<bool> unrollVector(
-    "unroll-vector",
-    llvm::cl::desc("Unroll vector operations to scalars at IR level before optimization passes"),
     llvm::cl::init(false));
 
 static llvm::cl::opt<bool> noInline(
@@ -2432,12 +2426,8 @@ int main(int argc, char **argv) {
   pm.addPass(createSymbolDCEPass());
 
   pm.addNestedPass<func::FuncOp>(pyc::createLowerSCFToPYCStaticPass());
-  if (unrollVector)
-    pm.addNestedPass<func::FuncOp>(pyc::createVectorUnrollPass());
   pm.addNestedPass<func::FuncOp>(pyc::createEliminateWiresPass());
   pm.addNestedPass<func::FuncOp>(pyc::createEliminateDeadStatePass());
-  if (!unrollVector)
-    pm.addNestedPass<func::FuncOp>(pyc::createSLPPackWiresPass());
   pm.addNestedPass<func::FuncOp>(pyc::createCombCanonicalizePass());
   pm.addPass(pyc::createCheckCombCyclesPass());
   pm.addPass(pyc::createCheckClockDomainsPass());
