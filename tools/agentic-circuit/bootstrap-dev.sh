@@ -20,6 +20,13 @@ fi
 "${repo_root}/.venv/bin/python" -m pip install \
   --disable-pip-version-check \
   -r "${repo_root}/python/agentic-circuit/requirements-dev.lock"
+"${repo_root}/.venv/bin/python" -m pip install \
+  --disable-pip-version-check \
+  -e "${repo_root}/python/semantic-core"
+"${repo_root}/.venv/bin/python" -m pip install \
+  --disable-pip-version-check \
+  --no-deps \
+  -e "${repo_root}/python/agentic-circuit"
 
 echo "Development environment ready."
 echo "Run: source ${repo_root}/.venv/bin/activate"

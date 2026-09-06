@@ -25,10 +25,13 @@ from ._definitions import (
 from ._jit import config, jit
 from ._resources import address_map, address_space, queue
 from ._types import (
+    BitfieldSpec,
     Endpoint,
     Flow,
     ResourceRef,
     Static,
+    array,
+    bits,
     const,
     s8,
     s16,
@@ -60,6 +63,12 @@ __all__ = (
     "set",
     "instances",
     "view",
+    "find",
+    "bits",
+    "BitfieldSpec",
+    "concat",
+    "insert",
+    "matches",
     "queue",
     "ResourceRef",
     "address_space",
@@ -110,10 +119,6 @@ def scope(name: str) -> Never:
     return _not_implemented("scope")
 
 
-def array(*values: object) -> Never:
-    return _not_implemented("array")
-
-
 def map(*values: object) -> Never:
     return _not_implemented("map")
 
@@ -128,6 +133,25 @@ def instances(*values: object) -> Never:
 
 def view(value: object, *selectors: object) -> Never:
     return _not_implemented("view")
+
+
+def find(values: object, *, where: object, key: object | None = None) -> Never:
+    _ = (values, where, key)
+    return _not_implemented("find")
+
+
+def concat(*values: object) -> Never:
+    return _not_implemented("concat")
+
+
+def insert(value: object, field: object, *, lsb: int) -> Never:
+    _ = (value, field, lsb)
+    return _not_implemented("insert")
+
+
+def matches(value: object, pattern: str) -> Never:
+    _ = (value, pattern)
+    return _not_implemented("matches")
 
 
 def source(

@@ -41,9 +41,20 @@ class ACIR_RecordDeclarationOp<string mnemonic>
 
 def ACIR_StructOp : ACIR_RecordDeclarationOp<"struct">;
 
+def ACIR_BitfieldOp : ACIR_Op<"bitfield", [Symbol]> {
+  let arguments = (ins SymbolNameAttr:$sym_name, I64Attr:$width,
+                       StrAttr:$fingerprint, ArrayAttr:$fields);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $sym_name `width` $width `fingerprint` $fingerprint `fields` $fields
+    attr-dict
+  }];
+}
+
 def ACIR_EnumOp : ACIR_Op<"enum", [Symbol]> {
   let arguments = (ins SymbolNameAttr:$sym_name, StrArrayAttr:$enumerants);
   let hasVerifier = 1;
+  let assemblyFormat = "$sym_name `enumerants` $enumerants attr-dict";
 }
 
 def ACIR_UnionOp : ACIR_Op<"union", [Symbol]> {
@@ -84,6 +95,43 @@ def ACIR_VarConstantOp : ACIR_Op<"var.constant", [Pure]> {
   let assemblyFormat = "$value attr-dict `as` qualified(type($result))";
 }
 
+def ACIR_VarEnumOp : ACIR_Op<"var.enum", [Pure]> {
+  let arguments = (ins SymbolRefAttr:$declaration, StrAttr:$enumerant);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $declaration $enumerant attr-dict `:` qualified(type($result))
+  }];
+}
+
+def ACIR_VarTupleOp : ACIR_Op<"var.tuple", [Pure]> {
+  let arguments = (ins Variadic<ACIR_VarType>:$values);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $values attr-dict `:` type($values) `->` qualified(type($result))
+  }];
+}
+
+def ACIR_VarArrayOp : ACIR_Op<"var.array", [Pure]> {
+  let arguments = (ins Variadic<ACIR_VarType>:$values);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $values attr-dict `:` type($values) `->` qualified(type($result))
+  }];
+}
+
+def ACIR_VarElementOp : ACIR_Op<"var.element", [Pure]> {
+  let arguments = (ins ACIR_VarType:$aggregate, I64Attr:$index);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $aggregate `at` $index attr-dict `:` qualified(type($aggregate)) `->`
+    qualified(type($result))
+  }];
+}
+
 class ACIR_VarBinaryOp<string mnemonic> : ACIR_Op<mnemonic, [
     Pure, AllTypesMatch<["lhs", "rhs", "result"]>
   ]> {
@@ -103,6 +151,17 @@ def ACIR_VarOrOp : ACIR_VarBinaryOp<"var.or">;
 def ACIR_VarXorOp : ACIR_VarBinaryOp<"var.xor">;
 def ACIR_VarShlOp : ACIR_VarBinaryOp<"var.shl">;
 def ACIR_VarShrOp : ACIR_VarBinaryOp<"var.shr">;
+
+def ACIR_VarMatchesOp : ACIR_Op<"var.matches", [Pure]> {
+  let arguments = (ins ACIR_VarType:$input, UI64Attr:$mask,
+                       UI64Attr:$value);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $input `mask` $mask `value` $value attr-dict `:`
+    qualified(type($input)) `->` qualified(type($result))
+  }];
+}
 
 def ACIR_VarNotOp : ACIR_Op<"var.not", [Pure]> {
   let arguments = (ins ACIR_VarType:$in);
@@ -145,6 +204,49 @@ def ACIR_VarCmpOp : ACIR_Op<"var.cmp", [
   }];
 }
 
+def ACIR_VarSelectOp : ACIR_Op<"var.select", [
+    Pure, AllTypesMatch<["true_value", "false_value", "result"]>
+  ]> {
+  let arguments = (ins ACIR_VarType:$condition, ACIR_VarType:$true_value,
+                       ACIR_VarType:$false_value);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $condition `,` $true_value `,` $false_value attr-dict `:`
+    qualified(type($condition)) `,` qualified(type($true_value)) `->`
+    qualified(type($result))
+  }];
+}
+
+def ACIR_VarExtractOp : ACIR_Op<"var.extract", [Pure]> {
+  let arguments = (ins ACIR_VarType:$input, I64Attr:$lsb, I64Attr:$width);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $input `from` $lsb `width` $width attr-dict `:` qualified(type($input))
+    `->` qualified(type($result))
+  }];
+}
+
+def ACIR_VarConcatOp : ACIR_Op<"var.concat", [Pure]> {
+  let arguments = (ins Variadic<ACIR_VarType>:$inputs);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $inputs attr-dict `:` type($inputs) `->` qualified(type($result))
+  }];
+}
+
+def ACIR_VarInsertOp : ACIR_Op<"var.insert", [Pure]> {
+  let arguments = (ins ACIR_VarType:$base, ACIR_VarType:$value, I64Attr:$lsb);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $base `,` $value `at` $lsb attr-dict `:` qualified(type($base)) `,`
+    qualified(type($value)) `->` qualified(type($result))
+  }];
+}
+
 def ACIR_VarGetOp : ACIR_Op<"var.get", [Pure]> {
   let arguments = (ins ACIR_VarType:$record, StrAttr:$field);
   let results = (outs ACIR_VarType:$result);
@@ -165,6 +267,98 @@ def ACIR_VarWithOp : ACIR_Op<"var.with", [Pure]> {
     qualified(type($record)) `,` qualified(type($value)) `->`
     qualified(type($result))
   }];
+}
+
+// A lexical, persistent ac.var identity. Python module/class fields lower to
+// this generic variable form before storage selection chooses a concrete
+// committed-state implementation.
+def ACIR_VarDeclOp : ACIR_Op<"var.decl"> {
+  let arguments = (ins SymbolNameAttr:$sym_name, TypeAttr:$value_type,
+                       AnyAttr:$init, StrAttr:$owner, StrAttr:$stable_id,
+                       OptionalAttr<DenseI64ArrayAttr>:$shape);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $sym_name `type` $value_type `init` $init `owner` $owner
+    `stable_id` $stable_id (`shape` $shape^)? attr-dict
+  }];
+}
+
+def ACIR_VarReadOp : ACIR_Op<"var.read", [Pure]> {
+  let arguments = (ins FlatSymbolRefAttr:$variable);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = "$variable attr-dict `:` qualified(type($result))";
+}
+
+def ACIR_VarReadElementOp : ACIR_Op<"var.read_element", [Pure]> {
+  let arguments = (ins FlatSymbolRefAttr:$variable, ACIR_VarType:$index);
+  let results = (outs ACIR_VarType:$result);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $variable `[` $index `]` attr-dict `:` qualified(type($index)) `->`
+    qualified(type($result))
+  }];
+}
+
+// A firing-local next-state assignment. It never commits independently.
+def ACIR_VarAssignOp : ACIR_Op<"var.assign"> {
+  let arguments = (ins FlatSymbolRefAttr:$variable, ACIR_VarType:$value,
+                       Optional<ACIR_VarType>:$when);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $variable `=` $value (`when` $when^ `:` qualified(type($when)))?
+    attr-dict `:` qualified(type($value))
+  }];
+}
+
+def ACIR_VarAssignElementOp : ACIR_Op<"var.assign_element"> {
+  let arguments = (ins FlatSymbolRefAttr:$variable, ACIR_VarType:$index,
+                       ACIR_VarType:$value, Optional<ACIR_VarType>:$when);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $variable `[` $index `]` `=` $value
+    (`when` $when^ `:` qualified(type($when)))? attr-dict `:`
+    qualified(type($index)) `,` qualified(type($value))
+  }];
+}
+
+// Collection queries over a lexical shaped ac.var. These remain independent
+// of the concrete committed-state storage selected by later passes.
+def ACIR_VarMatchOp : ACIR_Op<"var.match", [SingleBlock]> {
+  let arguments = (ins FlatSymbolRefAttr:$variable);
+  let results = (outs ACIR_VarType:$mask);
+  let regions = (region SizedRegion<1>:$predicate);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $variable `predicate` $predicate attr-dict `->` qualified(type($mask))
+  }];
+}
+
+def ACIR_VarMatchYieldOp : ACIR_Op<"var.match.yield", [
+    Pure, Terminator, HasParent<"VarMatchOp">
+  ]> {
+  let arguments = (ins ACIR_VarType:$value);
+  let assemblyFormat = "$value attr-dict `:` qualified(type($value))";
+}
+
+def ACIR_VarChooseOp : ACIR_Op<"var.choose"> {
+  let arguments = (ins FlatSymbolRefAttr:$variable, ACIR_VarType:$mask,
+                       I64Attr:$count, StrAttr:$policy);
+  let results = (outs ACIR_VarType:$index, ACIR_VarType:$valid);
+  let regions = (region AnyRegion:$key);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $variable $mask `:` qualified(type($mask)) `count` $count
+    `policy` $policy `key` $key attr-dict `->`
+    qualified(type($index)) `,` qualified(type($valid))
+  }];
+}
+
+def ACIR_VarChooseYieldOp : ACIR_Op<"var.choose.yield", [
+    Pure, Terminator, HasParent<"VarChooseOp">
+  ]> {
+  let arguments = (ins ACIR_VarType:$value);
+  let assemblyFormat = "$value attr-dict `:` qualified(type($value))";
 }
 
 def ACIR_PacketSerializeOp : ACIR_Op<"packet.serialize", [Pure]> {
@@ -225,6 +419,50 @@ def ACIR_RuleReturnOp : ACIR_Op<"rule.return", [
   ]> {
   let arguments = (ins Variadic<ACIR_VarType>:$values);
   let assemblyFormat = "attr-dict ($values^ `:` type($values))?";
+}
+
+def ACIR_RuleConditionOp : ACIR_Op<"rule.condition", [HasParent<"RuleOp">]> {
+  let arguments = (ins ACIR_VarType:$condition);
+  let hasVerifier = 1;
+  let assemblyFormat = "$condition attr-dict `:` qualified(type($condition))";
+}
+
+def ACIR_RuleOutputOp : ACIR_Op<"rule.output", [HasParent<"RuleOp">]> {
+  let arguments = (ins ACIR_VarType:$value, ACIR_VarType:$when,
+                       I64Attr:$ordinal);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $value `when` $when `ordinal` $ordinal attr-dict `:`
+    qualified(type($value)) `,` qualified(type($when))
+  }];
+}
+
+// Compiler-owned proof that a functional predicate depends on a committed
+// state snapshot. It is not a write and never commits independently.
+def ACIR_StateSnapshotOp : ACIR_Op<"state.snapshot"> {
+  let arguments = (ins FlatSymbolRefAttr:$table, Optional<ACIR_VarType>:$index,
+                       ACIR_VarType:$predicate,
+                       ACIR_RuleIndexKindAttr:$index_kind,
+                       ArrayAttr:$read_fields);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $table (`[` $index^ `:` qualified(type($index)) `]`)?
+    `for` $predicate `:` qualified(type($predicate))
+    `kind` $index_kind `read_fields` $read_fields attr-dict
+  }];
+}
+
+// A dynamic snapshot set produced by the region-local TableGet indices that
+// are actually evaluated by one table.match predicate or table.choose key.
+def ACIR_StateSnapshotSetOp : ACIR_Op<"state.snapshot_set"> {
+  let arguments = (ins FlatSymbolRefAttr:$table, ACIR_VarType:$source,
+                       ACIR_VarType:$predicate, ArrayAttr:$read_fields);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $table `from` $source `:` qualified(type($source))
+    `for` $predicate `:` qualified(type($predicate))
+    `read_fields` $read_fields attr-dict
+  }];
 }
 
 // The three marker classes are deliberately distinct operations.  They are
@@ -500,7 +738,7 @@ def ACIR_MemoryYieldOp : ACIR_Op<"memory.yield", [
 }
 
 def ACIR_TableOp : ACIR_Op<"table", [
-    Symbol, DeclareOpInterfaceMethods<MemoryEffectsOpInterface>
+    DeclareOpInterfaceMethods<MemoryEffectsOpInterface>
   ]> {
   let arguments = (ins SymbolNameAttr:$sym_name, TypeAttr:$entry_type,
                        I64Attr:$entries, I64Attr:$init, StrAttr:$owner,
@@ -528,11 +766,13 @@ def ACIR_TableGetOp : ACIR_Op<"table.get", [
 // ac.rule or closed ac.firing and does not commit independently.
 def ACIR_TableProposeOp : ACIR_Op<"table.propose"> {
   let arguments = (ins FlatSymbolRefAttr:$table, ACIR_VarType:$index,
-                       ACIR_VarType:$value, StrAttr:$mode,
+                       ACIR_VarType:$value, Optional<ACIR_VarType>:$when,
+                       StrAttr:$mode,
                        StrArrayAttr:$write_fields);
   let hasVerifier = 1;
   let assemblyFormat = [{
-    $table `[` $index `]` `=` $value `mode` $mode
+    $table `[` $index `]` `=` $value
+    (`when` $when^ `:` qualified(type($when)))? `mode` $mode
     `write_fields` $write_fields attr-dict `:` qualified(type($index)) `,`
     qualified(type($value))
   }];
@@ -733,6 +973,24 @@ def ACIR_FiringYieldOp : ACIR_Op<"firing.yield", [
   ]> {
   let arguments = (ins Variadic<ACIR_VarType>:$values);
   let assemblyFormat = "attr-dict ($values^ `:` type($values))?";
+}
+
+def ACIR_FiringConditionOp
+    : ACIR_Op<"firing.condition", [HasParent<"FiringOp">]> {
+  let arguments = (ins ACIR_VarType:$condition);
+  let hasVerifier = 1;
+  let assemblyFormat = "$condition attr-dict `:` qualified(type($condition))";
+}
+
+def ACIR_FiringOutputOp
+    : ACIR_Op<"firing.output", [HasParent<"FiringOp">]> {
+  let arguments = (ins ACIR_VarType:$value, ACIR_VarType:$when,
+                       I64Attr:$ordinal);
+  let hasVerifier = 1;
+  let assemblyFormat = [{
+    $value `when` $when `ordinal` $ordinal attr-dict `:`
+    qualified(type($value)) `,` qualified(type($when))
+  }];
 }
 
 def ACIR_InterfaceOp : ACIR_Op<"interface", [

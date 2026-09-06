@@ -4,7 +4,9 @@
 #include "Analysis/ModelAnalysisTestHooks.h"
 #include "acir/Analysis/ModelAnalysis.h"
 #include "acir/Dialect/ACIR/ACIROps.h"
+#include "acir/Dialect/ACIR/GraphRegion.h"
 #include "mlir/IR/SymbolTable.h"
+#include "mlir/IR/Verifier.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 
@@ -125,7 +127,87 @@ LogicalResult freezeFlatQueueGraph(ModuleOp model) {
   return success();
 }
 
+LogicalResult freezeStructuredQueueGraph(ModuleOp model) {
+  auto contractEpoch = model->getAttrOfType<StringAttr>("ac.contract_epoch");
+  if (!contractEpoch || contractEpoch.getValue() != "0.5")
+    return model.emitError(
+        "structured QueueGraph freeze requires ac.contract_epoch = \"0.5\"");
+  auto domain = model->getAttrOfType<StringAttr>("ac.queue_graph_domain");
+  if (!domain || domain.getValue() != "cycle")
+    return model.emitError("structured QueueGraph freeze requires exact "
+                           "ac.queue_graph_domain = \"cycle\"");
+  if (model.getOps<ac::SystemOp>().empty() ||
+      model.getOps<ac::ModuleOp>().empty())
+    return model.emitError(
+        "structured QueueGraph freeze requires ac.system and ac.module");
+  if (failed(mlir::verify(model)) || failed(ac::verifyGraphStructure(model)))
+    return failure();
+  if (detail::hasTopologyFreezeEvidence(model))
+    return verifyFrozenStructuredQueueGraph(model);
+
+  ac::SystemOp selected;
+  unsigned selectedCount = 0;
+  for (ac::SystemOp system : model.getOps<ac::SystemOp>())
+    if (system.getSelected()) {
+      selected = system;
+      ++selectedCount;
+    }
+  if (selectedCount != 1)
+    return model.emitError(
+        "structured QueueGraph freeze requires exactly one selected ac.system");
+
+  SymbolTable symbols(model);
+  auto root = dyn_cast_or_null<ac::ModuleOp>(
+      symbols.lookup(selected.getRootAttr().getValue()));
+  if (!root)
+    return selected.emitOpError(
+        "structured QueueGraph root must resolve to a materialized module");
+
+  Builder builder(model.getContext());
+  for (ac::ModuleOp definition : model.getOps<ac::ModuleOp>()) {
+    definition->removeAttr("ac.specialization");
+    definition->setAttr(
+        "ac.definition_fingerprint",
+        builder.getStringAttr(
+            detail::computeQueueGraphDefinitionFingerprint(definition)));
+  }
+  for (ac::ModuleOp definition : model.getOps<ac::ModuleOp>())
+    for (ac::InstanceOp instance :
+         definition.getBody().front().getOps<ac::InstanceOp>()) {
+      auto target = dyn_cast_or_null<ac::ModuleOp>(
+          symbols.lookup(instance.getDefinitionAttr().getValue()));
+      if (!target)
+        return instance.emitOpError(
+            "QueueGraph instance requires a materialized module definition");
+      instance->setAttr("ac.specialization",
+                        builder.getStringAttr(
+                            detail::computeQueueGraphSpecializationFingerprint(
+                                target, instance.getStaticArgs())));
+    }
+  root->setAttr(
+      "ac.specialization",
+      builder.getStringAttr(detail::computeQueueGraphSpecializationFingerprint(
+          root, builder.getDictionaryAttr({}))));
+
+  FailureOr<ArrayAttr> ownerManifest = detail::buildFrozenOwnerManifest(model);
+  if (failed(ownerManifest))
+    return failure();
+  model->setAttr("ac.freeze_epoch", builder.getStringAttr("0.5"));
+  model->setAttr(
+      "ac.frozen_system",
+      FlatSymbolRefAttr::get(model.getContext(), selected.getSymName()));
+  model->setAttr("ac.frozen_owners", *ownerManifest);
+  model->setAttr("ac.topology_frozen", builder.getBoolAttr(true));
+  model->setAttr("ac.topology_digest",
+                 builder.getStringAttr(detail::computeTopologyDigest(model)));
+  return verifyFrozenStructuredQueueGraph(model);
+}
+
 LogicalResult freezeTopology(ModuleOp model) {
+  // Frozen models and direct hand-written ACIR take the same fail-closed
+  // dynamic-index proof path as rule lowering.
+  if (failed(verifyValueConstraints(model)))
+    return failure();
   // Closure precedes every canonicalization/hash mutation so unresolved
   // obligations cannot be dropped or hidden by a generic transform.
   if (failed(verifyRuleClosure(model)))
@@ -134,6 +216,8 @@ LogicalResult freezeTopology(ModuleOp model) {
     if (modelKind.getValue() != "queue_graph")
       return model.emitError("unknown ac.model_kind '")
              << modelKind.getValue() << "'";
+    if (!model.getOps<ac::SystemOp>().empty())
+      return freezeStructuredQueueGraph(model);
     return freezeFlatQueueGraph(model);
   }
   if (model->getAttrOfType<StringAttr>("ac.system") &&

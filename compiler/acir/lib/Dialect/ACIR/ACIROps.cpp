@@ -17,7 +17,9 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/SHA256.h"
 
 #include <limits>
 #include <optional>
@@ -32,12 +34,306 @@ thread_local detail::ProcessLivenessWork *processLivenessWorkCollector =
 
 } // namespace
 
+static DictionaryAttr activationQueueResource(MLIRContext *context,
+                                              ActivationResourceKind kind,
+                                              size_t ordinal) {
+  Builder builder(context);
+  NamedAttrList fields;
+  fields.set("kind", ActivationResourceKindAttr::get(context, kind));
+  fields.set("ordinal", builder.getI64IntegerAttr(ordinal));
+  return builder.getDictionaryAttr(fields);
+}
+
+static DictionaryAttr activationStateResource(MLIRContext *context,
+                                              StringRef resource) {
+  Builder builder(context);
+  NamedAttrList fields;
+  fields.set("kind", ActivationResourceKindAttr::get(
+                         context, ActivationResourceKind::State));
+  fields.set("resource", FlatSymbolRefAttr::get(context, resource));
+  return builder.getDictionaryAttr(fields);
+}
+
+static std::optional<bool> constantVarBool(Value value) {
+  auto constant = value.getDefiningOp<VarConstantOp>();
+  auto integer =
+      constant ? dyn_cast<IntegerAttr>(constant.getValue()) : IntegerAttr();
+  if (!integer)
+    return std::nullopt;
+  return !integer.getValue().isZero();
+}
+
+static RuleGuardKind guardKindFor(Value value) {
+  return constantVarBool(value) == true ? RuleGuardKind::Always
+                                        : RuleGuardKind::Predicate;
+}
+
+static bool presenceImpliesCandidate(Value present, Value candidate) {
+  return present == candidate || constantVarBool(candidate) == true;
+}
+
+static bool isBooleanComplement(Value candidate, Value base) {
+  auto compare = candidate.getDefiningOp<VarCmpOp>();
+  if (!compare || compare.getPredicate() != "eq")
+    return false;
+  return (compare.getLhs() == base &&
+          constantVarBool(compare.getRhs()) == false) ||
+         (compare.getRhs() == base &&
+          constantVarBool(compare.getLhs()) == false);
+}
+
+static bool areBooleanComplements(Value left, Value right) {
+  return isBooleanComplement(left, right) || isBooleanComplement(right, left);
+}
+
+static LogicalResult verifyActivationEvidence(Operation *operation,
+                                              ValueRange inputs,
+                                              ValueRange outputs, Region &body,
+                                              bool required) {
+  auto sources = operation->getAttrOfType<ArrayAttr>("ac.activation_sources");
+  auto transaction =
+      operation->getAttrOfType<ArrayAttr>("ac.transaction_resources");
+  auto initiallyActive =
+      operation->getAttrOfType<BoolAttr>("ac.initially_active");
+  if (!sources && !transaction && !initiallyActive)
+    return required ? operation->emitOpError(
+                          "requires typed activation/transaction evidence")
+                    : success();
+  if (!sources || !transaction || !initiallyActive)
+    return operation->emitOpError(
+        "activation/transaction evidence must be complete");
+
+  Builder builder(operation->getContext());
+  SmallVector<Attribute> expectedSources;
+  SmallVector<Attribute> expectedTransaction;
+  for (size_t index = 0; index < inputs.size(); ++index) {
+    DictionaryAttr resource = activationQueueResource(
+        operation->getContext(), ActivationResourceKind::InputQueue, index);
+    expectedSources.push_back(resource);
+    expectedTransaction.push_back(resource);
+  }
+  for (size_t index = 0; index < outputs.size(); ++index) {
+    DictionaryAttr resource = activationQueueResource(
+        operation->getContext(), ActivationResourceKind::OutputQueue, index);
+    expectedSources.push_back(resource);
+    expectedTransaction.push_back(resource);
+  }
+  llvm::StringSet<> sourceState;
+  llvm::StringSet<> transactionState;
+  body.walk([&](Operation *nested) {
+    FlatSymbolRefAttr resource;
+    if (auto read = dyn_cast<TableGetOp>(nested))
+      resource = read.getTableAttr();
+    else if (auto match = dyn_cast<TableMatchOp>(nested))
+      resource = match.getTableAttr();
+    else if (auto choose = dyn_cast<TableChooseOp>(nested))
+      resource = choose.getTableAttr();
+    else if (auto proposal = dyn_cast<TableProposeOp>(nested)) {
+      resource = proposal.getTableAttr();
+      if (transactionState.insert(resource.getValue()).second)
+        expectedTransaction.push_back(activationStateResource(
+            operation->getContext(), resource.getValue()));
+    }
+    if (resource && sourceState.insert(resource.getValue()).second)
+      expectedSources.push_back(activationStateResource(operation->getContext(),
+                                                        resource.getValue()));
+  });
+  if (sources != builder.getArrayAttr(expectedSources) ||
+      transaction != builder.getArrayAttr(expectedTransaction) ||
+      initiallyActive.getValue() != inputs.empty())
+    return operation->emitOpError(
+        "activation/transaction evidence must exactly match typed resources");
+  return success();
+}
+
+static LogicalResult
+verifyTypedRuleSummary(Operation *operation, ValueRange inputs,
+                       ValueRange outputs, Region &body, ArrayAttr footprints,
+                       IntegerAttr priority, StringRef prefix) {
+  auto name = [&](StringRef suffix) { return prefix.str() + suffix.str(); };
+  auto guard = operation->getAttrOfType<RuleGuardKindAttr>(name("guard_kind"));
+  auto schedule =
+      operation->getAttrOfType<RuleScheduleKindAttr>(name("schedule_kind"));
+  auto checks = operation->getAttrOfType<ArrayAttr>(name("checks_typed"));
+  auto effects = operation->getAttrOfType<ArrayAttr>(name("effects_typed"));
+  auto presence = operation->getAttrOfType<ArrayAttr>(name("output_presence"));
+  auto stateAccesses =
+      operation->getAttrOfType<ArrayAttr>(name("state_accesses"));
+  auto arbitration =
+      operation->getAttrOfType<ArrayAttr>(name("arbitration_membership"));
+  if (!guard || !schedule || !checks || !effects || !presence ||
+      !stateAccesses || !arbitration || !footprints || !priority)
+    return operation->emitOpError(
+        "requires complete typed rule summary evidence");
+
+  bool predicate = false;
+  body.walk([&](FiringConditionOp condition) {
+    auto constant = condition.getCondition().getDefiningOp<VarConstantOp>();
+    auto value =
+        constant ? dyn_cast<IntegerAttr>(constant.getValue()) : IntegerAttr();
+    predicate |= !value || value.getValue().isZero();
+  });
+  const RuleGuardKind expectedGuard =
+      predicate ? RuleGuardKind::Predicate : RuleGuardKind::Always;
+  SmallVector<TableProposeOp> proposals;
+  body.walk([&](TableProposeOp proposal) { proposals.push_back(proposal); });
+  const RuleScheduleKind expectedSchedule =
+      proposals.empty() ? RuleScheduleKind::Independent
+                        : RuleScheduleKind::LexicalPriority;
+  if (guard.getValue() != expectedGuard ||
+      schedule.getValue() != expectedSchedule)
+    return operation->emitOpError(
+        "typed guard/schedule evidence does not match the body");
+
+  Builder builder(operation->getContext());
+  auto queueRecord = [&](StringRef kindName, Attribute kind, size_t ordinal,
+                         RuleGuardKind path) {
+    NamedAttrList fields;
+    fields.set(kindName, kind);
+    fields.set("ordinal", builder.getI64IntegerAttr(ordinal));
+    fields.set("guard_kind",
+               RuleGuardKindAttr::get(operation->getContext(), path));
+    return builder.getDictionaryAttr(fields);
+  };
+  SmallVector<Attribute> expectedChecks;
+  SmallVector<Attribute> expectedEffects;
+  SmallVector<Attribute> expectedPresence;
+  SmallVector<Value> outputPresenceValues(outputs.size());
+  body.walk([&](FiringOutputOp output) {
+    if (output.getOrdinal() >= 0 &&
+        static_cast<size_t>(output.getOrdinal()) < outputPresenceValues.size())
+      outputPresenceValues[output.getOrdinal()] = output.getWhen();
+  });
+  for (size_t index = 0; index < inputs.size(); ++index) {
+    expectedChecks.push_back(
+        queueRecord("kind",
+                    RuleCheckKindAttr::get(operation->getContext(),
+                                           RuleCheckKind::InputAvailable),
+                    index, RuleGuardKind::Always));
+    expectedEffects.push_back(
+        queueRecord("kind",
+                    RuleEffectKindAttr::get(operation->getContext(),
+                                            RuleEffectKind::InputConsume),
+                    index, expectedGuard));
+  }
+  for (size_t index = 0; index < outputs.size(); ++index) {
+    const RuleGuardKind outputGuard =
+        outputPresenceValues[index] ? guardKindFor(outputPresenceValues[index])
+                                    : expectedGuard;
+    expectedChecks.push_back(
+        queueRecord("kind",
+                    RuleCheckKindAttr::get(operation->getContext(),
+                                           RuleCheckKind::OutputCapacity),
+                    index, outputGuard));
+    expectedEffects.push_back(
+        queueRecord("kind",
+                    RuleEffectKindAttr::get(operation->getContext(),
+                                            RuleEffectKind::OutputProduce),
+                    index, outputGuard));
+    NamedAttrList output;
+    output.set("ordinal", builder.getI64IntegerAttr(index));
+    output.set("presence_kind", RuleOutputPresenceKindAttr::get(
+                                    operation->getContext(),
+                                    outputGuard == RuleGuardKind::Always
+                                        ? RuleOutputPresenceKind::Always
+                                        : RuleOutputPresenceKind::Predicate));
+    expectedPresence.push_back(builder.getDictionaryAttr(output));
+  }
+
+  SmallVector<Attribute> expectedConflicts;
+  for (Attribute attribute : footprints) {
+    auto footprint = dyn_cast<DictionaryAttr>(attribute);
+    auto access =
+        footprint ? footprint.getAs<StringAttr>("access") : StringAttr();
+    auto resource = footprint ? footprint.getAs<FlatSymbolRefAttr>("resource")
+                              : FlatSymbolRefAttr();
+    auto indexKind =
+        footprint ? footprint.getAs<StringAttr>("index_kind") : StringAttr();
+    auto footprintGuard = footprint
+                              ? footprint.getAs<RuleGuardKindAttr>("guard_kind")
+                              : RuleGuardKindAttr();
+    if (!access || !resource || !indexKind || !footprintGuard)
+      return operation->emitOpError(
+          "typed rule summary requires valid state footprints");
+    const bool read = access.getValue() == "read";
+    const RuleGuardKind stateGuard =
+        read ? RuleGuardKind::Always : footprintGuard.getValue();
+    NamedAttrList effect;
+    effect.set("kind",
+               RuleEffectKindAttr::get(operation->getContext(),
+                                       read ? RuleEffectKind::StateRead
+                                            : RuleEffectKind::StateWrite));
+    effect.set("resource", resource);
+    effect.set("guard_kind",
+               RuleGuardKindAttr::get(operation->getContext(), stateGuard));
+    expectedEffects.push_back(builder.getDictionaryAttr(effect));
+
+    NamedAttrList conflict;
+    conflict.set("kind", RuleStateAccessKindAttr::get(
+                             operation->getContext(),
+                             read ? RuleStateAccessKind::Read
+                                  : (access.getValue() == "replace"
+                                         ? RuleStateAccessKind::Replace
+                                         : RuleStateAccessKind::FieldWrite)));
+    conflict.set("resource", resource);
+    RuleIndexKind typedIndex =
+        indexKind.getValue() == "static"
+            ? RuleIndexKind::Static
+            : (indexKind.getValue() == "dynamic" ? RuleIndexKind::Dynamic
+                                                 : RuleIndexKind::All);
+    conflict.set("index_kind",
+                 RuleIndexKindAttr::get(operation->getContext(), typedIndex));
+    conflict.set("guard_kind",
+                 RuleGuardKindAttr::get(operation->getContext(), stateGuard));
+    if (auto fields = footprint.getAs<ArrayAttr>("fields"))
+      conflict.set("fields", fields);
+    expectedConflicts.push_back(builder.getDictionaryAttr(conflict));
+  }
+
+  SmallVector<Attribute> expectedArbitration;
+  llvm::StringSet<> seenResources;
+  for (TableProposeOp proposal : proposals) {
+    if (!seenResources.insert(proposal.getTable()).second)
+      continue;
+    NamedAttrList record;
+    record.set("kind", RuleArbitrationKindAttr::get(
+                           operation->getContext(),
+                           RuleArbitrationKind::LexicalPriority));
+    record.set("resource", proposal.getTableAttr());
+    record.set("priority", priority);
+    expectedArbitration.push_back(builder.getDictionaryAttr(record));
+  }
+  if (checks != builder.getArrayAttr(expectedChecks) ||
+      effects != builder.getArrayAttr(expectedEffects) ||
+      presence != builder.getArrayAttr(expectedPresence) ||
+      stateAccesses != builder.getArrayAttr(expectedConflicts) ||
+      arbitration != builder.getArrayAttr(expectedArbitration))
+    return operation->emitOpError(
+        "typed checks/effects/presence/state-access/arbitration summary must "
+        "exactly match the body");
+  return success();
+}
+
 LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
   constexpr llvm::StringLiteral kPrefix = "ac.rule_";
   llvm::StringSet<> allowed = {
-      "ac.rule_definition", "ac.rule_stable_id", "ac.rule_time_domain",
-      "ac.rule_guard",      "ac.rule_checks",    "ac.rule_handshake",
-      "ac.rule_schedule",   "ac.rule_effects",
+      "ac.rule_definition",
+      "ac.rule_stable_id",
+      "ac.rule_time_domain",
+      "ac.rule_guard",
+      "ac.rule_checks",
+      "ac.rule_handshake",
+      "ac.rule_schedule",
+      "ac.rule_effects",
+      "ac.rule_priority",
+      "ac.rule_footprints",
+      "ac.rule_effects_typed",
+      "ac.rule_checks_typed",
+      "ac.rule_output_presence",
+      "ac.rule_state_accesses",
+      "ac.rule_guard_kind",
+      "ac.rule_schedule_kind",
+      "ac.rule_arbitration_membership",
   };
   bool hasRuleProof = false;
   for (NamedAttribute attribute : transform->getAttrs()) {
@@ -69,18 +365,20 @@ LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
   FailureOr<StringAttr> schedule = requireString("ac.rule_schedule");
   auto checks = transform->getAttrOfType<ArrayAttr>("ac.rule_checks");
   auto effects = transform->getAttrOfType<ArrayAttr>("ac.rule_effects");
+  auto priority = transform->getAttrOfType<IntegerAttr>("ac.rule_priority");
+  auto footprints = transform->getAttrOfType<ArrayAttr>("ac.rule_footprints");
   if (failed(definition) || failed(stableId) || failed(domain) ||
       failed(guard) || failed(handshake) || failed(schedule) || !checks ||
-      !effects)
+      !effects || !priority || priority.getInt() < 0 || !footprints)
     return failure();
-  if (transform.getInputs().size() != 1 || transform.getOutputs().size() != 1 ||
-      transform.getInputs().front().getType() !=
-          transform.getOutputs().front().getType())
-    return transform.emitOpError(
-        "phase-one lowered rule requires one type-preserving Queue path");
+  if (transform.getInputs().empty() || transform.getOutputs().size() != 1)
+    return transform.emitOpError("lowered rule requires at least one input and "
+                                 "exactly one output Queue");
+  const std::string expectedHandshake =
+      "ready_valid_" + std::to_string(transform.getInputs().size()) + "x1";
   if ((*domain).getValue() != "cycle" || (*guard).getValue() != "true" ||
-      !checks.empty() || (*handshake).getValue() != "ready_valid_1x1" ||
-      (*schedule).getValue() != "independent")
+      !checks.empty() || (*handshake).getValue() != expectedHandshake ||
+      (*schedule).getValue() != "independent" || !footprints.empty())
     return transform.emitOpError(
         "has invalid phase-one lowered-rule domain/guard/checks/handshake/"
         "schedule proof");
@@ -95,7 +393,15 @@ LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
   if (effects != builder.getStrArrayAttr({"input.consume", "output.produce"}))
     return transform.emitOpError(
         "has invalid phase-one lowered-rule effect proof");
-  return success();
+  if (transform->hasAttr("ac.rule_guard_kind") &&
+      failed(verifyTypedRuleSummary(transform.getOperation(),
+                                    transform.getInputs(),
+                                    transform.getOutputs(), transform.getBody(),
+                                    footprints, priority, "ac.rule_")))
+    return failure();
+  return verifyActivationEvidence(transform.getOperation(),
+                                  transform.getInputs(), transform.getOutputs(),
+                                  transform.getBody(), true);
 }
 
 LogicalResult TransformOp::verify() {
@@ -151,14 +457,24 @@ LogicalResult TransformOp::verify() {
   return verifyLoweredRuleTransformContract(*this);
 }
 
+static TableOp resolveTable(Operation *operation, FlatSymbolRefAttr reference);
+static bool tableVisibleFrom(Operation *operation, TableOp table);
+static LogicalResult verifyStaticallySafeRuleTableIndex(Operation *operation,
+                                                        TableOp table,
+                                                        Value index);
+static LogicalResult verifyTableFields(Operation *endpoint, TableOp table,
+                                       ArrayAttr fields, StringRef kind);
+static FailureOr<uint64_t> tableEntryFieldCount(Operation *endpoint,
+                                                TableOp table);
+static bool tableWriteFieldsAreComplete(Operation *endpoint, TableOp table,
+                                        ArrayAttr writeFields);
+
 LogicalResult RuleOp::verify() {
-  // The first vertical slice is intentionally narrow.  Later rule passes may
-  // widen the arity once conflict and CFG joins are implemented.
-  if (getInputs().size() != 1 || getOutputs().size() != 1)
-    return emitOpError(
-        "phase-one rule requires exactly one input and one output");
-  if (getInputs().front().getType() != getOutputs().front().getType())
-    return emitOpError("phase-one rule must preserve its Queue payload type");
+  // Rules retain at most one output until optional-output branches and CFG
+  // joins are materialized. Zero-output rules are consume-only state
+  // transitions; zero-input rules must still produce or update state.
+  if (getOutputs().size() > 1)
+    return emitOpError("rule currently supports at most one output");
   if (getName().empty() || getStableId().empty())
     return emitOpError(
         "requires non-empty definition and stable instance names");
@@ -181,48 +497,264 @@ LogicalResult RuleOp::verify() {
 
   ArrayRef<int64_t> depths = getOutputDepthsAttr().asArrayRef();
   ArrayRef<int64_t> latencies = getOutputLatenciesAttr().asArrayRef();
-  if (depths.size() != 1 || depths.front() <= 0)
-    return emitOpError("requires one positive output depth");
-  if (latencies.size() != 1 || latencies.front() <= 0)
-    return emitOpError("requires one positive output latency");
+  if (depths.size() != getOutputs().size() ||
+      llvm::any_of(depths, [](int64_t value) { return value <= 0; }))
+    return emitOpError("output depths must match results and be positive");
+  if (latencies.size() != getOutputs().size() ||
+      llvm::any_of(latencies, [](int64_t value) { return value <= 0; }))
+    return emitOpError("output latencies must match results and be positive");
 
   Block &block = getBody().front();
-  auto queue = cast<QueueType>(getInputs().front().getType());
-  Type expected = VarType::get(getContext(), queue.getElementType());
-  if (block.getNumArguments() != 1 ||
-      block.getArgument(0).getType() != expected)
-    return emitOpError("body argument must match the input Queue payload Var");
-  unsigned proposals = 0;
-  unsigned tableReads = 0;
-  FlatSymbolRefAttr proposalTable;
+  if (block.getNumArguments() != getInputs().size())
+    return emitOpError("body argument count must match input Queue count");
+  for (auto [input, argument] :
+       llvm::zip_equal(getInputs(), block.getArguments())) {
+    auto queue = cast<QueueType>(input.getType());
+    Type expected = VarType::get(getContext(), queue.getElementType());
+    if (argument.getType() != expected)
+      return emitOpError("body arguments must match input Queue payloads");
+  }
+  SmallVector<TableProposeOp> proposals;
+  SmallVector<TableGetOp> tableReads;
+  unsigned conditions = 0;
+  Value conditionValue;
   for (Operation &operation : block.without_terminator())
     if (auto proposal = dyn_cast<TableProposeOp>(operation)) {
-      ++proposals;
-      proposalTable = proposal.getTableAttr();
+      proposals.push_back(proposal);
     } else if (auto get = dyn_cast<TableGetOp>(operation)) {
-      ++tableReads;
-      if (proposalTable && get.getTableAttr() != proposalTable)
-        return emitOpError("may observe only its proposed Table");
+      tableReads.push_back(get);
+    } else if (auto condition = dyn_cast<RuleConditionOp>(operation)) {
+      ++conditions;
+      conditionValue = condition.getCondition();
     } else if (!isMemoryEffectFree(&operation) &&
                !isa<TypeConstraintMarkerOp, ValueFactMarkerOp,
-                    PendingObligationMarkerOp>(operation))
+                    PendingObligationMarkerOp, VarAssignOp, VarAssignElementOp>(
+                   operation) &&
+               !isa<VarMatchOp, VarChooseOp, TableMatchOp, TableChooseOp>(
+                   operation) &&
+               !isa<RuleOutputOp, StateSnapshotOp, StateSnapshotSetOp>(
+                   operation))
       return emitOpError() << "body operation '" << operation.getName()
                            << "' must be pure in the phase-one rule subset";
-  if (proposals > 1)
-    return emitOpError("stateful rule phase one permits one Table proposal");
-  if (tableReads > 1)
-    return emitOpError("stateful rule phase one permits one Table observation");
-  if (proposals == 0 && tableReads != 0)
+  if (conditions > 1)
+    return emitOpError("permits at most one functional condition");
+  SmallVector<RuleOutputOp> outputPaths;
+  getBody().walk([&](RuleOutputOp output) { outputPaths.push_back(output); });
+  const bool hasPathEvidence =
+      !outputPaths.empty() || llvm::any_of(proposals, [](TableProposeOp op) {
+        return static_cast<bool>(op.getWhen());
+      });
+  if (hasPathEvidence) {
+    if (conditions != 1)
+      return emitOpError("SSA path evidence requires one rule condition");
+    if (outputPaths.size() != getOutputs().size())
+      return emitOpError("requires one SSA presence record per output");
+    llvm::SmallDenseSet<int64_t> ordinals;
+    for (RuleOutputOp output : outputPaths) {
+      if (!ordinals.insert(output.getOrdinal()).second)
+        return output.emitOpError(
+            "output presence must uniquely name one rule result");
+      if (!presenceImpliesCandidate(output.getWhen(), conditionValue) ||
+          (output.getWhen() != conditionValue &&
+           (getInputs().size() != 1 ||
+            constantVarBool(conditionValue) != true)))
+        return output.emitOpError(
+            "optional output presence requires one input and a true candidate");
+    }
+    SmallVector<Value> divergentPresences;
+    for (TableProposeOp proposal : proposals) {
+      if (!proposal.getWhen() ||
+          !presenceImpliesCandidate(proposal.getWhen(), conditionValue))
+        return proposal.emitOpError(
+            "state proposal presence must imply the rule condition");
+      if (proposal.getWhen() != conditionValue) {
+        if (getInputs().size() != 1)
+          return proposal.emitOpError(
+              "conditional-effect presence requires one input");
+        if (!llvm::is_contained(divergentPresences, proposal.getWhen())) {
+          if (divergentPresences.size() >= 2 ||
+              (!divergentPresences.empty() &&
+               !areBooleanComplements(divergentPresences.front(),
+                                      proposal.getWhen())))
+            return proposal.emitOpError(
+                "conditional-effect presences must share one predicate or "
+                "one complementary pair");
+          divergentPresences.push_back(proposal.getWhen());
+        }
+      }
+    }
+  }
+  llvm::StringSet<> proposalOwners;
+  for (TableProposeOp proposal : proposals)
+    if (!proposalOwners.insert(proposal.getTable()).second)
+      return proposal.emitOpError(
+          "first multi-state rule slice permits one proposal per owner");
+  if (proposals.empty() && !tableReads.empty())
     return emitOpError("Table observation requires a stateful Table proposal");
-  if (proposals == 1)
-    for (Operation &operation : block.without_terminator())
-      if (auto get = dyn_cast<TableGetOp>(operation))
-        if (get.getTableAttr() != proposalTable)
-          return emitOpError("may observe only its proposed Table");
+  for (TableGetOp read : tableReads)
+    if (TableOp table = resolveTable(read, read.getTableAttr());
+        !table || failed(verifyStaticallySafeRuleTableIndex(read, table,
+                                                            read.getIndex()))) {
+      return failure();
+    }
+  if (getInputs().empty() && getOutputs().empty() && proposals.empty())
+    return emitOpError("rule without Queue endpoints must update state");
   auto yield = dyn_cast<RuleReturnOp>(block.getTerminator());
-  if (!yield || yield.getValues().size() != 1 ||
-      yield.getValues().front().getType() != expected)
-    return emitOpError("body must return exactly one matching payload Var");
+  if (!yield || yield.getValues().size() != getOutputs().size())
+    return emitOpError("body return count must match output Queue count");
+  for (auto [value, output] :
+       llvm::zip_equal(yield.getValues(), getOutputs())) {
+    auto outputQueue = cast<QueueType>(output.getType());
+    Type expectedOutput =
+        VarType::get(getContext(), outputQueue.getElementType());
+    if (value.getType() != expectedOutput)
+      return emitOpError("returned payload must match output Queue type");
+  }
+  return success();
+}
+
+static LogicalResult verifyI1VarCondition(Operation *operation,
+                                          Value condition) {
+  auto variable = dyn_cast<VarType>(condition.getType());
+  if (!variable || !variable.getElementType().isInteger(1))
+    return operation->emitOpError("condition must be !ac.var<i1>");
+  return success();
+}
+
+LogicalResult RuleConditionOp::verify() {
+  return verifyI1VarCondition(*this, getCondition());
+}
+
+LogicalResult FiringConditionOp::verify() {
+  return verifyI1VarCondition(*this, getCondition());
+}
+
+LogicalResult RuleOutputOp::verify() {
+  if (failed(verifyI1VarCondition(*this, getWhen())))
+    return failure();
+  RuleOp rule = (*this)->getParentOfType<RuleOp>();
+  if (!rule || getOrdinal() < 0 ||
+      static_cast<size_t>(getOrdinal()) >= rule.getOutputs().size())
+    return emitOpError("ordinal must name one rule output");
+  auto queue = cast<QueueType>(rule.getOutputs()[getOrdinal()].getType());
+  if (getValue().getType() !=
+      VarType::get(getContext(), queue.getElementType()))
+    return emitOpError("value must match the selected rule output payload");
+  auto returned =
+      dyn_cast<RuleReturnOp>(rule.getBody().front().getTerminator());
+  if (!returned)
+    return emitOpError("requires ac.rule.return");
+  Value returnedValue = returned.getValues()[getOrdinal()];
+  if (returnedValue != getValue()) {
+    auto obligation = returnedValue.getDefiningOp<PendingObligationMarkerOp>();
+    if (!obligation || obligation.getInput() != getValue())
+      return emitOpError("value must be the matching ac.rule.return payload");
+  }
+  return success();
+}
+
+LogicalResult FiringOutputOp::verify() {
+  if (failed(verifyI1VarCondition(*this, getWhen())))
+    return failure();
+  FiringOp firing = (*this)->getParentOfType<FiringOp>();
+  if (!firing || getOrdinal() < 0 ||
+      static_cast<size_t>(getOrdinal()) >= firing.getOutputs().size())
+    return emitOpError("ordinal must name one firing output");
+  auto queue = cast<QueueType>(firing.getOutputs()[getOrdinal()].getType());
+  if (getValue().getType() !=
+      VarType::get(getContext(), queue.getElementType()))
+    return emitOpError("value must match the selected firing output payload");
+  auto yielded =
+      dyn_cast<FiringYieldOp>(firing.getBody().front().getTerminator());
+  if (!yielded || yielded.getValues()[getOrdinal()] != getValue())
+    return emitOpError("value must be the matching ac.firing.yield operand");
+  return success();
+}
+
+LogicalResult StateSnapshotOp::verify() {
+  if (!isa_and_nonnull<RuleOp, FiringOp>((*this)->getParentOp()))
+    return emitOpError("must be nested directly in ac.rule or ac.firing");
+  if (failed(verifyI1VarCondition(*this, getPredicate())))
+    return failure();
+  TableOp table = resolveTable(*this, getTableAttr());
+  if (!table)
+    return emitOpError() << "unresolved table " << getTable();
+  if (!tableVisibleFrom(*this, table))
+    return emitOpError("table is outside the snapshot scope ancestry");
+  if (table.getEntries() > 64)
+    return emitOpError("state snapshot supports at most 64 entries");
+  if (failed(verifyTableFields(*this, table, getReadFields(), "read")))
+    return failure();
+  if (!tableWriteFieldsAreComplete(*this, table, getReadFields())) {
+    FailureOr<uint64_t> fieldCount = tableEntryFieldCount(*this, table);
+    if (failed(fieldCount) ||
+        static_cast<uint64_t>(table.getEntries()) * *fieldCount > 64)
+      return emitOpError(
+          "field-qualified snapshot exceeds the 64-bit entry/field relation");
+  }
+  if (getIndexKind() == RuleIndexKind::All) {
+    if (getIndex())
+      return emitOpError("all-entry snapshot must not carry an index");
+    return success();
+  }
+  if (!getIndex())
+    return emitOpError("indexed snapshot requires an index");
+  if (failed(verifyStaticallySafeRuleTableIndex(*this, table, getIndex())))
+    return failure();
+  const bool isStatic =
+      static_cast<bool>(getIndex().getDefiningOp<VarConstantOp>());
+  if (isStatic != (getIndexKind() == RuleIndexKind::Static))
+    return emitOpError("index_kind must match the snapshot index definition");
+  return success();
+}
+
+LogicalResult StateSnapshotSetOp::verify() {
+  if (!isa_and_nonnull<RuleOp, FiringOp>((*this)->getParentOp()))
+    return emitOpError("must be nested directly in ac.rule or ac.firing");
+  if (failed(verifyI1VarCondition(*this, getPredicate())))
+    return failure();
+  TableOp table = resolveTable(*this, getTableAttr());
+  if (!table)
+    return emitOpError() << "unresolved table " << getTable();
+  if (!tableVisibleFrom(*this, table))
+    return emitOpError("table is outside the snapshot-set scope ancestry");
+  if (table.getEntries() > 64)
+    return emitOpError("snapshot-set target supports at most 64 entries");
+  if (failed(verifyTableFields(*this, table, getReadFields(), "read")))
+    return failure();
+  if (!tableWriteFieldsAreComplete(*this, table, getReadFields())) {
+    FailureOr<uint64_t> fieldCount = tableEntryFieldCount(*this, table);
+    if (failed(fieldCount) ||
+        static_cast<uint64_t>(table.getEntries()) * *fieldCount > 64)
+      return emitOpError(
+          "field-qualified snapshot-set exceeds the 64-bit entry/field "
+          "relation");
+  }
+  Region *sourceRegion = nullptr;
+  if (auto match = getSource().getDefiningOp<TableMatchOp>()) {
+    if (match->getParentOp() != (*this)->getParentOp())
+      return emitOpError(
+          "source table.match must belong to the owning rule/firing");
+    sourceRegion = &match.getPredicate();
+  } else if (auto choose = getSource().getDefiningOp<TableChooseOp>()) {
+    if (getSource() != choose.getIndex() ||
+        choose->getParentOp() != (*this)->getParentOp())
+      return emitOpError(
+          "source table.choose must use the owning rule/firing's index result");
+    sourceRegion = &choose.getKey();
+  } else {
+    return emitOpError(
+        "source must be an owning rule/firing table.match mask or "
+        "table.choose index");
+  }
+  bool foundTarget = false;
+  sourceRegion->walk([&](TableGetOp read) {
+    foundTarget |= resolveTable(read, read.getTableAttr()) == table;
+  });
+  if (!foundTarget)
+    return emitOpError(
+        "source evaluation must contain a region-local read of the target "
+        "table");
   return success();
 }
 
@@ -588,8 +1120,8 @@ LogicalResult ScopeOp::verify() {
 }
 
 LogicalResult FiringOp::verify() {
-  if (getInputs().empty() || getOutputs().empty())
-    return emitOpError("requires input and output Queues");
+  if (getOutputs().size() > 1)
+    return emitOpError("currently supports at most one output Queue");
   if (getOutputDepthsAttr().size() != getOutputs().size() ||
       getOutputLatenciesAttr().size() != getOutputs().size())
     return emitOpError("output depth/latency counts must match results");
@@ -616,58 +1148,196 @@ LogicalResult FiringOp::verify() {
   }
   SmallVector<TableProposeOp> proposals;
   SmallVector<TableGetOp> tableReads;
+  SmallVector<FiringConditionOp> conditions;
   getBody().walk(
       [&](TableProposeOp proposal) { proposals.push_back(proposal); });
   getBody().walk([&](TableGetOp read) { tableReads.push_back(read); });
-  if (proposals.size() > 1)
-    return emitOpError("stateful firing phase one permits one Table proposal");
-  if (tableReads.size() > 1)
-    return emitOpError(
-        "stateful firing phase one permits one Table observation");
-  if (!tableReads.empty() &&
-      (proposals.empty() ||
-       tableReads.front().getTableAttr() != proposals.front().getTableAttr()))
-    return emitOpError("stateful firing may observe only its proposed Table");
-  if (!proposals.empty()) {
-    FlatSymbolRefAttr table = proposals.front().getTableAttr();
-    bool conflictingWriter = false;
-    auto module = (*this)->getParentOfType<ModuleOp>();
-    if (module)
-      module.walk([&](Operation *operation) {
-        if (operation == proposals.front().getOperation())
-          return;
-        if (auto proposal = dyn_cast<TableProposeOp>(operation))
-          conflictingWriter |= proposal.getTableAttr() == table;
-        else if (auto write = dyn_cast<TableWriteOp>(operation))
-          conflictingWriter |= write.getTableAttr() == table;
-        else if (auto write = dyn_cast<TableMaskedWriteOp>(operation))
-          conflictingWriter |= write.getTableAttr() == table;
+  getBody().walk(
+      [&](FiringConditionOp condition) { conditions.push_back(condition); });
+  for (TableGetOp read : tableReads)
+    if (TableOp table = resolveTable(read, read.getTableAttr());
+        !table || failed(verifyStaticallySafeRuleTableIndex(read, table,
+                                                            read.getIndex()))) {
+      return failure();
+    }
+  if (getInputs().empty() && getOutputs().empty() && proposals.empty())
+    return emitOpError("firing without Queue endpoints must update state");
+  if (conditions.size() > 1)
+    return emitOpError("permits at most one functional condition");
+  SmallVector<FiringOutputOp> outputPaths;
+  getBody().walk([&](FiringOutputOp output) { outputPaths.push_back(output); });
+  const bool hasPathEvidence =
+      !outputPaths.empty() || llvm::any_of(proposals, [](TableProposeOp op) {
+        return static_cast<bool>(op.getWhen());
       });
-    if (conflictingWriter)
+  if (hasPathEvidence) {
+    if (conditions.size() != 1)
+      return emitOpError("SSA path evidence requires one firing condition");
+    if (outputPaths.size() != getOutputs().size())
+      return emitOpError("requires one SSA presence record per output");
+    Value condition = conditions.front().getCondition();
+    llvm::SmallDenseSet<int64_t> ordinals;
+    for (FiringOutputOp output : outputPaths) {
+      if (!ordinals.insert(output.getOrdinal()).second)
+        return output.emitOpError(
+            "output presence must uniquely name one firing result");
+      if (!presenceImpliesCandidate(output.getWhen(), condition) ||
+          (output.getWhen() != condition &&
+           (getInputs().size() != 1 || constantVarBool(condition) != true)))
+        return output.emitOpError(
+            "optional output presence requires one input and a true candidate");
+    }
+    SmallVector<Value> divergentPresences;
+    for (TableProposeOp proposal : proposals) {
+      if (!proposal.getWhen() ||
+          !presenceImpliesCandidate(proposal.getWhen(), condition))
+        return proposal.emitOpError(
+            "state proposal presence must imply the firing condition");
+      if (proposal.getWhen() != condition) {
+        if (getInputs().size() != 1)
+          return proposal.emitOpError(
+              "conditional-effect presence requires one input");
+        if (!llvm::is_contained(divergentPresences, proposal.getWhen())) {
+          if (divergentPresences.size() >= 2 ||
+              (!divergentPresences.empty() &&
+               !areBooleanComplements(divergentPresences.front(),
+                                      proposal.getWhen())))
+            return proposal.emitOpError(
+                "conditional-effect presences must share one predicate or "
+                "one complementary pair");
+          divergentPresences.push_back(proposal.getWhen());
+        }
+      }
+    }
+  }
+  llvm::StringSet<> proposalOwners;
+  for (TableProposeOp proposal : proposals)
+    if (!proposalOwners.insert(proposal.getTable()).second)
+      return proposal.emitOpError(
+          "first multi-state firing slice permits one proposal per owner");
+  auto priority = (*this)->getAttrOfType<IntegerAttr>("ac.rule_priority");
+  auto footprints = (*this)->getAttrOfType<ArrayAttr>("ac.rule_footprints");
+  const bool requiresInferredSchedule =
+      modelKind && modelKind.getValue() == "queue_graph";
+  if ((requiresInferredSchedule && (!priority || !footprints)) ||
+      static_cast<bool>(priority) != static_cast<bool>(footprints) ||
+      (priority && priority.getInt() < 0))
+    return emitOpError(
+        "requires inferred non-negative priority and typed footprints");
+  if (footprints) {
+    SmallVector<Operation *> stateOperations;
+    getBody().walk([&](Operation *operation) {
+      if (isa<TableGetOp, TableMatchOp, TableChooseOp, TableProposeOp>(
+              operation))
+        stateOperations.push_back(operation);
+    });
+    if (footprints.size() != stateOperations.size())
       return emitOpError(
-          "stateful firing requires exclusive Table write ownership");
+          "inferred footprint count must match state operations");
+    for (auto [rawFootprint, operation] :
+         llvm::zip_equal(footprints, stateOperations)) {
+      auto footprint = dyn_cast<DictionaryAttr>(rawFootprint);
+      auto access =
+          footprint ? footprint.getAs<StringAttr>("access") : StringAttr();
+      auto resource = footprint ? footprint.getAs<FlatSymbolRefAttr>("resource")
+                                : FlatSymbolRefAttr();
+      auto indexKind =
+          footprint ? footprint.getAs<StringAttr>("index_kind") : StringAttr();
+      auto footprintGuard =
+          footprint ? footprint.getAs<RuleGuardKindAttr>("guard_kind")
+                    : RuleGuardKindAttr();
+      if (!access || !resource || !indexKind || !footprintGuard ||
+          (indexKind.getValue() != "static" &&
+           indexKind.getValue() != "dynamic" && indexKind.getValue() != "all"))
+        return emitOpError("has malformed inferred state footprint");
+      Value index;
+      StringRef expectedAccess;
+      FlatSymbolRefAttr expectedResource;
+      ArrayAttr expectedFields;
+      RuleGuardKind expectedFootprintGuard = RuleGuardKind::Always;
+      if (auto read = dyn_cast<TableGetOp>(operation)) {
+        index = read.getIndex();
+        expectedAccess = "read";
+        expectedResource = read.getTableAttr();
+      } else if (auto match = dyn_cast<TableMatchOp>(operation)) {
+        expectedAccess = "read";
+        expectedResource = match.getTableAttr();
+      } else if (auto choose = dyn_cast<TableChooseOp>(operation)) {
+        expectedAccess = "read";
+        expectedResource = choose.getTableAttr();
+      } else {
+        auto proposal = cast<TableProposeOp>(operation);
+        index = proposal.getIndex();
+        expectedAccess = proposal.getMode();
+        expectedResource = proposal.getTableAttr();
+        expectedFields = proposal.getWriteFieldsAttr();
+        expectedFootprintGuard =
+            proposal.getWhen()
+                ? guardKindFor(proposal.getWhen())
+                : (conditions.empty()
+                       ? RuleGuardKind::Always
+                       : guardKindFor(conditions.front().getCondition()));
+      }
+      StringRef expectedIndexKind =
+          !index
+              ? "all"
+              : (index.getDefiningOp<VarConstantOp>() ? "static" : "dynamic");
+      auto fields = footprint.getAs<ArrayAttr>("fields");
+      if (access.getValue() != expectedAccess || resource != expectedResource ||
+          indexKind.getValue() != expectedIndexKind ||
+          fields != expectedFields ||
+          footprintGuard.getValue() != expectedFootprintGuard)
+        return emitOpError(
+            "inferred footprint must exactly match its state operation");
+    }
   }
   Builder builder(getContext());
   ArrayAttr expectedEffects;
+  std::string expectedHandshakeStorage;
   StringRef expectedHandshake;
   StringRef expectedSchedule;
+  SmallVector<StringRef> effectNames;
+  if (!getInputs().empty())
+    effectNames.push_back("input.consume");
+  if (!getOutputs().empty())
+    effectNames.push_back("output.produce");
   if (proposals.empty()) {
-    expectedEffects =
-        builder.getStrArrayAttr({"input.consume", "output.produce"});
-    expectedHandshake = "ready_valid_1x1";
+    expectedEffects = builder.getStrArrayAttr(effectNames);
+    expectedHandshakeStorage = "ready_valid_" +
+                               std::to_string(getInputs().size()) + "x" +
+                               std::to_string(getOutputs().size());
+    expectedHandshake = expectedHandshakeStorage;
     expectedSchedule = "independent";
   } else {
-    std::string tableEffect =
-        "table.replace:" + proposals.front().getTable().str();
-    expectedEffects = builder.getStrArrayAttr(
-        {"input.consume", "output.produce", tableEffect});
-    expectedHandshake = "ready_valid_1x1_table";
-    expectedSchedule = "independent_table_exclusive";
+    SmallVector<std::string> tableEffects;
+    llvm::StringSet<> seenTables;
+    for (TableProposeOp proposal : proposals)
+      if (seenTables.insert(proposal.getTable()).second)
+        tableEffects.push_back("table.replace:" + proposal.getTable().str());
+    for (const std::string &effect : tableEffects)
+      effectNames.push_back(effect);
+    expectedEffects = builder.getStrArrayAttr(effectNames);
+    expectedHandshakeStorage = "ready_valid_" +
+                               std::to_string(getInputs().size()) + "x" +
+                               std::to_string(getOutputs().size()) + "_table";
+    expectedHandshake = expectedHandshakeStorage;
+    expectedSchedule = "table_lexical_priority";
   }
-  if (getInputs().size() != 1 || getOutputs().size() != 1 ||
-      getInputs().front().getType() != getOutputs().front().getType() ||
-      getFunctionalGuard() != "true" || !getChecks().empty() ||
-      getHandshake() != expectedHandshake ||
+  const bool validArity =
+      getOutputs().size() <= 1 &&
+      (!getInputs().empty() || !getOutputs().empty() || !proposals.empty());
+  StringRef expectedGuard = "true";
+  if (!conditions.empty()) {
+    auto constant =
+        conditions.front().getCondition().getDefiningOp<VarConstantOp>();
+    auto value =
+        constant ? dyn_cast<IntegerAttr>(constant.getValue()) : IntegerAttr();
+    expectedGuard = value && !value.getValue().isZero() ? "true" : "dynamic";
+  } else if (requiresInferredSchedule) {
+    return emitOpError("requires one typed functional condition");
+  }
+  if (!validArity || getFunctionalGuard() != expectedGuard ||
+      !getChecks().empty() || getHandshake() != expectedHandshake ||
       getSchedule() != expectedSchedule || getEffects() != expectedEffects)
     return emitOpError(
         "has invalid phase-one guard/checks/handshake/schedule/effects "
@@ -685,7 +1355,9 @@ LogicalResult FiringOp::verify() {
   }
   for (Operation &operation : block.without_terminator())
     if (!isMemoryEffectFree(&operation) &&
-        !isa<TableGetOp, TableProposeOp>(operation))
+        !isa<TableGetOp, TableProposeOp, TableMatchOp, TableChooseOp,
+             VarAssignOp, FiringConditionOp, FiringOutputOp, StateSnapshotOp,
+             StateSnapshotSetOp>(operation))
       return emitOpError() << "body operation '" << operation.getName()
                            << "' must be pure after marker elimination";
   auto yield = dyn_cast<FiringYieldOp>(block.getTerminator());
@@ -698,7 +1370,12 @@ LogicalResult FiringOp::verify() {
     if (value.getType() != expected)
       return emitOpError("yielded values must match output Queue payloads");
   }
-  return success();
+  if ((*this)->hasAttr("ac.guard_kind") &&
+      failed(verifyTypedRuleSummary(getOperation(), getInputs(), getOutputs(),
+                                    getBody(), footprints, priority, "ac.")))
+    return failure();
+  return verifyActivationEvidence(getOperation(), getInputs(), getOutputs(),
+                                  getBody(), false);
 }
 
 namespace detail {
@@ -840,6 +1517,10 @@ bool isNormativeValueType(Type type) {
     return isNormativeValueType(vector.getElementType());
   if (auto vector = dyn_cast<mlir::VectorType>(type))
     return isNormativeValueType(vector.getElementType());
+  if (auto array = dyn_cast<ValueArrayType>(type))
+    return isNormativeValueType(array.getElementType());
+  if (auto tuple = dyn_cast<mlir::TupleType>(type))
+    return llvm::all_of(tuple.getTypes(), isNormativeValueType);
   return false;
 }
 
@@ -1063,6 +1744,14 @@ SmallVector<NamedRef> directValueReferences(Type type) {
     return directValueReferences(vector.getElementType());
   if (auto vector = dyn_cast<mlir::VectorType>(type))
     return directValueReferences(vector.getElementType());
+  if (auto array = dyn_cast<ValueArrayType>(type))
+    return directValueReferences(array.getElementType());
+  if (auto tuple = dyn_cast<mlir::TupleType>(type)) {
+    SmallVector<NamedRef> result;
+    for (Type element : tuple.getTypes())
+      llvm::append_range(result, directValueReferences(element));
+    return result;
+  }
   return {};
 }
 
@@ -1172,6 +1861,26 @@ LogicalResult verifyUniqueEnumerants(EnumOp op) {
   return success();
 }
 
+std::string bitfieldFingerprint(int64_t width, ArrayAttr fields) {
+  std::string preimage;
+  llvm::raw_string_ostream stream(preimage);
+  stream << R"({"kind":"bitfield","version":1,"width":)" << width
+         << R"(,"fields":[)";
+  for (auto [index, attribute] : llvm::enumerate(fields)) {
+    DictionaryAttr field = cast<DictionaryAttr>(attribute);
+    if (index)
+      stream << ',';
+    stream << '[' << llvm::json::Value(cast<StringAttr>(field.get("name"))
+                                           .getValue())
+           << ',' << cast<IntegerAttr>(field.get("msb")).getInt() << ','
+           << cast<IntegerAttr>(field.get("lsb")).getInt() << ']';
+  }
+  stream << "]}";
+  llvm::SHA256 sha;
+  sha.update(stream.str());
+  return "sha256:" + llvm::toHex(sha.final(), /*LowerCase=*/true);
+}
+
 } // namespace
 
 DataLayoutSpecInterface TypeScopeOp::getDataLayoutSpec() {
@@ -1194,6 +1903,42 @@ LogicalResult StructOp::verify() {
   if (failed(verifyRecordDeclaration(*this, getFields())))
     return failure();
   return verifyDeclarationLayout(*this);
+}
+
+LogicalResult BitfieldOp::verify() {
+  if (failed(verifyPlacement(*this)))
+    return failure();
+  if (getWidth() <= 0 || getWidth() > 64)
+    return emitOpError("width must be in [1, 64]");
+  if (getFields().empty())
+    return emitOpError("requires at least one field");
+
+  llvm::SmallDenseSet<StringRef> names;
+  StringRef previous;
+  for (Attribute attribute : getFields()) {
+    auto field = dyn_cast<DictionaryAttr>(attribute);
+    if (!field || field.size() != 3)
+      return emitOpError(
+          "fields must contain exact {name, msb, lsb} records");
+    auto name = field.getAs<StringAttr>("name");
+    auto msb = field.getAs<IntegerAttr>("msb");
+    auto lsb = field.getAs<IntegerAttr>("lsb");
+    if (!name || name.getValue().empty() || !msb || !lsb)
+      return emitOpError(
+          "fields must contain non-empty name and integer msb/lsb");
+    if (!names.insert(name.getValue()).second)
+      return emitOpError() << "duplicate field '" << name.getValue() << "'";
+    if (!previous.empty() && previous >= name.getValue())
+      return emitOpError("fields must be sorted by UTF-8 name");
+    previous = name.getValue();
+    if (lsb.getInt() < 0 || msb.getInt() < lsb.getInt() ||
+        msb.getInt() >= getWidth())
+      return emitOpError() << "field '" << name.getValue()
+                           << "' range must satisfy 0 <= lsb <= msb < width";
+  }
+  if (getFingerprint() != bitfieldFingerprint(getWidth(), getFields()))
+    return emitOpError("fingerprint does not match canonical schema");
+  return success();
 }
 
 LogicalResult TransactionOp::verify() {
@@ -1284,6 +2029,296 @@ LogicalResult VarConstantOp::verify() {
   return success();
 }
 
+LogicalResult VarEnumOp::verify() {
+  auto declaration = dyn_cast_or_null<EnumOp>(lookup(*this, getDeclaration()));
+  if (!declaration)
+    return emitOpError("declaration must resolve to ac.enum");
+  auto result = dyn_cast<EnumType>(cast<VarType>(getResult().getType())
+                                       .getElementType());
+  if (!result || result.getName() != getDeclaration())
+    return emitOpError("result must carry the referenced nominal enum type");
+  if (!llvm::any_of(declaration.getEnumerants(), [&](Attribute value) {
+        return cast<StringAttr>(value).getValue() == getEnumerant();
+      }))
+    return emitOpError() << "unknown enumerant '" << getEnumerant() << "'";
+  return success();
+}
+
+LogicalResult VarTupleOp::verify() {
+  auto tuple = dyn_cast<mlir::TupleType>(
+      cast<VarType>(getResult().getType()).getElementType());
+  if (!tuple || tuple.size() == 0 || tuple.size() != getValues().size())
+    return emitOpError("result tuple must match the non-empty operand list");
+  for (auto [value, type] : llvm::zip_equal(getValues(), tuple.getTypes()))
+    if (value.getType() != VarType::get(getContext(), type))
+      return emitOpError("tuple operand types must match result elements");
+  return success();
+}
+
+LogicalResult VarArrayOp::verify() {
+  auto array = dyn_cast<ValueArrayType>(
+      cast<VarType>(getResult().getType()).getElementType());
+  if (!array || array.getLength() <= 0 ||
+      static_cast<size_t>(array.getLength()) != getValues().size())
+    return emitOpError("result value_array length must match operands");
+  Type expected = VarType::get(getContext(), array.getElementType());
+  if (llvm::any_of(getValues(),
+                   [&](Value value) { return value.getType() != expected; }))
+    return emitOpError("value_array operands must match its element type");
+  return success();
+}
+
+LogicalResult VarElementOp::verify() {
+  Type aggregate = cast<VarType>(getAggregate().getType()).getElementType();
+  Type expected;
+  int64_t length = 0;
+  if (auto tuple = dyn_cast<mlir::TupleType>(aggregate)) {
+    length = tuple.size();
+    if (getIndex() >= 0 && getIndex() < length)
+      expected = tuple.getType(getIndex());
+  } else if (auto array = dyn_cast<ValueArrayType>(aggregate)) {
+    length = array.getLength();
+    if (getIndex() >= 0 && getIndex() < length)
+      expected = array.getElementType();
+  } else {
+    return emitOpError("aggregate must be tuple or value_array");
+  }
+  if (getIndex() < 0 || getIndex() >= length)
+    return emitOpError("aggregate index is out of range");
+  if (getResult().getType() != VarType::get(getContext(), expected))
+    return emitOpError("result must match the selected aggregate element");
+  return success();
+}
+
+static VarDeclOp resolveVarDecl(Operation *operation,
+                                FlatSymbolRefAttr reference) {
+  for (Operation *ancestor = operation->getParentOp(); ancestor;
+       ancestor = ancestor->getParentOp()) {
+    if (ancestor->getNumRegions() != 1 || !ancestor->getRegion(0).hasOneBlock())
+      continue;
+    for (VarDeclOp variable :
+         ancestor->getRegion(0).front().getOps<VarDeclOp>())
+      if (variable.getSymName() == reference.getValue())
+        return variable;
+  }
+  return {};
+}
+
+LogicalResult VarDeclOp::verify() {
+  if (!isImmutablePayloadType(getValueType()))
+    return emitOpError("value type must be an immutable ACIR payload type");
+  if (auto shape = getShapeAttr()) {
+    ArrayRef<int64_t> dimensions = shape.asArrayRef();
+    if (dimensions.size() != 1 || dimensions.front() <= 0)
+      return emitOpError(
+          "persistent ac.var shape must be one positive dimension");
+  }
+  auto init = dyn_cast<TypedAttr>(getInit());
+  const auto zero = dyn_cast<IntegerAttr>(getInit());
+  const bool zeroImage = zero && zero.getValue().isZero();
+  if ((!init || init.getType() != getValueType()) &&
+      !(isa<StructType>(getValueType()) && zeroImage))
+    return emitOpError(
+        "init must match value type or be the zero image for a struct");
+  if (getOwner().empty() || !getOwner().starts_with('/') ||
+      (getOwner().size() > 1 && getOwner().ends_with('/')))
+    return emitOpError("owner must be a canonical absolute scope path");
+  std::string expected = "var/";
+  if (getOwner() != "/") {
+    expected.append(getOwner().drop_front());
+    expected.push_back('/');
+  }
+  expected.append(getSymName());
+  if (getStableId() != expected)
+    return emitOpError("stable_id must match canonical owner/symbol identity");
+  return success();
+}
+
+LogicalResult VarReadOp::verify() {
+  VarDeclOp variable = resolveVarDecl(*this, getVariableAttr());
+  if (!variable)
+    return emitOpError() << "unresolved ac.var " << getVariable();
+  if (variable.getShapeAttr())
+    return emitOpError("shaped ac.var requires ac.var.read_element");
+  Type expected = VarType::get(getContext(), variable.getValueType());
+  if (getResult().getType() != expected)
+    return emitOpError("result must match declared ac.var value type");
+  return success();
+}
+
+static LogicalResult verifyVarElementAccess(Operation *operation,
+                                            FlatSymbolRefAttr variableRef,
+                                            Value index, Type valueType) {
+  VarDeclOp variable = resolveVarDecl(operation, variableRef);
+  if (!variable)
+    return operation->emitOpError()
+           << "unresolved ac.var " << variableRef.getValue();
+  auto shape = variable.getShapeAttr();
+  if (!shape || shape.asArrayRef().size() != 1)
+    return operation->emitOpError("requires a one-dimensional shaped ac.var");
+  auto indexVar = dyn_cast<VarType>(index.getType());
+  auto indexType = indexVar ? dyn_cast<IntegerType>(indexVar.getElementType())
+                            : IntegerType();
+  if (!indexType)
+    return operation->emitOpError("index must be an integer ac.var");
+  const int64_t entries = shape.asArrayRef().front();
+  if (auto constant = index.getDefiningOp<VarConstantOp>()) {
+    auto value = dyn_cast<IntegerAttr>(constant.getValue());
+    if (!value || value.getValue().isNegative() ||
+        value.getValue().uge(static_cast<uint64_t>(entries)))
+      return operation->emitOpError("constant element index is out of range");
+    Type expected =
+        VarType::get(operation->getContext(), variable.getValueType());
+    if (valueType != expected)
+      return operation->emitOpError(
+          "element value must match declared ac.var element type");
+    return success();
+  }
+  Type expected =
+      VarType::get(operation->getContext(), variable.getValueType());
+  if (valueType != expected)
+    return operation->emitOpError(
+        "element value must match declared ac.var element type");
+  return success();
+}
+
+LogicalResult VarReadElementOp::verify() {
+  return verifyVarElementAccess(*this, getVariableAttr(), getIndex(),
+                                getResult().getType());
+}
+
+LogicalResult VarAssignOp::verify() {
+  if (!isa_and_nonnull<RuleOp, FiringOp>((*this)->getParentOp()))
+    return emitOpError("must be nested directly in ac.rule or ac.firing");
+  VarDeclOp variable = resolveVarDecl(*this, getVariableAttr());
+  if (!variable)
+    return emitOpError() << "unresolved ac.var " << getVariable();
+  if (variable.getShapeAttr())
+    return emitOpError("shaped ac.var requires ac.var.assign_element");
+  Type expected = VarType::get(getContext(), variable.getValueType());
+  if (getValue().getType() != expected)
+    return emitOpError("assigned value must match declared ac.var value type");
+  if (getWhen() && failed(verifyI1VarCondition(*this, getWhen())))
+    return failure();
+  return success();
+}
+
+LogicalResult VarAssignElementOp::verify() {
+  if (!isa_and_nonnull<RuleOp, FiringOp>((*this)->getParentOp()))
+    return emitOpError("must be nested directly in ac.rule or ac.firing");
+  if (failed(verifyVarElementAccess(*this, getVariableAttr(), getIndex(),
+                                    getValue().getType())))
+    return failure();
+  if (getWhen() && failed(verifyI1VarCondition(*this, getWhen())))
+    return failure();
+  return success();
+}
+
+static FailureOr<std::pair<VarDeclOp, int64_t>>
+resolveVarCollection(Operation *operation, FlatSymbolRefAttr variableRef) {
+  VarDeclOp variable = resolveVarDecl(operation, variableRef);
+  if (!variable) {
+    operation->emitOpError() << "unresolved ac.var " << variableRef.getValue();
+    return failure();
+  }
+  auto shape = variable.getShapeAttr();
+  if (!shape || shape.asArrayRef().size() != 1) {
+    operation->emitOpError("requires a one-dimensional shaped ac.var");
+    return failure();
+  }
+  return std::make_pair(variable, shape.asArrayRef().front());
+}
+
+LogicalResult VarMatchOp::verify() {
+  auto collection = resolveVarCollection(*this, getVariableAttr());
+  if (failed(collection))
+    return failure();
+  VarDeclOp variable = collection->first;
+  const int64_t entries = collection->second;
+  if (entries <= 0 || entries > 64)
+    return emitOpError("match domain must contain 1..64 elements");
+  if (getMask().getType() !=
+      VarType::get(getContext(), IntegerType::get(getContext(), entries)))
+    return emitOpError("mask width must equal the ac.var domain");
+  if (!getPredicate().hasOneBlock())
+    return emitOpError("predicate must contain exactly one block");
+  Block &block = getPredicate().front();
+  Type element = VarType::get(getContext(), variable.getValueType());
+  if (block.getNumArguments() != 1 || block.getArgument(0).getType() != element)
+    return emitOpError("predicate argument must match the ac.var element");
+  for (Operation &operation : block.without_terminator())
+    if (!isa<SlotGetOp, VarReadOp, VarReadElementOp>(operation) &&
+        !isMemoryEffectFree(&operation))
+      return emitOpError() << "predicate operation '" << operation.getName()
+                           << "' is not permitted";
+  auto yield = dyn_cast<VarMatchYieldOp>(block.getTerminator());
+  if (!yield ||
+      !cast<VarType>(yield.getValue().getType()).getElementType().isInteger(1))
+    return emitOpError("predicate must yield !ac.var<i1>");
+  return success();
+}
+
+LogicalResult VarChooseOp::verify() {
+  auto collection = resolveVarCollection(*this, getVariableAttr());
+  if (failed(collection))
+    return failure();
+  VarDeclOp variable = collection->first;
+  const int64_t entries = collection->second;
+  if (entries <= 0 || entries > 64)
+    return emitOpError("choose domain must contain 1..64 elements");
+  auto mask = dyn_cast<IntegerType>(
+      cast<VarType>(getMask().getType()).getElementType());
+  if (!mask || mask.getWidth() != static_cast<unsigned>(entries))
+    return emitOpError("candidate mask width must equal the ac.var domain");
+  auto match = getMask().getDefiningOp<VarMatchOp>();
+  if (!match)
+    return emitOpError(
+        "candidate mask must be produced directly by ac.var.match");
+  if (resolveVarDecl(match, match.getVariableAttr()) != variable)
+    return emitOpError("candidate mask must come from the same ac.var");
+  if (getCount() != 1)
+    return emitOpError("choose supports count=1 only");
+  if (getPolicy() != "first" && getPolicy() != "min" && getPolicy() != "max")
+    return emitOpError("policy must be first, min, or max");
+  unsigned indexWidth =
+      std::max<unsigned>(1, llvm::Log2_64_Ceil(static_cast<uint64_t>(entries)));
+  if (getIndex().getType() !=
+      VarType::get(getContext(), IntegerType::get(getContext(), indexWidth)))
+    return emitOpError("index result width must address the ac.var domain");
+  if (getValid().getType() !=
+      VarType::get(getContext(), IntegerType::get(getContext(), 1)))
+    return emitOpError("valid result must be !ac.var<i1>");
+  if (getPolicy() == "first") {
+    if (!getKey().empty() &&
+        !(getKey().hasOneBlock() && getKey().front().empty()))
+      return emitOpError("first policy does not accept a key region");
+    return success();
+  }
+  if (!getKey().hasOneBlock())
+    return emitOpError("min/max policy requires one key region");
+  Block &block = getKey().front();
+  Type element = VarType::get(getContext(), variable.getValueType());
+  if (block.getNumArguments() != 1 || block.getArgument(0).getType() != element)
+    return emitOpError("key argument must match the ac.var element");
+  for (Operation &operation : block.without_terminator()) {
+    if (isa<VarReadOp, VarReadElementOp>(operation))
+      return emitOpError() << "key operation '" << operation.getName()
+                           << "' is not permitted";
+    if (!isMemoryEffectFree(&operation))
+      return emitOpError() << "key operation '" << operation.getName()
+                           << "' is not permitted";
+  }
+  auto yield = dyn_cast<VarChooseYieldOp>(block.getTerminator());
+  auto key =
+      yield ? dyn_cast<IntegerType>(
+                  cast<VarType>(yield.getValue().getType()).getElementType())
+            : IntegerType();
+  if (!key || key.getWidth() == 0 || key.getWidth() > 64)
+    return emitOpError(
+        "min/max key must yield an unsigned fixed-width integer");
+  return success();
+}
+
 static LogicalResult verifyVarBinary(Operation *operation, Value lhs, Value rhs,
                                      Value result) {
   if (lhs.getType() != rhs.getType() || lhs.getType() != result.getType())
@@ -1344,6 +2379,27 @@ LogicalResult VarShlOp::verify() {
 
 LogicalResult VarShrOp::verify() {
   return verifyVarBitBinary(*this, getLhs(), getRhs(), getResult());
+}
+
+LogicalResult VarMatchesOp::verify() {
+  auto input = dyn_cast<IntegerType>(
+      cast<VarType>(getInput().getType()).getElementType());
+  if (!input || !input.isSignless() || input.getWidth() == 0 ||
+      input.getWidth() > 64)
+    return emitOpError(
+        "input must be an ac.var carrying a signless i1..i64 integer");
+  if (getResult().getType() !=
+      VarType::get(getContext(), IntegerType::get(getContext(), 1)))
+    return emitOpError("result must be !ac.var<i1>");
+  const uint64_t widthMask =
+      input.getWidth() == 64
+          ? std::numeric_limits<uint64_t>::max()
+          : (uint64_t{1} << input.getWidth()) - 1;
+  if ((getMask() & ~widthMask) != 0 || (getValue() & ~widthMask) != 0)
+    return emitOpError("mask and value must fit the input width");
+  if ((getValue() & ~getMask()) != 0)
+    return emitOpError("value may set only bits selected by mask");
+  return success();
 }
 
 LogicalResult VarNotOp::verify() {
@@ -1432,6 +2488,9 @@ LogicalResult VarCmpOp::verify() {
   Type payload = cast<VarType>(getLhs().getType()).getElementType();
   if (!isa<IntegerType, EnumType>(payload))
     return emitOpError("operands must carry integer or enum payloads");
+  if (isa<EnumType>(payload) && getPredicate() != "eq" &&
+      getPredicate() != "ne")
+    return emitOpError("enum comparison supports only eq or ne");
   if (getResult().getType() !=
       VarType::get(getContext(), IntegerType::get(getContext(), 1)))
     return emitOpError("result must be !ac.var<i1>");
@@ -1442,6 +2501,161 @@ LogicalResult VarCmpOp::verify() {
     return emitOpError(
         "predicate must be eq, ne, slt, sle, sgt, sge, ult, ule, ugt, or uge");
   return success();
+}
+
+LogicalResult VarSelectOp::verify() {
+  if (failed(verifyI1VarCondition(*this, getCondition())))
+    return failure();
+  if (getTrueValue().getType() != getFalseValue().getType() ||
+      getResult().getType() != getTrueValue().getType())
+    return emitOpError("selected values and result must have one Var type");
+  return success();
+}
+
+static FailureOr<std::pair<int64_t, int64_t>>
+bitfieldRange(BitfieldOp schema, StringRef name) {
+  for (Attribute attribute : schema.getFields()) {
+    DictionaryAttr field = cast<DictionaryAttr>(attribute);
+    if (cast<StringAttr>(field.get("name")).getValue() == name)
+      return std::make_pair(cast<IntegerAttr>(field.get("lsb")).getInt(),
+                            cast<IntegerAttr>(field.get("msb")).getInt());
+  }
+  return failure();
+}
+
+static FailureOr<BitfieldOp>
+bitfieldProvenance(Operation *operation, StringRef selectionAttribute) {
+  Attribute schemaAttribute = operation->getAttr("ac.bitfield_schema");
+  Attribute fingerprintAttribute =
+      operation->getAttr("ac.bitfield_fingerprint");
+  Attribute selection = operation->getAttr(selectionAttribute);
+  if (!schemaAttribute && !fingerprintAttribute && !selection)
+    return BitfieldOp();
+  auto reference = dyn_cast_or_null<SymbolRefAttr>(schemaAttribute);
+  auto fingerprint = dyn_cast_or_null<StringAttr>(fingerprintAttribute);
+  if (!reference || !fingerprint || !selection) {
+    operation->emitOpError(
+        "bitfield provenance requires schema, fingerprint, and selection");
+    return failure();
+  }
+  auto schema = dyn_cast_or_null<BitfieldOp>(lookup(operation, reference));
+  if (!schema) {
+    operation->emitOpError("bitfield schema reference does not resolve");
+    return failure();
+  }
+  if (fingerprint.getValue() != schema.getFingerprint()) {
+    operation->emitOpError("bitfield provenance fingerprint is stale");
+    return failure();
+  }
+  return schema;
+}
+
+static LogicalResult verifyNamedBitfieldProvenance(Operation *operation,
+                                                   unsigned baseWidth,
+                                                   int64_t lsb, int64_t width) {
+  FailureOr<BitfieldOp> resolved =
+      bitfieldProvenance(operation, "ac.bitfield_field");
+  if (failed(resolved))
+    return failure();
+  if (!*resolved)
+    return success();
+  auto field = operation->getAttrOfType<StringAttr>("ac.bitfield_field");
+  if (!field)
+    return operation->emitOpError("bitfield field must be a string");
+  FailureOr<std::pair<int64_t, int64_t>> range =
+      bitfieldRange(*resolved, field.getValue());
+  if (failed(range))
+    return operation->emitOpError("bitfield field is absent from its schema");
+  if ((*resolved).getWidth() != baseWidth || range->first != lsb ||
+      range->second - range->first + 1 != width)
+    return operation->emitOpError(
+        "bitfield field range does not match its schema");
+  return success();
+}
+
+static LogicalResult verifyConcatBitfieldProvenance(VarConcatOp operation) {
+  FailureOr<BitfieldOp> resolved = bitfieldProvenance(
+      operation.getOperation(), "ac.bitfield_fields");
+  if (failed(resolved))
+    return failure();
+  if (!*resolved)
+    return success();
+  auto fields = operation->getAttrOfType<ArrayAttr>("ac.bitfield_fields");
+  if (!fields || fields.size() != operation.getInputs().size())
+    return operation.emitOpError(
+        "bitfield field list must match concat input arity");
+  for (auto [attribute, input] :
+       llvm::zip_equal(fields, operation.getInputs())) {
+    auto field = dyn_cast<StringAttr>(attribute);
+    if (!field)
+      return operation.emitOpError("bitfield field names must be strings");
+    FailureOr<std::pair<int64_t, int64_t>> range =
+        bitfieldRange(*resolved, field.getValue());
+    if (failed(range))
+      return operation.emitOpError(
+          "bitfield concat field is absent from its schema");
+    unsigned inputWidth =
+        cast<IntegerType>(cast<VarType>(input.getType()).getElementType())
+            .getWidth();
+    if (range->second - range->first + 1 != inputWidth)
+      return operation.emitOpError(
+          "bitfield concat input width does not match its field");
+  }
+  return success();
+}
+
+LogicalResult VarExtractOp::verify() {
+  auto input = dyn_cast<IntegerType>(
+      cast<VarType>(getInput().getType()).getElementType());
+  auto result = dyn_cast<IntegerType>(
+      cast<VarType>(getResult().getType()).getElementType());
+  if (!input || !result || input.getWidth() == 0 || input.getWidth() > 64)
+    return emitOpError("input and result must be 1..64-bit integer Vars");
+  if (getLsb() < 0 || getWidth() <= 0 ||
+      static_cast<uint64_t>(getLsb()) + static_cast<uint64_t>(getWidth()) >
+          input.getWidth())
+    return emitOpError("slice must be non-empty and within the input width");
+  if (result.getWidth() != static_cast<unsigned>(getWidth()))
+    return emitOpError("result width must equal the extracted width");
+  return verifyNamedBitfieldProvenance(getOperation(), input.getWidth(),
+                                       getLsb(), getWidth());
+}
+
+LogicalResult VarConcatOp::verify() {
+  if (getInputs().empty())
+    return emitOpError("requires at least one input");
+  uint64_t totalWidth = 0;
+  for (Value input : getInputs()) {
+    auto integer =
+        dyn_cast<IntegerType>(cast<VarType>(input.getType()).getElementType());
+    if (!integer || integer.getWidth() == 0 || integer.getWidth() > 64)
+      return emitOpError("inputs must be 1..64-bit integer Vars");
+    totalWidth += integer.getWidth();
+  }
+  auto result = dyn_cast<IntegerType>(
+      cast<VarType>(getResult().getType()).getElementType());
+  if (!result || totalWidth == 0 || totalWidth > 64)
+    return emitOpError("concatenated width must be in [1, 64]");
+  if (result.getWidth() != totalWidth)
+    return emitOpError("result width must equal the sum of input widths");
+  return verifyConcatBitfieldProvenance(*this);
+}
+
+LogicalResult VarInsertOp::verify() {
+  auto base = dyn_cast<IntegerType>(
+      cast<VarType>(getBase().getType()).getElementType());
+  auto value = dyn_cast<IntegerType>(
+      cast<VarType>(getValue().getType()).getElementType());
+  if (!base || !value || base.getWidth() == 0 || base.getWidth() > 64 ||
+      value.getWidth() == 0 || value.getWidth() > 64)
+    return emitOpError("base and value must be 1..64-bit integer Vars");
+  if (getResult().getType() != getBase().getType())
+    return emitOpError("result must preserve the base Var type");
+  if (getLsb() < 0 ||
+      static_cast<uint64_t>(getLsb()) + value.getWidth() > base.getWidth())
+    return emitOpError("inserted range must be within the base width");
+  return verifyNamedBitfieldProvenance(getOperation(), base.getWidth(), getLsb(),
+                                       value.getWidth());
 }
 
 LogicalResult VarGetOp::verify() {
@@ -1694,10 +2908,25 @@ static bool isTableEntryType(Operation *anchor, Type type) {
   });
 }
 
-static LogicalResult verifyTableWriteFields(Operation *endpoint, TableOp table,
-                                            ArrayAttr writeFields) {
-  if (writeFields.empty())
-    return endpoint->emitOpError("write_fields must be non-empty");
+static FailureOr<uint64_t> tableEntryFieldCount(Operation *endpoint,
+                                                TableOp table) {
+  auto structure = dyn_cast<StructType>(table.getEntryType());
+  if (!structure)
+    return uint64_t{1};
+  Operation *declaration = recordDecl(endpoint, structure);
+  if (!declaration)
+    return failure();
+  ArrayAttr fields = declarationFields(declaration);
+  if (!fields || fields.empty())
+    return failure();
+  return static_cast<uint64_t>(fields.size());
+}
+
+static LogicalResult verifyTableFields(Operation *endpoint, TableOp table,
+                                       ArrayAttr fields, StringRef kind) {
+  const std::string listName = (kind + "_fields").str();
+  if (fields.empty())
+    return endpoint->emitOpError() << listName << " must be non-empty";
   StringSet<> allowed;
   llvm::StringMap<unsigned> ordinals;
   if (auto structure = dyn_cast<StructType>(table.getEntryType())) {
@@ -1716,24 +2945,29 @@ static LogicalResult verifyTableWriteFields(Operation *endpoint, TableOp table,
   }
   StringSet<> seen;
   std::optional<unsigned> previousOrdinal;
-  for (Attribute rawField : writeFields) {
+  for (Attribute rawField : fields) {
     auto field = dyn_cast<StringAttr>(rawField);
     if (!field || field.getValue().empty())
-      return endpoint->emitOpError(
-          "write_fields must contain non-empty field names");
+      return endpoint->emitOpError()
+             << listName << " must contain non-empty field names";
     if (!seen.insert(field.getValue()).second)
       return endpoint->emitOpError()
-             << "duplicate write field '" << field.getValue() << "'";
+             << "duplicate " << kind << " field '" << field.getValue() << "'";
     if (!allowed.contains(field.getValue()))
       return endpoint->emitOpError()
-             << "unknown write field '" << field.getValue() << "'";
+             << "unknown " << kind << " field '" << field.getValue() << "'";
     unsigned ordinal = ordinals.lookup(field.getValue());
     if (previousOrdinal && ordinal <= *previousOrdinal)
-      return endpoint->emitOpError(
-          "write_fields must follow Table Entry declaration order");
+      return endpoint->emitOpError()
+             << listName << " must follow Table Entry declaration order";
     previousOrdinal = ordinal;
   }
   return success();
+}
+
+static LogicalResult verifyTableWriteFields(Operation *endpoint, TableOp table,
+                                            ArrayAttr writeFields) {
+  return verifyTableFields(endpoint, table, writeFields, "write");
 }
 
 static bool tableWriteFieldsAreComplete(Operation *endpoint, TableOp table,
@@ -1768,8 +3002,15 @@ static LogicalResult verifyTableWriteMode(Operation *endpoint, TableOp table,
 }
 
 static TableOp resolveTable(Operation *operation, FlatSymbolRefAttr reference) {
-  return dyn_cast_or_null<TableOp>(
-      SymbolTable::lookupNearestSymbolFrom(operation, reference));
+  for (Operation *ancestor = operation->getParentOp(); ancestor;
+       ancestor = ancestor->getParentOp()) {
+    if (ancestor->getNumRegions() != 1 || !ancestor->getRegion(0).hasOneBlock())
+      continue;
+    for (TableOp table : ancestor->getRegion(0).front().getOps<TableOp>())
+      if (table.getSymName() == reference.getValue())
+        return table;
+  }
+  return {};
 }
 
 static bool tableVisibleFrom(Operation *operation, TableOp table) {
@@ -1788,9 +3029,6 @@ static LogicalResult verifyTableIndex(Operation *operation, TableOp table,
   if (!integer || integer.getWidth() == 0 || integer.getWidth() > 64)
     return operation->emitOpError(
         "table index must be an integer Var no wider than 64 bits");
-  if (integer.getWidth() < 64 && static_cast<uint64_t>(table.getEntries()) >
-                                     (uint64_t{1} << integer.getWidth()))
-    return operation->emitOpError("table entries must fit index width");
   auto constant = index.getDefiningOp<VarConstantOp>();
   auto value =
       constant ? dyn_cast<IntegerAttr>(constant.getValueAttr()) : IntegerAttr();
@@ -1804,17 +3042,7 @@ static LogicalResult verifyTableIndex(Operation *operation, TableOp table,
 static LogicalResult verifyStaticallySafeRuleTableIndex(Operation *operation,
                                                         TableOp table,
                                                         Value index) {
-  if (failed(verifyTableIndex(operation, table, index)))
-    return failure();
-  if (index.getDefiningOp<VarConstantOp>())
-    return success();
-  auto integer =
-      cast<IntegerType>(cast<VarType>(index.getType()).getElementType());
-  if (integer.getWidth() >= 64 || static_cast<uint64_t>(table.getEntries()) !=
-                                      (uint64_t{1} << integer.getWidth()))
-    return operation->emitOpError(
-        "dynamic rule Table index requires a full 2^N Table domain");
-  return success();
+  return verifyTableIndex(operation, table, index);
 }
 
 LogicalResult TableOp::verify() {
@@ -1842,10 +3070,12 @@ LogicalResult TableOp::verify() {
     root = root->getParentOp();
   bool ownerExists = getOwner() == "/";
   bool duplicateStableId = false;
+  ModuleOp owningModule = (*this)->getParentOfType<ModuleOp>();
   unsigned endpoints = 0;
   llvm::StringMap<Operation *> fieldWriters;
   std::string overlappingField;
   unsigned replaceWriters = 0;
+  unsigned proposalReplaceWriters = 0;
   root->walk([&](Operation *operation) {
     if (auto scope = dyn_cast<ScopeOp>(operation)) {
       std::string path = queueScopePath(scope);
@@ -1855,10 +3085,23 @@ LogicalResult TableOp::verify() {
       ownerExists |= path == getOwner();
     }
     if (auto other = dyn_cast<TableOp>(operation))
-      duplicateStableId |=
-          other != *this && other.getStableId() == getStableId();
+      duplicateStableId |= other != *this &&
+                           other->getParentOfType<ModuleOp>() == owningModule &&
+                           other.getStableId() == getStableId();
     if (auto read = dyn_cast<TableReadOp>(operation)) {
       if (resolveTable(read, read.getTableAttr()) == *this)
+        ++endpoints;
+    }
+    if (auto read = dyn_cast<TableGetOp>(operation)) {
+      if (resolveTable(read, read.getTableAttr()) == *this)
+        ++endpoints;
+    }
+    if (auto match = dyn_cast<TableMatchOp>(operation)) {
+      if (resolveTable(match, match.getTableAttr()) == *this)
+        ++endpoints;
+    }
+    if (auto choose = dyn_cast<TableChooseOp>(operation)) {
+      if (resolveTable(choose, choose.getTableAttr()) == *this)
         ++endpoints;
     }
     if (auto write = dyn_cast<TableWriteOp>(operation)) {
@@ -1893,7 +3136,7 @@ LogicalResult TableOp::verify() {
       if (resolveTable(proposal, proposal.getTableAttr()) == *this) {
         ++endpoints;
         if (proposal.getMode() == "replace") {
-          ++replaceWriters;
+          ++proposalReplaceWriters;
           return;
         }
         StringSet<> localFields;
@@ -1918,7 +3161,8 @@ LogicalResult TableOp::verify() {
   if (!overlappingField.empty())
     return emitOpError() << "write field '" << overlappingField
                          << "' has multiple endpoints";
-  if (replaceWriters > 1)
+  if (replaceWriters > 1 ||
+      (replaceWriters != 0 && proposalReplaceWriters != 0))
     return emitOpError("has multiple replace writer endpoints");
   return success();
 }
@@ -1950,44 +3194,10 @@ LogicalResult TableProposeOp::verify() {
     return failure();
   if (getValue().getType() != VarType::get(getContext(), table.getEntryType()))
     return emitOpError("proposal value must match the Table Entry Var type");
+  if (getWhen() && failed(verifyI1VarCondition(*this, getWhen())))
+    return failure();
   if (failed(verifyStaticallySafeRuleTableIndex(*this, table, getIndex())))
     return failure();
-  auto verifyQueuePayload = [&](ValueRange queues) -> LogicalResult {
-    for (Value queueValue : queues)
-      if (cast<QueueType>(queueValue.getType()).getElementType() !=
-          table.getEntryType())
-        return emitOpError(
-            "owning rule Queue payloads must match the Table Entry type");
-    return success();
-  };
-  if (auto rule = dyn_cast<RuleOp>(parent)) {
-    if (failed(verifyQueuePayload(rule.getInputs())) ||
-        failed(verifyQueuePayload(rule.getOutputs())))
-      return failure();
-  } else {
-    auto firing = cast<FiringOp>(parent);
-    if (failed(verifyQueuePayload(firing.getInputs())) ||
-        failed(verifyQueuePayload(firing.getOutputs())))
-      return failure();
-  }
-  LogicalResult readResult = success();
-  parent->walk([&](TableGetOp read) {
-    if (failed(readResult))
-      return;
-    if (read.getTableAttr() != getTableAttr()) {
-      readResult =
-          read.emitOpError("stateful rule may observe only its proposed Table");
-      return;
-    }
-    readResult =
-        verifyStaticallySafeRuleTableIndex(read, table, read.getIndex());
-  });
-  if (failed(readResult))
-    return failure();
-  unsigned proposals = 0;
-  parent->walk([&](TableProposeOp) { ++proposals; });
-  if (proposals != 1)
-    return emitOpError("stateful rule phase one requires one Table proposal");
   return success();
 }
 
@@ -2271,10 +3481,17 @@ LogicalResult TableChooseOp::verify() {
   Type entry = VarType::get(getContext(), table.getEntryType());
   if (block.getNumArguments() != 1 || block.getArgument(0).getType() != entry)
     return emitOpError("key argument must match the Table Entry");
-  for (Operation &operation : block.without_terminator())
-    if (!isMemoryEffectFree(&operation))
+  for (Operation &operation : block.without_terminator()) {
+    if (isa<TableGetOp>(operation)) {
+      if (!isa_and_nonnull<RuleOp, FiringOp>((*this)->getParentOp()))
+        return emitOpError(
+            "key Table reads require transactional rule/firing ownership");
+      continue;
+    }
+    if (!isa<SlotGetOp>(operation) && !isMemoryEffectFree(&operation))
       return emitOpError() << "key operation '" << operation.getName()
                            << "' is not permitted";
+  }
   auto yield = dyn_cast<TableChooseYieldOp>(block.getTerminator());
   auto key =
       yield ? dyn_cast<IntegerType>(
@@ -3049,10 +4266,15 @@ LogicalResult verifyStaticArgumentSet(Operation *op, DictionaryAttr arguments,
 }
 
 bool isStructuralGraphChild(Operation &child) {
+  auto file = child.getParentOp()->getParentOfType<mlir::ModuleOp>();
+  auto kind =
+      file ? file->getAttrOfType<StringAttr>("ac.model_kind") : StringAttr();
+  const bool queueGraphChild =
+      kind && kind.getValue() == "queue_graph" && isa<ScopeOp>(child);
   return isa<InstanceOp, ArrayOp, InstancesOp, ViewOp, QueueOp, EventQueueOp,
              ResourceOp, AddressSpaceOp, AddressMapOp, TimeDomainOp, ProcessOp,
              RequireOp, EnsureOp, StatOp, ReturnOp>(child) ||
-         child.getName().getStringRef() == "arith.constant";
+         queueGraphChild || child.getName().getStringRef() == "arith.constant";
 }
 
 bool isStableHierarchySegment(StringRef segment) {

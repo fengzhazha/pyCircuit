@@ -4,7 +4,7 @@
 builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.type_scope"() <{sym_name = "types"}> ({
     "ac.struct"() <{sym_name = "S", fields = [{name = "value", type = i32}]}> : () -> ()
-    "ac.enum"() <{sym_name = "E", enumerants = ["a", "b"]}> : () -> ()
+    ac.enum @E enumerants ["a", "b"]
     "ac.union"() <{sym_name = "U", fields = [{name = "tag", type = !ac.enum<@types::@E>}, {name = "value", type = i32}], discriminator = "tag"}> : () -> ()
     "ac.packet"() <{sym_name = "P", fields = [{name = "items", type = !ac.list<i8>, max_length = 8 : i64}]}> : () -> ()
     "ac.transaction"() <{sym_name = "T", fields = [{name = "packet", type = !ac.packet<@types::@P>}]}> : () -> ()

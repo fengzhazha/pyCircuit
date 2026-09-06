@@ -55,6 +55,7 @@ bash flows/scripts/run_sims.sh
 
 ```text
 pyCircuit/
+├── python/semantic-core/        # Shared immutable value/layout semantics
 ├── python/pycircuit/src/pycircuit/  # Python frontend
 ├── python/agentic-circuit/       # Agentic Circuit Python distribution
 ├── compiler/mlir/                # MLIR dialect, passes, and emitters

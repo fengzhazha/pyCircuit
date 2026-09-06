@@ -26,6 +26,7 @@ add_lit_testsuite(check-acir "Running Agentic Circuit lit tests"
     acir-opt
     acir-opt-internal
     acir-queue-cxxgen
+    acir-queue-plan
     acir-queue-pycgen
     agentic_circuit_native
 )

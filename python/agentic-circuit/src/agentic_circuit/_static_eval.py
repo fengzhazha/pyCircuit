@@ -14,7 +14,7 @@ from typing import TypeAlias
 StaticScalar: TypeAlias = None | bool | int | float | str
 
 _MAX_SAFE_INTEGER = (1 << 53) - 1
-_MAX_EXPANSION = 10_000
+MAX_STATIC_EXPANSION = 10_000
 
 
 class StaticEvalError(ValueError):
@@ -249,7 +249,7 @@ class _StaticEvaluator(ast.NodeVisitor):
 
     def _consume_expansion(self, amount: int) -> None:
         self._expansions += amount
-        if self._expansions > _MAX_EXPANSION:
+        if self._expansions > MAX_STATIC_EXPANSION:
             raise StaticEvalError("static expansion exceeds the maximum")
 
     def visit_Call(self, node: ast.Call) -> StaticValue:

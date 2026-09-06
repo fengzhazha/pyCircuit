@@ -1,0 +1,12 @@
+bash flows/scripts/run_agentic_circuit.sh
+python3 -m unittest discover -s tests/python/agentic-circuit/python_frontend -p 'test_*.py'
+python3 -m unittest discover -s tests/python/agentic-circuit/cli -p 'test_*.py'
+cmake --build .pycircuit_out/acir/dev-llvm22 --target check-acir
+ctest --test-dir .pycircuit_out/acir/dev-llvm22 --output-on-failure
+bash flows/scripts/pyc build
+acir-opt --pass-pipeline='builtin.module(ac-freeze-topology)' <raw-queue-graph>
+compiler/acir/tools/ac-queue-pyc-build.py <ACIR> ...
+pytest tests/unit -m unit
+python3 flows/tools/check_api_hygiene.py python/pycircuit/src/pycircuit examples/pycircuit docs README.md
+python3 flows/tools/check_decision_status.py --require-no-deferred --require-all-verified --require-concrete-evidence --require-existing-evidence
+mkdocs build --strict

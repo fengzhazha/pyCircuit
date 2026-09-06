@@ -1,0 +1,6 @@
+cmake --build .pycircuit_out/acir/dev-llvm22 --target ACIRModelAnalysisTests ACIROpsTests CodeGenTests acir-opt-internal acir-queue-plan acir-queue-cxxgen acir-queue-pycgen -j4
+cmake --build .pycircuit_out/acir/dev-llvm22 --target check-acir -j4
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:python/pycircuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/unit/test_semantic_core.py tests/test_bitmask_match.py
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit:.pycircuit_out/acir/dev-llvm22/python .pycircuit_out/agentic-circuit/venv/bin/python -m unittest discover -s tests/python/agentic-circuit/python_frontend -p 'test_*.py'
+PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install ACIR_QUEUE_PYCGEN=.pycircuit_out/acir/dev-llvm22/bin/acir-queue-pycgen PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/integration/agentic-circuit/e2e .pycircuit_out/agentic-circuit/venv/bin/python -m unittest test_pyc_backend.PycBackendTest.test_masked_decode_is_cycle_equivalent_in_pyc_cpp_and_verilog -v
+PYC_GATE_RUN_ID=20260906-masked-matching bash flows/scripts/run_agentic_circuit.sh

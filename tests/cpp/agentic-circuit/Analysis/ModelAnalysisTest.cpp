@@ -1,6 +1,7 @@
 #include "acir/Analysis/ModelAnalysis.h"
 #include "Analysis/ModelAnalysisInternal.h"
 #include "Analysis/ModelAnalysisTestHooks.h"
+#include "acir/Analysis/VariableAnalysis.h"
 #include "acir/Dialect/ACIR/ACIROps.h"
 #include "acir/Dialect/ACIR/GraphRegion.h"
 #include "acir/InitAllDialects.h"
@@ -13,6 +14,7 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
+#include "llvm/ADT/StringSet.h"
 #include "gtest/gtest.h"
 
 #include <functional>
@@ -1049,6 +1051,379 @@ TEST(ModelAnalysisTest, ProcessSkeletonIncludesNestedControlParents) {
   EXPECT_TRUE(failed(verifyModel(*model)));
   EXPECT_NE(diagnostic.find("frozen process skeleton mismatch"),
             std::string::npos);
+}
+
+TEST(ACDataFlowAnalyzerTest, InfersValueLifetimeAndLexicalStateOwnership) {
+  DialectRegistry registry;
+  registerAllDialects(registry);
+  MLIRContext context(registry);
+  OwningOpRef<mlir::ModuleOp> model =
+      parseSourceString<mlir::ModuleOp>(R"mlir(
+    builtin.module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "variables"} {
+      ac.var.decl @counter type i8 init 0 : i8 owner "/" stable_id "var/counter"
+      ac.table @state entry i32 entries 2 init 0 owner "/" stable_id "table/state"
+      %state_view = ac.table.read @state depth 1 latency 1 address {
+      ^address:
+        %state_index = ac.var.constant 0 : i64 as !ac.var<i64>
+        ac.table.yield %state_index : !ac.var<i64>
+      } when {
+      ^when:
+        %enabled = ac.var.constant true as !ac.var<i1>
+        ac.table.yield %enabled : !ac.var<i1>
+      } -> !ac.queue<i32>
+      ac.sink %state_view : !ac.queue<i32>
+      %input = ac.source depth 1 latency 1 : !ac.queue<i32>
+      %output = ac.scope @worker(%input) {
+      ^body(%inner: !ac.queue<i32>):
+        %result = ac.transform %inner depths [1] latencies [1] {
+        ^transform(%item: !ac.var<i32>):
+          %one = ac.var.constant 1 : i32 as !ac.var<i32>
+          %sum = ac.var.add %item, %one : !ac.var<i32>
+          ac.transform.yield %sum : !ac.var<i32>
+        } : (!ac.queue<i32>) -> !ac.queue<i32>
+        ac.scope.yield %result : !ac.queue<i32>
+      } : (!ac.queue<i32>) -> !ac.queue<i32>
+      ac.sink %output : !ac.queue<i32>
+    }
+  )mlir",
+                                        &context);
+  ASSERT_TRUE(model);
+
+  ACDataFlowAnalyzer analysis(model->getOperation());
+  ASSERT_TRUE(succeeded(analysis.run()));
+
+  ac::VarConstantOp constant;
+  ac::VarAddOp sum;
+  ac::TransformOp transform;
+  ac::VarDeclOp counter;
+  ac::TableOp state;
+  model->walk([&](ac::VarConstantOp operation) {
+    if (cast<ac::VarType>(operation.getResult().getType())
+            .getElementType()
+            .isInteger(32))
+      constant = operation;
+  });
+  model->walk([&](ac::VarAddOp operation) { sum = operation; });
+  model->walk([&](ac::TransformOp operation) { transform = operation; });
+  model->walk([&](ac::VarDeclOp operation) { counter = operation; });
+  model->walk([&](ac::TableOp operation) { state = operation; });
+  ASSERT_TRUE(constant && sum && transform && counter && state);
+
+  VariableProperties constantInfo = analysis.lookup(constant.getResult());
+  EXPECT_EQ(VariableLifetime::Static, constantInfo.lifetime);
+  EXPECT_EQ(VariableUpdate::Immutable, constantInfo.update);
+  EXPECT_EQ("/worker", constantInfo.ownerPath);
+
+  VariableProperties argumentInfo =
+      analysis.lookup(transform.getBody().front().getArgument(0));
+  EXPECT_EQ(VariableLifetime::Temporary, argumentInfo.lifetime);
+  EXPECT_EQ(VariableUpdate::Immutable, argumentInfo.update);
+  EXPECT_EQ("/worker", argumentInfo.ownerPath);
+
+  VariableProperties sumInfo = analysis.lookup(sum.getResult());
+  EXPECT_EQ(VariableLifetime::Temporary, sumInfo.lifetime);
+  EXPECT_EQ(VariableUpdate::Immutable, sumInfo.update);
+  EXPECT_EQ("/worker", sumInfo.ownerPath);
+
+  VariableProperties stateInfo = analysis.lookupOwnedState(state);
+  EXPECT_EQ(VariableLifetime::Persistent, stateInfo.lifetime);
+  EXPECT_EQ(VariableUpdate::Assignable, stateInfo.update);
+  EXPECT_EQ("/", stateInfo.ownerPath);
+
+  VariableProperties counterInfo = analysis.lookupOwnedState(counter);
+  EXPECT_EQ(VariableLifetime::Persistent, counterInfo.lifetime);
+  EXPECT_EQ(VariableUpdate::Assignable, counterInfo.update);
+  EXPECT_EQ("/", counterInfo.ownerPath);
+}
+
+TEST(ValueConstraintTest, JoinIsIdempotentAndAbsorbingAcrossRepresentations) {
+  ValueConstraint interval = ValueConstraint::closedInterval(0, 7);
+  ValueConstraint constant = ValueConstraint::constant(3);
+  ValueConstraint finite = ValueConstraint::finiteSet({1, 4});
+  ValueConstraint unknown = ValueConstraint::unknown();
+
+  EXPECT_EQ(interval, ValueConstraint::join(interval, interval));
+  EXPECT_EQ(interval, ValueConstraint::join(interval, constant));
+  EXPECT_EQ(interval, ValueConstraint::join(constant, interval));
+  EXPECT_EQ(unknown, ValueConstraint::join(interval, unknown));
+  EXPECT_EQ(unknown, ValueConstraint::join(unknown, finite));
+  EXPECT_EQ(ValueConstraint::finiteSet({1, 3, 4}),
+            ValueConstraint::join(finite, constant));
+
+  ValueConstraint widened = ValueConstraint::join(finite, interval);
+  EXPECT_EQ(widened, ValueConstraint::join(widened, finite));
+  EXPECT_EQ(widened, ValueConstraint::join(widened, interval));
+}
+
+TEST(ACDataFlowAnalyzerTest, InfersBoundedUnsignedValueConstraints) {
+  DialectRegistry registry;
+  registerAllDialects(registry);
+  MLIRContext context(registry);
+  OwningOpRef<mlir::ModuleOp> model =
+      parseSourceString<mlir::ModuleOp>(R"mlir(
+    builtin.module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "constraints"} {
+      ac.type_scope @types {
+        ac.enum @Mode enumerants ["idle", "run", "wait"]
+      } {dlti.dl_spec = #dlti.dl_spec<!ac.enum<@types::@Mode> = {abi_alignment = 1 : i64, endianness = "little", preferred_alignment = 1 : i64, size = 1 : i64}>}
+      %input = ac.source depth 1 latency 1 : !ac.queue<i3>
+      %output = ac.transform %input depths [1] latencies [1] {
+      ^body(%item: !ac.var<i3>):
+        %three = ac.var.constant 3 : i3 as !ac.var<i3>
+        %four = ac.var.constant 4 : i3 as !ac.var<i3>
+        %seven = ac.var.constant 7 : i3 as !ac.var<i3>
+        %zero = ac.var.constant 0 : i3 as !ac.var<i3>
+        %one = ac.var.constant 1 : i3 as !ac.var<i3>
+        %wrapped_add = ac.var.add %seven, %one : !ac.var<i3>
+        %wrapped_sub = ac.var.sub %zero, %one : !ac.var<i3>
+        %overshifted = ac.var.shl %one, %three : !ac.var<i3>
+        %wide = ac.var.constant 7 : i64 as !ac.var<i64>
+        %wide_concat = ac.var.concat %wide : !ac.var<i64> -> !ac.var<i64>
+        %constant_match = ac.var.matches %seven mask 3 value 3 : !ac.var<i3> -> !ac.var<i1>
+        %constant_miss = ac.var.matches %seven mask 3 value 2 : !ac.var<i3> -> !ac.var<i1>
+        %wildcard_match = ac.var.matches %item mask 0 value 0 : !ac.var<i3> -> !ac.var<i1>
+        %dynamic_match = ac.var.matches %item mask 3 value 2 : !ac.var<i3> -> !ac.var<i1>
+        %idle = ac.var.enum @types::@Mode "idle" : !ac.var<!ac.enum<@types::@Mode>>
+        %run = ac.var.enum @types::@Mode "run" : !ac.var<!ac.enum<@types::@Mode>>
+        %enum_different = ac.var.cmp "ne" %idle, %run : !ac.var<!ac.enum<@types::@Mode>> -> !ac.var<i1>
+        %masked = ac.var.and %item, %three : !ac.var<i3>
+        %condition = ac.var.cmp "ult" %item, %four : !ac.var<i3> -> !ac.var<i1>
+        %selected = ac.var.select %condition, %three, %four : !ac.var<i1>, !ac.var<i3> -> !ac.var<i3>
+        %priority, %valid = ac.var.priority_encode %item order "low" : !ac.var<i3> -> !ac.var<i2>, !ac.var<i1>
+        ac.transform.yield %masked : !ac.var<i3>
+      } : (!ac.queue<i3>) -> !ac.queue<i3>
+      ac.sink %output : !ac.queue<i3>
+    }
+  )mlir",
+                                        &context);
+  ASSERT_TRUE(model);
+
+  ACDataFlowAnalyzer analysis(model->getOperation());
+  ASSERT_TRUE(succeeded(analysis.run()));
+  ac::TransformOp transform;
+  ac::VarAndOp masked;
+  ac::VarSelectOp selected;
+  ac::VarPriorityEncodeOp priority;
+  SmallVector<ac::VarAddOp> additions;
+  ac::VarSubOp subtraction;
+  ac::VarShlOp overshift;
+  ac::VarConcatOp wideConcat;
+  ac::VarCmpOp enumCompare;
+  SmallVector<ac::VarMatchesOp> matches;
+  model->walk([&](ac::TransformOp operation) { transform = operation; });
+  model->walk([&](ac::VarAndOp operation) { masked = operation; });
+  model->walk([&](ac::VarSelectOp operation) { selected = operation; });
+  model->walk(
+      [&](ac::VarPriorityEncodeOp operation) { priority = operation; });
+  model->walk([&](ac::VarAddOp operation) { additions.push_back(operation); });
+  model->walk([&](ac::VarSubOp operation) { subtraction = operation; });
+  model->walk([&](ac::VarShlOp operation) { overshift = operation; });
+  model->walk([&](ac::VarConcatOp operation) { wideConcat = operation; });
+  model->walk([&](ac::VarCmpOp operation) {
+    if (mlir::isa<ac::EnumType>(
+            cast<ac::VarType>(operation.getLhs().getType()).getElementType()))
+      enumCompare = operation;
+  });
+  model->walk([&](ac::VarMatchesOp operation) { matches.push_back(operation); });
+  ASSERT_TRUE(transform && masked && selected && priority);
+  ASSERT_EQ(1u, additions.size());
+
+  ValueConstraint argument =
+      analysis.lookupConstraint(transform.getBody().front().getArgument(0));
+  EXPECT_EQ(ValueConstraintKind::ClosedInterval, argument.kind);
+  EXPECT_EQ(0u, argument.lower);
+  EXPECT_EQ(7u, argument.upper);
+  EXPECT_TRUE(analysis.provesWithin(masked.getResult(), 0, 3));
+
+  ValueConstraint selection = analysis.lookupConstraint(selected.getResult());
+  EXPECT_EQ(ValueConstraintKind::FiniteSet, selection.kind);
+  EXPECT_EQ((llvm::SmallVector<uint64_t, 8>{3, 4}), selection.values);
+  EXPECT_TRUE(analysis.provesWithin(priority.getIndex(), 0, 2));
+  EXPECT_TRUE(analysis.provesWithin(priority.getValid(), 0, 1));
+  EXPECT_EQ(ValueConstraint::constant(0),
+            analysis.lookupConstraint(additions.front().getResult()));
+  EXPECT_EQ(ValueConstraint::constant(7),
+            analysis.lookupConstraint(subtraction.getResult()));
+  EXPECT_EQ(ValueConstraint::constant(0),
+            analysis.lookupConstraint(overshift.getResult()));
+  EXPECT_EQ(ValueConstraint::constant(7),
+            analysis.lookupConstraint(wideConcat.getResult()));
+  EXPECT_EQ(ValueConstraint::constant(1),
+            analysis.lookupConstraint(enumCompare.getResult()));
+  ASSERT_EQ(4u, matches.size());
+  EXPECT_EQ(ValueConstraint::constant(1),
+            analysis.lookupConstraint(matches[0].getResult()));
+  EXPECT_EQ(ValueConstraint::constant(0),
+            analysis.lookupConstraint(matches[1].getResult()));
+  EXPECT_EQ(ValueConstraint::constant(1),
+            analysis.lookupConstraint(matches[2].getResult()));
+  EXPECT_EQ(ValueConstraint::closedInterval(0, 1),
+            analysis.lookupConstraint(matches[3].getResult()));
+}
+
+TEST(ACDataFlowAnalyzerTest, InfersOrderedStateAccessFootprints) {
+  DialectRegistry registry;
+  registerAllDialects(registry);
+  MLIRContext context(registry);
+  OwningOpRef<mlir::ModuleOp> model =
+      parseSourceString<mlir::ModuleOp>(R"mlir(
+    builtin.module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "footprints"} {
+      ac.type_scope @types {
+        ac.struct @Entry fields [{name = "index", type = i1}, {name = "value", type = i7}]
+      } {dlti.dl_spec = #dlti.dl_spec<!ac.struct<@types::@Entry> = {abi_alignment = 1 : i64, endianness = "little", preferred_alignment = 1 : i64, size = 1 : i64}>}
+      ac.table @entries entry !ac.struct<@types::@Entry> entries 2 init 0 owner "/" stable_id "table/entries"
+      %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
+      %output = ac.rule %input depths [1] latencies [1]
+          name "replace" stable_id "replace" domain "cycle"
+          type exact input_fact committed_input {
+      ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
+        %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
+        %old = ac.table.get @entries[%index] : !ac.var<i1> -> !ac.var<!ac.struct<@types::@Entry>>
+        ac.table.propose @entries[%index] = %item mode "replace"
+            write_fields ["index", "value"] : !ac.var<i1>, !ac.var<!ac.struct<@types::@Entry>>
+        ac.rule.return %old : !ac.var<!ac.struct<@types::@Entry>>
+      } : (!ac.queue<!ac.struct<@types::@Entry>>) -> !ac.queue<!ac.struct<@types::@Entry>>
+      ac.sink %output : !ac.queue<!ac.struct<@types::@Entry>>
+    }
+  )mlir",
+                                        &context);
+  ASSERT_TRUE(model);
+
+  ACDataFlowAnalyzer analysis(model->getOperation());
+  ASSERT_TRUE(succeeded(analysis.run()));
+  ac::RuleOp rule;
+  model->walk([&](ac::RuleOp operation) { rule = operation; });
+  ASSERT_TRUE(rule);
+
+  llvm::SmallVector<StateAccessFootprint> footprints =
+      analysis.stateFootprints(rule.getOperation());
+  ASSERT_EQ(2u, footprints.size());
+  EXPECT_EQ("entries", footprints[0].resource);
+  EXPECT_EQ("read", footprints[0].access);
+  EXPECT_EQ("dynamic", footprints[0].indexKind);
+  EXPECT_TRUE(footprints[0].fields.empty());
+  EXPECT_EQ("entries", footprints[1].resource);
+  EXPECT_EQ("replace", footprints[1].access);
+  EXPECT_EQ("dynamic", footprints[1].indexKind);
+  EXPECT_EQ((std::vector<std::string>{"index", "value"}), footprints[1].fields);
+}
+
+TEST(ACDataFlowAnalyzerTest, InfersConditionalEffectSnapshotReadSet) {
+  DialectRegistry registry;
+  registerAllDialects(registry);
+  MLIRContext context(registry);
+  OwningOpRef<mlir::ModuleOp> model =
+      parseSourceString<mlir::ModuleOp>(R"mlir(
+    builtin.module attributes {ac.contract_epoch = "0.5"} {
+      ac.table @epoch entry i8 entries 1 init 0 owner "/" stable_id "table/epoch"
+      ac.table @entries entry i8 entries 2 init 0 owner "/" stable_id "table/entries"
+      %input = ac.source depth 1 latency 1 : !ac.queue<i8>
+      ac.rule %input depths [] latencies [] name "complete" stable_id "complete"
+          domain "cycle" type exact input_fact committed_input {
+      ^body(%item: !ac.var<i8>):
+        %zero = ac.var.constant false as !ac.var<i1>
+        %index = ac.var.constant false as !ac.var<i1>
+        %old_epoch = ac.table.get @epoch[%zero] : !ac.var<i1> -> !ac.var<i8>
+        %old_entry = ac.table.get @entries[%index] : !ac.var<i1> -> !ac.var<i8>
+        %epoch_matches = ac.var.cmp "eq" %old_epoch, %item : !ac.var<i8> -> !ac.var<i1>
+        %entry_matches = ac.var.cmp "eq" %old_entry, %item : !ac.var<i8> -> !ac.var<i1>
+        %fresh = ac.var.and %epoch_matches, %entry_matches : !ac.var<i1>
+        %candidate = ac.var.constant true as !ac.var<i1>
+        ac.rule.condition %candidate : !ac.var<i1>
+        ac.table.propose @entries[%index] = %item when %fresh : !ac.var<i1>
+            mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
+        ac.rule.return
+      } : (!ac.queue<i8>) -> ()
+    }
+  )mlir",
+                                        &context);
+  ASSERT_TRUE(model);
+
+  ACDataFlowAnalyzer analysis(model->getOperation());
+  ASSERT_TRUE(succeeded(analysis.run()));
+  ac::RuleOp rule;
+  model->walk([&](ac::RuleOp operation) { rule = operation; });
+  ASSERT_TRUE(rule);
+  llvm::SmallVector<StateSnapshotFootprint> snapshots =
+      analysis.stateSnapshots(rule.getOperation());
+  ASSERT_EQ(2u, snapshots.size());
+  llvm::StringSet<> resources;
+  for (const StateSnapshotFootprint &snapshot : snapshots) {
+    resources.insert(snapshot.resource);
+    EXPECT_EQ("static", snapshot.indexKind);
+    EXPECT_TRUE(snapshot.index);
+    EXPECT_TRUE(snapshot.predicate);
+    EXPECT_EQ((std::vector<std::string>{"$entry"}), snapshot.fields);
+  }
+  EXPECT_TRUE(resources.contains("epoch"));
+  EXPECT_TRUE(resources.contains("entries"));
+}
+
+TEST(ACDataFlowAnalyzerTest, InfersMatchAndChooseSnapshotSets) {
+  DialectRegistry registry;
+  registerAllDialects(registry);
+  MLIRContext context(registry);
+  OwningOpRef<mlir::ModuleOp> model =
+      parseSourceString<mlir::ModuleOp>(R"mlir(
+    builtin.module attributes {ac.contract_epoch = "0.5"} {
+      ac.table @entries entry i2 entries 4 init 0 owner "/" stable_id "table/entries"
+      ac.table @ready entry i1 entries 4 init 0 owner "/" stable_id "table/ready"
+      ac.table @priority entry i2 entries 4 init 0 owner "/" stable_id "table/priority"
+      %output = ac.rule depths [1] latencies [1] name "issue"
+          stable_id "issue" domain "cycle" type exact
+          input_fact committed_input {
+      ^body:
+        %mask = ac.table.match @entries predicate {
+        ^bb0(%entry: !ac.var<i2>):
+          %is_ready = ac.table.get @ready[%entry] : !ac.var<i2> -> !ac.var<i1>
+          ac.table.match.yield %is_ready : !ac.var<i1>
+        } -> !ac.var<i4>
+        %index, %present = ac.table.choose @entries %mask : !ac.var<i4>
+            count 1 policy "min" key {
+        ^bb0(%entry: !ac.var<i2>):
+          %priority = ac.table.get @priority[%entry] : !ac.var<i2> -> !ac.var<i2>
+          ac.table.choose.yield %priority : !ac.var<i2>
+        } -> !ac.var<i2>, !ac.var<i1>
+        %old = ac.table.get @entries[%index] : !ac.var<i2> -> !ac.var<i2>
+        ac.rule.condition %present : !ac.var<i1>
+        ac.table.propose @entries[%index] = %old mode "replace"
+            write_fields ["$entry"] : !ac.var<i2>, !ac.var<i2>
+        %ready_output = ac.marker.obligation %old state pending
+            resolver handshake origin "issue:return" path "true" : !ac.var<i2>
+        ac.rule.return %ready_output : !ac.var<i2>
+      } : () -> !ac.queue<i2>
+      ac.sink %output : !ac.queue<i2>
+    }
+  )mlir",
+                                        &context);
+  ASSERT_TRUE(model);
+
+  ACDataFlowAnalyzer analysis(model->getOperation());
+  ASSERT_TRUE(succeeded(analysis.run()));
+  ac::RuleOp rule;
+  ac::TableMatchOp match;
+  ac::TableChooseOp choose;
+  model->walk([&](ac::RuleOp operation) { rule = operation; });
+  model->walk([&](ac::TableMatchOp operation) { match = operation; });
+  model->walk([&](ac::TableChooseOp operation) { choose = operation; });
+  ASSERT_TRUE(rule);
+  ASSERT_TRUE(match);
+  ASSERT_TRUE(choose);
+
+  llvm::SmallVector<StateSnapshotFootprint> snapshots =
+      analysis.stateSnapshots(rule.getOperation());
+  ASSERT_EQ(3u, snapshots.size());
+  EXPECT_EQ("entries", snapshots[0].resource);
+  EXPECT_EQ("all", snapshots[0].indexKind);
+  EXPECT_FALSE(snapshots[0].source);
+  EXPECT_EQ((std::vector<std::string>{"$entry"}), snapshots[0].fields);
+  EXPECT_EQ("ready", snapshots[1].resource);
+  EXPECT_EQ("set", snapshots[1].indexKind);
+  EXPECT_EQ(match.getMask(), snapshots[1].source);
+  EXPECT_EQ((std::vector<std::string>{"$entry"}), snapshots[1].fields);
+  EXPECT_EQ("priority", snapshots[2].resource);
+  EXPECT_EQ("set", snapshots[2].indexKind);
+  EXPECT_EQ(choose.getIndex(), snapshots[2].source);
+  EXPECT_EQ((std::vector<std::string>{"$entry"}), snapshots[2].fields);
 }
 
 } // namespace

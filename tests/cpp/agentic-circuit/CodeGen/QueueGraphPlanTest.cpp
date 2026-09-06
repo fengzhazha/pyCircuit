@@ -68,6 +68,53 @@ void expectCppCompiles(llvm::StringRef source) {
                                      : std::string{});
 }
 
+void expectCppRuns(llvm::StringRef source) {
+  llvm::SmallString<256> directory;
+  ASSERT_FALSE(
+      llvm::sys::fs::createUniqueDirectory("acir-queue-module", directory));
+  struct Cleanup {
+    llvm::SmallString<256> path;
+    ~Cleanup() { llvm::sys::fs::remove_directories(path); }
+  } cleanup{directory};
+
+  llvm::SmallString<256> input(directory);
+  llvm::sys::path::append(input, "model.cpp");
+  std::error_code error;
+  llvm::raw_fd_ostream output(input, error);
+  ASSERT_FALSE(error);
+  output << source;
+  output.close();
+
+  llvm::SmallString<256> executable(directory);
+  llvm::sys::path::append(executable, "model");
+  llvm::SmallString<256> log(directory);
+  llvm::sys::path::append(log, "run.log");
+  const std::array<std::string, 6> ownedArguments = {
+      ACIR_TEST_CXX_COMPILER,
+      "-std=c++20",
+      "-I" ACIR_TEST_SOURCE_DIR "/simulator/gfsim/include",
+      input.str().str(),
+      "-o",
+      executable.str().str(),
+  };
+  llvm::SmallVector<llvm::StringRef> arguments;
+  for (const std::string &argument : ownedArguments)
+    arguments.push_back(argument);
+  const std::array<std::optional<llvm::StringRef>, 3> redirects = {
+      std::nullopt, log.str(), log.str()};
+  int status = llvm::sys::ExecuteAndWait(ACIR_TEST_CXX_COMPILER, arguments,
+                                         std::nullopt, redirects);
+  auto logBuffer = llvm::MemoryBuffer::getFile(log);
+  ASSERT_EQ(status, 0) << (logBuffer ? logBuffer.get()->getBuffer().str()
+                                     : std::string{});
+  const std::array<llvm::StringRef, 1> runArguments = {executable.str()};
+  status = llvm::sys::ExecuteAndWait(executable, runArguments, std::nullopt,
+                                     redirects);
+  logBuffer = llvm::MemoryBuffer::getFile(log);
+  EXPECT_EQ(status, 0) << (logBuffer ? logBuffer.get()->getBuffer().str()
+                                     : std::string{});
+}
+
 constexpr llvm::StringLiteral kQueueGraph = R"mlir(
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "pipeline"} {
   %input = ac.source depth 4 latency 1 {ac.name = "input"} : !ac.queue<i64>
@@ -122,14 +169,18 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<i8>
   %output = ac.firing %input depths [1] latencies [1]
       stable_id "install" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1_table" schedule "independent_table_exclusive"
+      handshake "ready_valid_1x1_table" schedule "table_lexical_priority"
       effects ["input.consume", "output.produce", "table.replace:table"] {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 1 : i2 as !ac.var<i2>
-    ac.table.propose @table [%index] = %item mode "replace"
+    %enabled = ac.var.constant true as !ac.var<i1>
+    ac.firing.condition %enabled : !ac.var<i1>
+    ac.table.propose @table [%index] = %item when %enabled : !ac.var<i1>
+        mode "replace"
         write_fields ["$entry"] : !ac.var<i2>, !ac.var<i8>
+    ac.firing.output %item when %enabled ordinal 0 : !ac.var<i8>, !ac.var<i1>
     ac.firing.yield %item : !ac.var<i8>
-  } {ac.name = "output", ac.rule_definition = "install"} : (!ac.queue<i8>) -> !ac.queue<i8>
+  } {ac.name = "output", ac.rule_definition = "install", ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64} : (!ac.queue<i8>) -> !ac.queue<i8>
   ac.sink %output {ac.name = "sink"} : !ac.queue<i8>
 }
 )mlir";
@@ -167,6 +218,79 @@ QueueGraphPlan sharedReferencePlan() {
       {"selection", "issue", "/", "match", "first", "i2", {}, ""}};
   plan.tableReads = {{"issue", "read", "/", "", "unused", 1, 1}};
   plan.slots = {{"pending", "i8", "input", "/", "slot-id", "/"}};
+  return plan;
+}
+
+QueueGraphPlan aggregateMetadataPlan() {
+  QueueGraphPlan plan = sharedReferencePlan();
+  plan.payloads = {{"Packet",
+                    {{"pair", "tuple<i3, i5>", 8},
+                     {"lanes", "!ac.value_array<4 x i4>", 16}}}};
+  plan.aggregates = {
+      {"tuple<i3, i5>", "tuple", {"i3", "i5"}, 2, 8},
+      {"!ac.value_array<4 x i4>", "array", {"i4"}, 4, 16},
+  };
+  return plan;
+}
+
+QueueGraphPlan aggregateExpressionPlan() {
+  QueueGraphPlan plan;
+  plan.system = "aggregate_expression";
+  plan.aggregates = {
+      {"tuple<i3, i5>", "tuple", {"i3", "i5"}, 2, 8},
+  };
+  plan.queues = {{"input", "tuple<i3, i5>", "/", 1, 1},
+                 {"output", "tuple<i3, i5>", "/", 1, 1}};
+
+  QueueBlockPlan source;
+  source.kind = "source";
+  source.name = "input";
+  source.scope = "/";
+  source.outputs = {"input"};
+  source.depths = {1};
+  source.latencies = {1};
+  plan.blocks.push_back(std::move(source));
+
+  QueueBlockPlan transform;
+  transform.kind = "transform";
+  transform.name = "output";
+  transform.scope = "/";
+  transform.inputs = {"input"};
+  transform.outputs = {"output"};
+  transform.depths = {1};
+  transform.latencies = {1};
+  QueueExpressionPlan first;
+  first.result = "first";
+  first.kind = "aggregate_get";
+  first.type = "i3";
+  first.operands = {"item"};
+  first.lsb = 5;
+  first.width = 3;
+  transform.expressions.push_back(std::move(first));
+  QueueExpressionPlan second;
+  second.result = "second";
+  second.kind = "aggregate_get";
+  second.type = "i5";
+  second.operands = {"item"};
+  second.lsb = 0;
+  second.width = 5;
+  transform.expressions.push_back(std::move(second));
+  QueueExpressionPlan packed;
+  packed.result = "packed";
+  packed.kind = "tuple_create";
+  packed.type = "tuple<i3, i5>";
+  packed.operands = {"first", "second"};
+  packed.width = 8;
+  transform.expressions.push_back(std::move(packed));
+  transform.yields = {"packed"};
+  plan.blocks.push_back(std::move(transform));
+
+  QueueBlockPlan sink;
+  sink.kind = "sink";
+  sink.name = "sink";
+  sink.scope = "/";
+  sink.inputs = {"output"};
+  plan.blocks.push_back(std::move(sink));
   return plan;
 }
 
@@ -257,6 +381,732 @@ TEST(QueueGraphPlanTest, PreservesJitSpecializationIdentity) {
   ASSERT_FALSE(bool(plan));
   EXPECT_NE(llvm::toString(plan.takeError()).find("fingerprint is invalid"),
             std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsRecursiveNestedPayloadDefinitions) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module =
+      mlir::parseSourceString<mlir::ModuleOp>(kStructuredTransform, &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  plan->payloads = {
+      QueuePayloadPlan{"Left", {{"right", "!ac.struct<@types::@Right>"}}},
+      QueuePayloadPlan{"Right", {{"left", "!ac.struct<@types::@Left>"}}},
+  };
+
+  auto error = verifyQueueGraphPlan(*plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("contain a cycle"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsMalformedNominalEnumMetadata) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module =
+      mlir::parseSourceString<mlir::ModuleOp>(kStructuredTransform, &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  plan->enums = {QueueEnumPlan{"Mode", {"IDLE", "RUN", "WAIT"}, 3}};
+
+  auto widthError = verifyQueueGraphPlan(*plan);
+  ASSERT_TRUE(bool(widthError));
+  EXPECT_NE(llvm::toString(std::move(widthError)).find("width is inconsistent"),
+            std::string::npos);
+
+  plan->enums.front().width = 2;
+  plan->enums.front().enumerants = {"IDLE", "IDLE"};
+  auto memberError = verifyQueueGraphPlan(*plan);
+  ASSERT_TRUE(bool(memberError));
+  EXPECT_NE(llvm::toString(std::move(memberError)).find("must be non-empty"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsTupleAggregateWidthMismatch) {
+  QueueGraphPlan plan = aggregateMetadataPlan();
+  plan.aggregates[0].width = 9;
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("tuple aggregate width"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsMalformedValueArrayMetadata) {
+  QueueGraphPlan malformedElements = aggregateMetadataPlan();
+  malformedElements.aggregates[1].elements.push_back("i4");
+  auto elementError = verifyQueueGraphPlan(malformedElements);
+  ASSERT_TRUE(bool(elementError));
+  EXPECT_NE(
+      llvm::toString(std::move(elementError)).find("value-array metadata"),
+      std::string::npos);
+
+  QueueGraphPlan malformedLength = aggregateMetadataPlan();
+  malformedLength.aggregates[1].length = 0;
+  auto lengthError = verifyQueueGraphPlan(malformedLength);
+  ASSERT_TRUE(bool(lengthError));
+  EXPECT_NE(llvm::toString(std::move(lengthError)).find("value-array metadata"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsAggregateMetadataWiderThanSixtyFourBits) {
+  QueueGraphPlan plan = aggregateMetadataPlan();
+  plan.aggregates[0].width = 65;
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("aggregate type metadata"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsAggregateBitWidthArithmeticOverflow) {
+  QueueGraphPlan plan = aggregateMetadataPlan();
+  plan.payloads[0].fields[1].type = "!ac.value_array<huge x i8>";
+  plan.payloads[0].fields[1].width = 8;
+  plan.aggregates[1] = {"!ac.value_array<huge x i8>",
+                        "array",
+                        {"i8"},
+                        (uint64_t{1} << 61) + 1,
+                        8};
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("overflows uint64_t"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsPayloadFieldWidthMismatch) {
+  QueueGraphPlan plan = aggregateMetadataPlan();
+  plan.payloads[0].fields[0].width = 7;
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("payload field width"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsAggregateCreateOperandTypeOrArityForgery) {
+  QueueGraphPlan swapped = aggregateExpressionPlan();
+  swapped.blocks[1].expressions[2].operands = {"second", "first"};
+  auto typeError = verifyQueueGraphPlan(swapped);
+  ASSERT_TRUE(bool(typeError));
+  EXPECT_NE(llvm::toString(std::move(typeError)).find("operand type"),
+            std::string::npos);
+
+  QueueGraphPlan shortTuple = aggregateExpressionPlan();
+  shortTuple.blocks[1].expressions[2].operands.pop_back();
+  auto arityError = verifyQueueGraphPlan(shortTuple);
+  ASSERT_TRUE(bool(arityError));
+  EXPECT_NE(llvm::toString(std::move(arityError)).find("operand arity"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest, RejectsAggregateGetCrossElementSliceForgery) {
+  QueueGraphPlan plan = aggregateExpressionPlan();
+  plan.blocks[1].expressions[0].lsb = 4;
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_TRUE(bool(error));
+  EXPECT_NE(llvm::toString(std::move(error)).find("exact declared element"),
+            std::string::npos);
+}
+
+TEST(QueueGraphPlanTest,
+     PreservesExactU64MaskedMatchAndRejectsForgedMetadata) {
+  QueueGraphPlan plan;
+  plan.system = "masked_match";
+  plan.queues = {{"input", "i64", "/", 1, 1},
+                 {"output", "i1", "/", 1, 1}};
+  plan.blocks.push_back({"source", "input", "/", {}, {"input"}, {1}, {1}});
+  QueueBlockPlan transform{"transform", "output", "/", {"input"},
+                           {"output"},  {1},      {1}};
+  QueueExpressionPlan match;
+  match.result = "matched";
+  match.kind = "masked_match";
+  match.type = "i1";
+  match.operands = {"item"};
+  match.mask = "0x8000000000000001";
+  match.value = "0x8000000000000001";
+  transform.expressions.push_back(match);
+  transform.yields = {"matched"};
+  plan.blocks.push_back(std::move(transform));
+  plan.blocks.push_back({"sink", "sink", "/", {"output"}, {}});
+
+  auto error = verifyQueueGraphPlan(plan);
+  ASSERT_FALSE(bool(error)) << llvm::toString(std::move(error));
+  auto json = plan.canonicalJson();
+  ASSERT_TRUE(bool(json)) << llvm::toString(json.takeError());
+  EXPECT_NE(json->find("\"mask\":\"0x8000000000000001\""),
+            std::string::npos);
+  EXPECT_NE(json->find("\"value\":\"0x8000000000000001\""),
+            std::string::npos);
+  auto cpp = generateQueueGraphCpp(plan);
+  ASSERT_TRUE(bool(cpp)) << llvm::toString(cpp.takeError());
+  expectCppCompiles(*cpp);
+  std::string executable = *cpp;
+  executable.append(R"cpp(
+int main() {
+  ac_generated::block_0_policy match;
+  return match(gfsim::UInt<64>{0x8000000000000001ULL}) == 1 &&
+                 match(gfsim::UInt<64>{0x8000000000000000ULL}) == 0 &&
+                 match(gfsim::UInt<64>{0xffffffffffffffffULL}) == 1
+             ? 0
+             : 1;
+}
+)cpp");
+  expectCppRuns(executable);
+  auto pyc = generateQueueGraphPyc(plan);
+  ASSERT_TRUE(bool(pyc)) << llvm::toString(pyc.takeError());
+  EXPECT_NE(pyc->find("pyc.and"), std::string::npos);
+  EXPECT_NE(pyc->find("pyc.eq"), std::string::npos);
+
+  for (const std::pair<std::string, std::string> &forgery : {
+           std::pair<std::string, std::string>{"9223372036854775809",
+                                               match.value},
+           {"0x08000000000000001", match.value},
+           {"0x8000000000000000", "0x0000000000000001"},
+       }) {
+    QueueGraphPlan malformed = plan;
+    malformed.blocks[1].expressions[0].mask = forgery.first;
+    malformed.blocks[1].expressions[0].value = forgery.second;
+    auto malformedError = verifyQueueGraphPlan(malformed);
+    ASSERT_TRUE(bool(malformedError));
+    EXPECT_NE(llvm::toString(std::move(malformedError))
+                  .find("masked_match mask/value metadata"),
+              std::string::npos);
+  }
+}
+
+TEST(QueueGraphPlanTest,
+     PreservesReusableModuleSpecializationAndRunsIndependentInstances) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR
+      "/tests/mlir/agentic-circuit/Transforms/queue-module-freeze.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  EXPECT_EQ(plan->definition, "Top");
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  EXPECT_EQ(plan->moduleSpecializations.front()->definition, "Increment");
+  EXPECT_EQ(plan->moduleInstances[0].specializationFingerprint,
+            plan->moduleInstances[1].specializationFingerprint);
+  EXPECT_EQ(plan->moduleInstances[0].specializationFingerprint,
+            plan->moduleSpecializations.front()->specializationFingerprint);
+  EXPECT_EQ(plan->moduleInstances[0].lexicalOrder, 2u);
+  EXPECT_EQ(plan->moduleInstances[1].lexicalOrder, 3u);
+  QueueGraphPlan malformedOrder = *plan;
+  malformedOrder.moduleInstances[1].lexicalOrder =
+      malformedOrder.moduleInstances[0].lexicalOrder;
+  auto orderError = verifyQueueGraphPlan(malformedOrder);
+  ASSERT_TRUE(bool(orderError));
+  EXPECT_NE(llvm::toString(std::move(orderError))
+                .find("lexical orders must be unique"),
+            std::string::npos);
+  auto pyc = generateQueueGraphPyc(*plan);
+  ASSERT_FALSE(bool(pyc));
+  EXPECT_NE(llvm::toString(pyc.takeError())
+                .find("module-preserving QueueGraph PYC lowering is not "
+                      "implemented"),
+            std::string::npos);
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  size_t classBegin = source.find("class Increment_");
+  ASSERT_NE(classBegin, llvm::StringRef::npos);
+  size_t classEnd = source.find(" final", classBegin);
+  ASSERT_NE(classEnd, llvm::StringRef::npos);
+  llvm::StringRef implementation =
+      source.slice(classBegin + std::string("class ").size(), classEnd);
+  EXPECT_EQ(source.count(("class " + implementation + " final").str()), 1u);
+  EXPECT_EQ(source.count(("  " + implementation + " instance_").str()), 2u);
+  const size_t dispatch = source.find("dispatch_rows()");
+  ASSERT_NE(dispatch, llvm::StringRef::npos);
+  const size_t broadcastRow =
+      source.find("makeDispatchRow(&block_0_)", dispatch);
+  const size_t leftRow = source.find("instance_0_.dispatch_row(0)", dispatch);
+  const size_t rightRow = source.find("instance_1_.dispatch_row(0)", dispatch);
+  const size_t firstSinkRow =
+      source.find("makeDispatchRow(&block_1_)", dispatch);
+  EXPECT_LT(broadcastRow, leftRow);
+  EXPECT_LT(leftRow, rightRow);
+  EXPECT_LT(rightRow, firstSinkRow);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+int main() {
+  ac_generated::ReusedPipeline model;
+  if (!model.input().proposePush(gfsim::UInt<8>{5}))
+    return 1;
+  model.input().doXfer({0, 0});
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = 1; tick != 8; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+  const auto &left = model.sink_0_values();
+  const auto &right = model.sink_1_values();
+  return left.size() == 1 && right.size() == 1 && left[0] == 6 &&
+                 right[0] == 6
+             ? 0
+             : 2;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     ReusesStatefulModuleImplementationWithIndependentPersistentState) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-stateful-module-freeze.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  const QueueGraphPlan &specialization = *plan->moduleSpecializations.front();
+  ASSERT_EQ(specialization.blocks.size(), 1u);
+  ASSERT_EQ(specialization.tables.size(), 1u);
+  EXPECT_FALSE(plan->activationEdges.empty());
+  EXPECT_FALSE(plan->workClosureEdges.empty());
+  EXPECT_FALSE(specialization.activationEdges.empty());
+  EXPECT_FALSE(specialization.workClosureEdges.empty());
+  EXPECT_EQ(specialization.blocks.front().kind, "firing");
+  EXPECT_EQ(specialization.tables.front().name, "sum");
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  size_t classBegin = source.find("class Accumulator_");
+  ASSERT_NE(classBegin, llvm::StringRef::npos);
+  size_t classEnd = source.find(" final", classBegin);
+  ASSERT_NE(classEnd, llvm::StringRef::npos);
+  llvm::StringRef implementation =
+      source.slice(classBegin + std::string("class ").size(), classEnd);
+  EXPECT_EQ(source.count(("class " + implementation + " final").str()), 1u);
+  EXPECT_EQ(source.count(("  " + implementation + " instance_").str()), 2u);
+  EXPECT_EQ(source.count("gfsim::SimTable<gfsim::UInt<8>> table_0_;"), 1u);
+  EXPECT_NE(source.find("activation_offsets()"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("activation_complete() { return true; }"),
+            llvm::StringRef::npos);
+  EXPECT_NE(source.find("activation_targets()"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("initial_work_ids()"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("work_closure_offsets()"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("work_closure_targets()"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("offer_left_input"), llvm::StringRef::npos);
+  EXPECT_NE(source.find("schedule_initial_work"), llvm::StringRef::npos);
+
+  QueueGraphPlan forgedActivation = *plan;
+  forgedActivation.activationEdges.pop_back();
+  auto activationError = verifyQueueGraphPlan(forgedActivation);
+  ASSERT_TRUE(bool(activationError));
+  EXPECT_NE(llvm::toString(std::move(activationError))
+                .find("activation, Work closure, and initial frontier"),
+            std::string::npos);
+  QueueGraphPlan forgedClosure = *plan;
+  forgedClosure.workClosureEdges.pop_back();
+  auto closureError = verifyQueueGraphPlan(forgedClosure);
+  ASSERT_TRUE(bool(closureError));
+  EXPECT_NE(llvm::toString(std::move(closureError))
+                .find("activation, Work closure, and initial frontier"),
+            std::string::npos);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+namespace {
+void runTicks(ac_generated::StatefulReuse &model, unsigned first,
+              unsigned limit) {
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = first; tick != limit; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+}
+} // namespace
+
+int main() {
+  ac_generated::StatefulReuse model;
+  if (!model.left_input().proposePush(gfsim::UInt<8>{1}) ||
+      !model.right_input().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_input().doXfer({0, 0});
+  model.right_input().doXfer({0, 0});
+  runTicks(model, 1, 8);
+  if (!model.left_input().proposePush(gfsim::UInt<8>{2}))
+    return 2;
+  model.left_input().doXfer({8, 0});
+  runTicks(model, 9, 16);
+  const auto &left = model.sink_0_values();
+  const auto &right = model.sink_1_values();
+  return left.size() == 2 && left[0] == 1 && left[1] == 3 &&
+                 right.size() == 1 && right[0] == 10
+             ? 0
+             : 3;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     ReusesMultiRuleModuleAndPreservesOwnerLocalLexicalArbitration) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-multi-rule-module-freeze.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  const QueueGraphPlan &specialization = *plan->moduleSpecializations.front();
+  ASSERT_EQ(specialization.interfaceInputs.size(), 2u);
+  ASSERT_EQ(specialization.interfaceOutputs.size(), 2u);
+  ASSERT_EQ(specialization.blocks.size(), 2u);
+  EXPECT_EQ(specialization.blocks[0].priority, 0u);
+  EXPECT_EQ(specialization.blocks[1].priority, 1u);
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  size_t classBegin = source.find("class DualAccumulator_");
+  ASSERT_NE(classBegin, llvm::StringRef::npos);
+  size_t classEnd = source.find(" final", classBegin);
+  ASSERT_NE(classEnd, llvm::StringRef::npos);
+  llvm::StringRef implementation =
+      source.slice(classBegin + std::string("class ").size(), classEnd);
+  EXPECT_EQ(source.count(("class " + implementation + " final").str()), 1u);
+  EXPECT_EQ(source.count(("  " + implementation + " instance_").str()), 2u);
+  EXPECT_NE(source.find((implementation + "_block_0_policy").str()),
+            llvm::StringRef::npos);
+  EXPECT_NE(source.find((implementation + "_block_1_policy").str()),
+            llvm::StringRef::npos);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+int main() {
+  ac_generated::MultiRuleReuse model;
+  if (!model.left_a().proposePush(gfsim::UInt<8>{1}) ||
+      !model.left_b().proposePush(gfsim::UInt<8>{2}) ||
+      !model.right_b().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_a().doXfer({0, 0});
+  model.left_b().doXfer({0, 0});
+  model.right_b().doXfer({0, 0});
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = 1; tick != 12; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+  const auto &leftA = model.sink_0_values();
+  const auto &leftB = model.sink_1_values();
+  const auto &rightA = model.sink_2_values();
+  const auto &rightB = model.sink_3_values();
+  return leftA.size() == 1 && leftA[0] == 1 && leftB.size() == 1 &&
+                 leftB[0] == 3 && rightA.empty() && rightB.size() == 1 &&
+                 rightB[0] == 10
+             ? 0
+             : 2;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     ReusesMultiOwnerModuleWithAtomicIndependentInstanceState) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-multi-owner-module-freeze.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  const QueueGraphPlan &specialization = *plan->moduleSpecializations.front();
+  ASSERT_EQ(specialization.blocks.size(), 1u);
+  ASSERT_EQ(specialization.tables.size(), 2u);
+  ASSERT_EQ(specialization.blocks.front().stateWrites.size(), 2u);
+  EXPECT_EQ(specialization.blocks.front().stateWrites[0].table, "cursor");
+  EXPECT_EQ(specialization.blocks.front().stateWrites[1].table, "total");
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  size_t classBegin = source.find("class StatePair_");
+  ASSERT_NE(classBegin, llvm::StringRef::npos);
+  size_t classEnd = source.find(" final", classBegin);
+  ASSERT_NE(classEnd, llvm::StringRef::npos);
+  llvm::StringRef implementation =
+      source.slice(classBegin + std::string("class ").size(), classEnd);
+  EXPECT_EQ(source.count(("class " + implementation + " final").str()), 1u);
+  EXPECT_EQ(source.count(("  " + implementation + " instance_").str()), 2u);
+  EXPECT_NE(source.find("gfsim::QueueStateTransition<"), llvm::StringRef::npos);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+namespace {
+void runTicks(ac_generated::MultiOwnerReuse &model, unsigned first,
+              unsigned limit) {
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = first; tick != limit; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+}
+} // namespace
+
+int main() {
+  ac_generated::MultiOwnerReuse model;
+  if (!model.left_input().proposePush(gfsim::UInt<8>{3}) ||
+      !model.right_input().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_input().doXfer({0, 0});
+  model.right_input().doXfer({0, 0});
+  runTicks(model, 1, 8);
+  if (!model.left_input().proposePush(gfsim::UInt<8>{5}))
+    return 2;
+  model.left_input().doXfer({8, 0});
+  runTicks(model, 9, 16);
+  const auto &left = model.sink_0_values();
+  const auto &right = model.sink_1_values();
+  return left.size() == 2 && left[0] == 4 && left[1] == 10 &&
+                 right.size() == 1 && right[0] == 11
+             ? 0
+             : 3;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     ReusesCombinedMultiRuleMultiOwnerModuleWithAtomicArbitration) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-multi-rule-multi-owner-module.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  const QueueGraphPlan &specialization = *plan->moduleSpecializations.front();
+  ASSERT_EQ(specialization.blocks.size(), 2u);
+  ASSERT_EQ(specialization.tables.size(), 2u);
+  ASSERT_EQ(specialization.blocks[0].stateWrites.size(), 2u);
+  ASSERT_EQ(specialization.blocks[1].stateWrites.size(), 2u);
+  EXPECT_EQ(specialization.blocks[0].priority, 0u);
+  EXPECT_EQ(specialization.blocks[1].priority, 1u);
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  size_t classBegin = source.find("class DualState_");
+  ASSERT_NE(classBegin, llvm::StringRef::npos);
+  size_t classEnd = source.find(" final", classBegin);
+  ASSERT_NE(classEnd, llvm::StringRef::npos);
+  llvm::StringRef implementation =
+      source.slice(classBegin + std::string("class ").size(), classEnd);
+  EXPECT_EQ(source.count(("class " + implementation + " final").str()), 1u);
+  EXPECT_EQ(source.count(("  " + implementation + " instance_").str()), 2u);
+  EXPECT_EQ(source.count("gfsim::QueueStateTransition<"), 2u);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+int main() {
+  ac_generated::CombinedReuse model;
+  if (!model.left_a().proposePush(gfsim::UInt<8>{1}) ||
+      !model.left_b().proposePush(gfsim::UInt<8>{2}) ||
+      !model.right_b().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_a().doXfer({0, 0});
+  model.left_b().doXfer({0, 0});
+  model.right_b().doXfer({0, 0});
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = 1; tick != 12; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+  const auto &leftA = model.sink_0_values();
+  const auto &leftB = model.sink_1_values();
+  const auto &rightA = model.sink_2_values();
+  const auto &rightB = model.sink_3_values();
+  return leftA.size() == 1 && leftA[0] == 2 && leftB.size() == 1 &&
+                 leftB[0] == 5 && rightA.empty() && rightB.size() == 1 &&
+                 rightB[0] == 11
+             ? 0
+             : 2;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     PreservesNestedSpecializationReuseWithoutFlatteningChildBodies) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-nested-module-freeze.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  ASSERT_EQ(plan->moduleInstances.size(), 2u);
+  const QueueGraphPlan &wrapper = *plan->moduleSpecializations.front();
+  EXPECT_EQ(wrapper.definition, "Wrapper");
+  ASSERT_EQ(wrapper.moduleSpecializations.size(), 1u);
+  ASSERT_EQ(wrapper.moduleInstances.size(), 1u);
+  EXPECT_EQ(wrapper.moduleSpecializations.front()->definition, "Increment");
+  EXPECT_EQ(wrapper.moduleInstances.front().specializationFingerprint,
+            wrapper.moduleSpecializations.front()->specializationFingerprint);
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  EXPECT_EQ(source.count("class Increment_"), 1u);
+  EXPECT_EQ(source.count("class Wrapper_"), 1u);
+  EXPECT_EQ(source.count(" child_0_;"), 1u);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+int main() {
+  ac_generated::NestedReuse model;
+  if (!model.left_input().proposePush(gfsim::UInt<8>{5}) ||
+      !model.right_input().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_input().doXfer({0, 0});
+  model.right_input().doXfer({0, 0});
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = 1; tick != 8; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+  const auto &left = model.sink_0_values();
+  const auto &right = model.sink_1_values();
+  return left.size() == 1 && left[0] == 6 && right.size() == 1 &&
+                 right[0] == 11
+             ? 0
+             : 2;
+}
+)cpp");
+  expectCppRuns(executableSource);
+}
+
+TEST(QueueGraphPlanTest,
+     OwnsInternalQueuesPerMixedNestedSpecializationInstance) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR "/tests/mlir/agentic-circuit/Transforms/"
+                           "queue-mixed-nested-module.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto plan = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(plan)) << llvm::toString(plan.takeError());
+  ASSERT_EQ(plan->moduleSpecializations.size(), 1u);
+  const QueueGraphPlan &parent = *plan->moduleSpecializations.front();
+  EXPECT_EQ(parent.definition, "PrepareAndIncrement");
+  ASSERT_EQ(parent.blocks.size(), 1u);
+  ASSERT_EQ(parent.moduleInstances.size(), 1u);
+  ASSERT_EQ(parent.moduleSpecializations.size(), 1u);
+  ASSERT_EQ(parent.queues.size(), 2u);
+  EXPECT_EQ(parent.blocks.front().outputs.front(), "prepared");
+  EXPECT_EQ(parent.moduleInstances.front().inputs.front(), "prepared");
+
+  auto generated = generateQueueGraphCpp(*plan);
+  ASSERT_TRUE(bool(generated)) << llvm::toString(generated.takeError());
+  llvm::StringRef source(*generated);
+  EXPECT_EQ(source.count("class Increment_"), 1u);
+  EXPECT_EQ(source.count("class PrepareAndIncrement_"), 1u);
+  EXPECT_EQ(source.count("gfsim::SimQueue<gfsim::UInt<8>> queue_0_;"), 1u);
+  EXPECT_NE(source.find("activation_complete() { return true; }"),
+            llvm::StringRef::npos);
+
+  std::string executableSource = *generated;
+  executableSource.append(R"cpp(
+int main() {
+  ac_generated::MixedNestedReuse model;
+  if (!model.left_input().proposePush(gfsim::UInt<8>{5}) ||
+      !model.right_input().proposePush(gfsim::UInt<8>{10}))
+    return 1;
+  model.left_input().doXfer({0, 0});
+  model.right_input().doXfer({0, 0});
+  auto rows = model.dispatch_rows();
+  for (unsigned tick = 1; tick != 10; ++tick) {
+    const gfsim::Epoch epoch{tick, 0};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }
+  const auto &left = model.sink_0_values();
+  const auto &right = model.sink_1_values();
+  return left.size() == 1 && left[0] == 7 && right.size() == 1 &&
+                 right[0] == 12
+             ? 0
+             : 2;
+}
+)cpp");
+  expectCppRuns(executableSource);
 }
 
 TEST(QueueGraphPlanTest, PreservesQueueRateAndRejectsUnspecializedPycLanes) {
@@ -545,9 +1395,11 @@ TEST(QueueGraphPlanTest, EmitsTypedCreditWindowForBothBackends) {
 TEST(QueueGraphPlanTest, EmitsOldDataMemoryForBothBackends) {
   QueueGraphPlan plan;
   plan.system = "memory_pipeline";
-  plan.payloads = {
-      {"MemoryRequest",
-       {{"address", "i4"}, {"write", "i1"}, {"data", "i16"}, {"tag", "i8"}}}};
+  plan.payloads = {{"MemoryRequest",
+                    {{"address", "i4", 4},
+                     {"write", "i1", 1},
+                     {"data", "i16", 16},
+                     {"tag", "i8", 8}}}};
   constexpr llvm::StringLiteral requestType =
       "!ac.struct<@types::@MemoryRequest>";
   plan.queues = {{"input0", requestType.str(), "/", 4, 1},
@@ -740,6 +1592,125 @@ TEST(QueueGraphPlanTest, RejectsOutOfRangeConstantTableFiringPlan) {
             std::string::npos);
 }
 
+TEST(QueueGraphPlanTest, RecomputesBoundedFiringIndexConstraints) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module =
+      mlir::parseSourceString<mlir::ModuleOp>(kStatefulFiring, &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto extracted = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(extracted)) << llvm::toString(extracted.takeError());
+
+  auto configure = [](QueueGraphPlan plan, llvm::StringRef payload,
+                      llvm::StringRef index) {
+    for (QueuePlan &queue : plan.queues)
+      queue.payloadType = payload.str();
+    plan.tables.front().entryType = payload.str();
+    plan.tables.front().entries = 5;
+    QueueBlockPlan &firing = *llvm::find_if(
+        plan.blocks,
+        [](const QueueBlockPlan &block) { return block.kind == "firing"; });
+    firing.stateWrites.front().index = index.str();
+    return plan;
+  };
+  auto firing = [](QueueGraphPlan &plan) -> QueueBlockPlan & {
+    return *llvm::find_if(
+        plan.blocks,
+        [](const QueueBlockPlan &block) { return block.kind == "firing"; });
+  };
+  auto expectAccepted = [&](QueueGraphPlan plan) {
+    auto error = verifyQueueGraphPlan(plan);
+    ASSERT_FALSE(bool(error)) << llvm::toString(std::move(error));
+  };
+  auto expectRejected = [&](QueueGraphPlan plan) {
+    auto error = verifyQueueGraphPlan(plan);
+    ASSERT_TRUE(bool(error));
+    EXPECT_NE(llvm::toString(std::move(error)).find("statically safe"),
+              std::string::npos);
+  };
+
+  // A u2 root domain is [0,3], which is a safe subset of a five-entry Table.
+  QueueGraphPlan u2 = configure(*extracted, "i2", "item");
+  expectAccepted(u2);
+  auto cpp = generateQueueGraphCpp(u2);
+  ASSERT_TRUE(bool(cpp)) << llvm::toString(cpp.takeError());
+  expectCppCompiles(*cpp);
+
+  // A raw u3 root is [0,7], so the same access must fail closed.
+  expectRejected(configure(*extracted, "i3", "item"));
+
+  QueueGraphPlan arithmetic = configure(*extracted, "i3", "sum");
+  firing(arithmetic).expressions.push_back(
+      {"two_a", "constant", "i3", {}, "", "", "2 : i3"});
+  firing(arithmetic).expressions.push_back(
+      {"two_b", "constant", "i3", {}, "", "", "2 : i3"});
+  firing(arithmetic).expressions.push_back(
+      {"sum", "add", "i3", {"two_a", "two_b"}});
+  expectAccepted(arithmetic);
+
+  QueueGraphPlan masked = configure(*extracted, "i3", "masked");
+  firing(masked).expressions.push_back(
+      {"mask", "constant", "i3", {}, "", "", "-4 : i3"});
+  firing(masked).expressions.push_back(
+      {"masked", "and", "i3", {"item", "mask"}});
+  expectAccepted(masked);
+
+  QueueGraphPlan selected = configure(*extracted, "i3", "selected");
+  firing(selected).expressions.push_back(
+      {"one", "constant", "i3", {}, "", "", "1 : i3"});
+  firing(selected).expressions.push_back(
+      {"four", "constant", "i3", {}, "", "", "-4 : i3"});
+  firing(selected).expressions.push_back(
+      {"less", "cmp", "i1", {"item", "four"}, "", "ult"});
+  firing(selected).expressions.push_back(
+      {"selected", "value_select", "i3", {"less", "one", "four"}});
+  expectAccepted(selected);
+
+  QueueGraphPlan priority = configure(*extracted, "i5", "priority");
+  firing(priority).expressions.push_back(
+      {"priority", "priority_index", "i3", {"item"}, "", "low"});
+  expectAccepted(priority);
+}
+
+TEST(QueueGraphPlanTest, RecomputesTableEndpointAndObservationConstraints) {
+  mlir::MLIRContext context;
+  context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
+  auto module = mlir::parseSourceFile<mlir::ModuleOp>(
+      ACIR_TEST_SOURCE_DIR
+      "/tests/mlir/agentic-circuit/CodeGen/table-endpoint-value-constraints.mlir",
+      &context);
+  ASSERT_TRUE(module);
+  ASSERT_TRUE(freezeQueueGraph(*module));
+  auto extracted = buildQueueGraphPlan(*module);
+  ASSERT_TRUE(bool(extracted)) << llvm::toString(extracted.takeError());
+  auto baseError = verifyQueueGraphPlan(*extracted);
+  ASSERT_FALSE(bool(baseError)) << llvm::toString(std::move(baseError));
+
+  auto widenInput = [](QueueGraphPlan &plan, llvm::StringRef name) {
+    auto queue = llvm::find_if(plan.queues, [&](const QueuePlan &candidate) {
+      return candidate.name == name;
+    });
+    ASSERT_NE(queue, plan.queues.end());
+    queue->payloadType = "i3";
+  };
+  auto expectRejected = [&](QueueGraphPlan plan, llvm::StringRef queue,
+                            llvm::StringRef diagnostic) {
+    widenInput(plan, queue);
+    auto error = verifyQueueGraphPlan(plan);
+    ASSERT_TRUE(bool(error));
+    EXPECT_NE(llvm::toString(std::move(error)).find(diagnostic),
+              std::string::npos);
+  };
+
+  expectRejected(*extracted, "read_input",
+                 "Table endpoint address is not statically safe");
+  expectRejected(*extracted, "write_input",
+                 "Table endpoint address is not statically safe");
+  expectRejected(*extracted, "get_input",
+                 "Table observation index is not statically safe");
+}
+
 TEST(QueueGraphPlanTest, RejectsTableFiringPlanTypeAndOwnershipBypasses) {
   mlir::MLIRContext context;
   context.loadDialect<ac::ACIRDialect, mlir::DLTIDialect>();
@@ -766,8 +1737,9 @@ TEST(QueueGraphPlanTest, RejectsTableFiringPlanTypeAndOwnershipBypasses) {
       {"table", "extra", "/", "", "field", {"$entry"}});
   auto ownershipError = verifyQueueGraphPlan(conflicting);
   ASSERT_TRUE(bool(ownershipError));
-  EXPECT_NE(llvm::toString(std::move(ownershipError)).find("conflicting"),
-            std::string::npos);
+  EXPECT_NE(
+      llvm::toString(std::move(ownershipError)).find("state firing write"),
+      std::string::npos);
 }
 
 TEST(QueueGraphPlanTest, RejectsForgedFrozenFiringBeforePlanExtraction) {

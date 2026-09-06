@@ -1,0 +1,6 @@
+cmake --build .pycircuit_out/acir/dev-llvm22 --target ACIRModelAnalysisTests CodeGenTests CompilerTests acir-opt acir-queue-plan acir-queue-cxxgen -j4
+.pycircuit_out/acir/dev-llvm22/bin/ACIRModelAnalysisTests --gtest_filter='ValueConstraintTest.*:ACDataFlowAnalyzerTest.*'
+.pycircuit_out/acir/dev-llvm22/bin/CodeGenTests --gtest_filter='QueueGraphPlanTest.*'
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/integration/agentic-circuit/e2e/test_queue_codegen.py::QueueCodegenTest::test_indexed_python_list_runs_through_storage_selection
+cmake --build .pycircuit_out/acir/dev-llvm22 --target check-acir -j4
+PYC_GATE_RUN_ID=20260906-bounded-constraints bash flows/scripts/run_agentic_circuit.sh

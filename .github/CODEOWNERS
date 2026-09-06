@@ -13,6 +13,7 @@
 # repository layout.
 /compiler/acir/ @zhoubot @xiekunpeng
 /python/agentic-circuit/ @zhoubot @xiekunpeng
+/python/semantic-core/ @zhoubot @xiekunpeng
 /schemas/agentic-circuit/ @zhoubot @xiekunpeng
 /simulator/gfsim/ @zhoubot @xiekunpeng
 /tools/agentic-circuit/ @zhoubot @xiekunpeng

@@ -31,6 +31,25 @@ const QueuePayloadPlan *findPayload(const QueueGraphPlan &plan,
   return found == plan.payloads.end() ? nullptr : &*found;
 }
 
+const QueueEnumPlan *findEnum(const QueueGraphPlan &plan, llvm::StringRef type) {
+  constexpr llvm::StringLiteral prefix = "!ac.enum<@types::@";
+  if (!type.starts_with(prefix) || !type.ends_with('>'))
+    return nullptr;
+  llvm::StringRef name = type.drop_front(prefix.size()).drop_back();
+  auto found = std::find_if(
+      plan.enums.begin(), plan.enums.end(),
+      [&](const auto &enumeration) { return enumeration.name == name; });
+  return found == plan.enums.end() ? nullptr : &*found;
+}
+
+const QueueAggregatePlan *findAggregate(const QueueGraphPlan &plan,
+                                        llvm::StringRef type) {
+  auto found = std::find_if(
+      plan.aggregates.begin(), plan.aggregates.end(),
+      [&](const auto &aggregate) { return aggregate.type == type; });
+  return found == plan.aggregates.end() ? nullptr : &*found;
+}
+
 llvm::Expected<unsigned> typeWidth(const QueueGraphPlan &plan,
                                    llvm::StringRef type) {
   if (type.starts_with('i')) {
@@ -38,15 +57,18 @@ llvm::Expected<unsigned> typeWidth(const QueueGraphPlan &plan,
     if (!type.drop_front().getAsInteger(10, width) && width > 0)
       return width;
   }
+  if (const QueueEnumPlan *enumeration = findEnum(plan, type))
+    return static_cast<unsigned>(enumeration->width);
+  if (const QueueAggregatePlan *aggregate = findAggregate(plan, type))
+    return static_cast<unsigned>(aggregate->width);
   const QueuePayloadPlan *payload = findPayload(plan, type);
   if (!payload)
     return pycError("unsupported PYC payload type '" + type + "'");
   unsigned total = 0;
   for (const QueuePayloadFieldPlan &field : payload->fields) {
-    auto width = typeWidth(plan, field.type);
-    if (!width)
-      return width.takeError();
-    total += *width;
+    if (field.width == 0)
+      return pycError("packed payload field width must be positive");
+    total += field.width;
   }
   if (total == 0)
     return pycError("packed payload width must be positive");
@@ -140,7 +162,14 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
   };
   for (const QueueExpressionPlan &expression : block.expressions) {
     std::string result;
-    if (expression.kind == "constant") {
+    if (expression.kind == "enum_constant") {
+      result = newValue();
+      auto type = pycType(plan, expression.type);
+      if (!type)
+        return type.takeError();
+      body << "    " << result << " = pyc.constant " << expression.literal
+           << " : " << *type << "\n";
+    } else if (expression.kind == "constant") {
       result = newValue();
       llvm::StringRef literal = expression.literal;
       auto type = pycType(plan, expression.type);
@@ -154,7 +183,30 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
       auto first = value(expression.operands[0]);
       if (!first)
         return first.takeError();
-      if (expression.kind == "priority_index" ||
+      if (expression.kind == "masked_match") {
+        if (expression.operands.size() != 1)
+          return pycError("matches expression arity mismatch");
+        auto inputType = valueType(expression.operands[0]);
+        if (!inputType)
+          return inputType.takeError();
+        auto type = pycType(plan, *inputType);
+        if (!type)
+          return type.takeError();
+        std::string mask = newValue();
+        std::string masked = newValue();
+        std::string expected = newValue();
+        result = newValue();
+        body << "    " << mask << " = pyc.constant " << expression.mask
+             << " : " << *type << "\n";
+        body << "    " << masked << " = pyc.and " << *first << ", " << mask
+             << " : " << *type << ", " << *type << " -> " << *type
+             << "\n";
+        body << "    " << expected << " = pyc.constant " << expression.value
+             << " : " << *type << "\n";
+        body << "    " << result << " = pyc.eq " << masked << ", "
+             << expected << " : " << *type << ", " << *type
+             << " -> i1\n";
+      } else if (expression.kind == "priority_index" ||
           expression.kind == "priority_valid") {
         if (expression.operands.size() != 1 ||
             (expression.predicate != "low" && expression.predicate != "high"))
@@ -216,6 +268,122 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
         body << "    " << result << " = pyc.count_zeros " << *first
              << " {direction = \"" << expression.predicate
              << "\"} : " << *sourceType << " -> " << *resultType << "\n";
+      } else if (expression.kind == "bit_extract" ||
+                 expression.kind == "aggregate_get") {
+        if (expression.operands.size() != 1 || expression.width == 0)
+          return pycError("extract expression contract is malformed");
+        auto inputType = valueType(expression.operands[0]);
+        auto sourceType =
+            inputType ? pycType(plan, *inputType)
+                      : llvm::Expected<std::string>(inputType.takeError());
+        auto resultType = pycType(plan, expression.type);
+        if (!sourceType)
+          return sourceType.takeError();
+        if (!resultType)
+          return resultType.takeError();
+        result = newValue();
+        body << "    " << result << " = pyc.extract " << *first
+             << " {lsb = " << expression.lsb << "} : " << *sourceType << " -> "
+             << *resultType << "\n";
+      } else if (expression.kind == "bit_concat" ||
+                 expression.kind == "tuple_create" ||
+                 expression.kind == "array_create") {
+        if (expression.operands.empty())
+          return pycError("concat/aggregate create requires at least one operand");
+        result = newValue();
+        body << "    " << result << " = pyc.concat(";
+        for (auto [index, operandName] : llvm::enumerate(expression.operands)) {
+          auto operandValue = value(operandName);
+          if (!operandValue)
+            return operandValue.takeError();
+          if (index)
+            body << ", ";
+          body << *operandValue;
+        }
+        body << ") : (";
+        for (auto [index, operandName] : llvm::enumerate(expression.operands)) {
+          auto operandType = valueType(operandName);
+          auto type =
+              operandType
+                  ? pycType(plan, *operandType)
+                  : llvm::Expected<std::string>(operandType.takeError());
+          if (!type)
+            return type.takeError();
+          if (index)
+            body << ", ";
+          body << *type;
+        }
+        auto resultType = pycType(plan, expression.type);
+        if (!resultType)
+          return resultType.takeError();
+        body << ") -> " << *resultType << "\n";
+      } else if (expression.kind == "bit_insert") {
+        if (expression.operands.size() != 2)
+          return pycError("bit_insert expression contract is malformed");
+        auto inserted = value(expression.operands[1]);
+        auto insertedType = valueType(expression.operands[1]);
+        auto baseWidth = typeWidth(plan, expression.type);
+        auto valueWidth =
+            insertedType ? typeWidth(plan, *insertedType)
+                         : llvm::Expected<unsigned>(insertedType.takeError());
+        if (!inserted)
+          return inserted.takeError();
+        if (!baseWidth)
+          return baseWidth.takeError();
+        if (!valueWidth)
+          return valueWidth.takeError();
+        std::vector<std::pair<std::string, unsigned>> parts;
+        const unsigned highWidth =
+            *baseWidth - static_cast<unsigned>(expression.lsb) - *valueWidth;
+        if (highWidth > 0) {
+          std::string high = newValue();
+          body << "    " << high << " = pyc.extract " << *first
+               << " {lsb = " << expression.lsb + *valueWidth << "} : i"
+               << *baseWidth << " -> i" << highWidth << "\n";
+          parts.emplace_back(std::move(high), highWidth);
+        }
+        parts.emplace_back(*inserted, *valueWidth);
+        if (expression.lsb > 0) {
+          std::string low = newValue();
+          body << "    " << low << " = pyc.extract " << *first
+               << " {lsb = 0} : i" << *baseWidth << " -> i" << expression.lsb
+               << "\n";
+          parts.emplace_back(std::move(low), expression.lsb);
+        }
+        if (parts.size() == 1) {
+          result = parts.front().first;
+        } else {
+          result = newValue();
+          body << "    " << result << " = pyc.concat(";
+          for (auto [index, part] : llvm::enumerate(parts)) {
+            if (index)
+              body << ", ";
+            body << part.first;
+          }
+          body << ") : (";
+          for (auto [index, part] : llvm::enumerate(parts)) {
+            if (index)
+              body << ", ";
+            body << 'i' << part.second;
+          }
+          body << ") -> i" << *baseWidth << "\n";
+        }
+      } else if (expression.kind == "value_select") {
+        if (expression.operands.size() != 3)
+          return pycError("value_select expression arity mismatch");
+        auto trueValue = value(expression.operands[1]);
+        auto falseValue = value(expression.operands[2]);
+        auto type = pycType(plan, expression.type);
+        if (!trueValue)
+          return trueValue.takeError();
+        if (!falseValue)
+          return falseValue.takeError();
+        if (!type)
+          return type.takeError();
+        result = newValue();
+        body << "    " << result << " = pyc.mux " << *first << ", "
+             << *trueValue << ", " << *falseValue << " : i1, " << *type << ", "
+             << *type << " -> " << *type << "\n";
       } else if (expression.kind == "not") {
         if (expression.operands.size() != 1)
           return pycError("unary transform expression arity mismatch");
@@ -396,6 +564,9 @@ constexpr llvm::StringLiteral kStructMetrics =
 } // namespace
 
 llvm::Expected<std::string> generateQueueGraphPyc(const QueueGraphPlan &plan) {
+  if (!plan.definition.empty())
+    return pycError(
+        "module-preserving QueueGraph PYC lowering is not implemented");
   if (!plan.tables.empty() || !plan.slots.empty())
     return pycError("unsupported provisional Table: PYC lowering is deferred");
   if (!plan.scopes.empty()) {

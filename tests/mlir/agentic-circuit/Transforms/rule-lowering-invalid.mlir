@@ -93,7 +93,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<i32>) -> !ac.queue<i32>
   ac.sink %output : !ac.queue<i32>
 }
-// TYPE-ORIGIN: phase-one Queue payload inference must refine the unique rule input
+// TYPE-ORIGIN: phase-one Queue payload inference must refine a rule input
 
 //--- bad-value-identity.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_value_identity"} {
@@ -110,7 +110,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<i32>) -> !ac.queue<i32>
   ac.sink %output : !ac.queue<i32>
 }
-// VALUE-IDENTITY: phase-one value inference requires the unique committed input
+// VALUE-IDENTITY: committed input 0 requires identity 'input'
 
 //--- forged-proof.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "forged"} {

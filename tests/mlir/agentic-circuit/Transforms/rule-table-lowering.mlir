@@ -31,10 +31,12 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 // LOWERED-NOT: ac.marker
 // LOWERED: ac.firing
 // LOWERED-SAME: handshake "ready_valid_1x1_table"
-// LOWERED-SAME: schedule "independent_table_exclusive"
+// LOWERED-SAME: schedule "table_lexical_priority"
 // LOWERED-SAME: effects ["input.consume", "output.produce", "table.replace:rob"]
 // LOWERED: ac.table.propose @rob
 // LOWERED: ac.firing.yield
+// LOWERED: ac.rule_footprints = [{access = "read", guard_kind = #ac<rule_guard_kind always>, index_kind = "dynamic", resource = @rob}, {access = "replace", fields = ["index", "value"], guard_kind = #ac<rule_guard_kind always>, index_kind = "dynamic", resource = @rob}]
+// LOWERED-SAME: ac.rule_priority = 0 : i64
 // LOWERED-NOT: ac.transform
 
 // FROZEN: ac.topology_frozen = true
@@ -43,8 +45,8 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 
 // GFSIM: struct block_0_policy
 // GFSIM: std::optional<gfsim::TableTransitionPlan<Entry, Entry>>
-// GFSIM: auto [proposal_index, proposal_value, output_value]
-// GFSIM-COUNT-1: table->at
+// GFSIM: auto [proposal_index, proposal_value, proposal_present, output_value0, output_present0, condition]
+// GFSIM-COUNT-1: table_rob->at
 // GFSIM: gfsim::TableWriteMode::Replace
 // GFSIM: gfsim::QueueTableTransition<block_0_policy, Entry
 

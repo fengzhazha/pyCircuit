@@ -28,6 +28,7 @@ operations:
   - ac.address_map
   - ac.time_domain
   - ac.struct
+  - ac.bitfield
   - ac.enum
   - ac.union
   - ac.packet
@@ -44,6 +45,10 @@ operations:
   - ac.record.get
   - ac.record.with
   - ac.var.constant
+  - ac.var.enum
+  - ac.var.tuple
+  - ac.var.array
+  - ac.var.element
   - ac.var.add
   - ac.var.sub
   - ac.var.mul
@@ -53,18 +58,36 @@ operations:
   - ac.var.not
   - ac.var.shl
   - ac.var.shr
+  - ac.var.matches
   - ac.var.cmp
   - ac.var.get
   - ac.var.with
   - ac.var.popcount
   - ac.var.count_zeros
   - ac.var.priority_encode
+  - ac.var.select
+  - ac.var.extract
+  - ac.var.concat
+  - ac.var.insert
+  - ac.var.decl
+  - ac.var.read
+  - ac.var.read_element
+  - ac.var.assign
+  - ac.var.assign_element
+  - ac.var.match
+  - ac.var.match.yield
+  - ac.var.choose
+  - ac.var.choose.yield
   - ac.packet.serialize
   - ac.packet.deserialize
   - ac.transform
   - ac.transform.yield
   - ac.rule
+  - ac.rule.condition
+  - ac.rule.output
   - ac.rule.return
+  - ac.state.snapshot
+  - ac.state.snapshot_set
   - ac.marker.type
   - ac.marker.value
   - ac.marker.obligation
@@ -110,6 +133,8 @@ operations:
   - ac.scope
   - ac.scope.yield
   - ac.firing
+  - ac.firing.condition
+  - ac.firing.output
   - ac.firing.yield
   - ac.try_send
   - ac.try_recv
@@ -139,6 +164,7 @@ types:
   - optional
   - list
   - vector
+  - value_array
   - var
   - queue
   - array

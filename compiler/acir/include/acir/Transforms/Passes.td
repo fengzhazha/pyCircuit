@@ -12,8 +12,17 @@ def VerifyModelPass : Pass<"ac-verify-model", "::mlir::ModuleOp"> {
   }];
 }
 
-def CanonicalizeModelPass
-    : Pass<"ac-canonicalize-model", "::mlir::ModuleOp"> {
+def VerifyValueConstraintsPass
+    : Pass<"ac-verify-value-constraints", "::mlir::ModuleOp"> {
+  let summary = "Prove dynamic Agentic Circuit state indices are in range";
+  let description = [{
+    Runs ACDataFlowAnalyzer's bounded unsigned value-domain analysis and
+    rejects shaped ac.var and rule/firing Table accesses whose dynamic index
+    cannot be proven within the declared extent.
+  }];
+}
+
+def CanonicalizeModelPass : Pass<"ac-canonicalize-model", "::mlir::ModuleOp"> {
   let summary = "Canonicalize Agentic Circuit model topology";
   let description = [{
     Sorts symbol and Graph declarations by stable semantic keys and removes
@@ -38,12 +47,22 @@ def LowerProcessStatePass : Pass<"ac-lower-process-state", "::mlir::ModuleOp"> {
   }];
 }
 
+def LowerVariableStatePass
+    : Pass<"ac-lower-variable-state", "::mlir::ModuleOp"> {
+  let summary = "Select committed storage for persistent ac.var declarations";
+}
+
 def InferRuleTypesPass : Pass<"ac-infer-rule-types", "::mlir::ModuleOp"> {
   let summary = "Refine transient rule type-constraint markers";
 }
 
 def InferRuleEffectsPass : Pass<"ac-infer-rule-effects", "::mlir::ModuleOp"> {
   let summary = "Infer rule provenance and effect summaries";
+}
+
+def InferRuleActivationPass
+    : Pass<"ac-infer-rule-activation", "::mlir::ModuleOp"> {
+  let summary = "Infer typed rule activation and transaction resources";
 }
 
 def MaterializeRuleChecksPass
@@ -58,7 +77,8 @@ def MaterializeRuleHandshakePass
 
 def DischargeRuleObligationsPass
     : Pass<"ac-discharge-rule-obligations", "::mlir::ModuleOp"> {
-  let summary = "Discharge materialized rule obligations with explicit evidence";
+  let summary =
+      "Discharge materialized rule obligations with explicit evidence";
 }
 
 def ResolveRuleSchedulePass
@@ -76,8 +96,7 @@ def CanonicalizePureFiringsPass
   let summary = "Prove and canonicalize pure firings as Queue transforms";
 }
 
-def VerifyRuleClosurePass
-    : Pass<"ac-verify-rule-closure", "::mlir::ModuleOp"> {
+def VerifyRuleClosurePass : Pass<"ac-verify-rule-closure", "::mlir::ModuleOp"> {
   let summary = "Reject transient rules and unresolved markers";
 }
 

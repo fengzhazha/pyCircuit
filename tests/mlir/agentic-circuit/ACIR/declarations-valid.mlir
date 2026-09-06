@@ -5,7 +5,7 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.type_scope"() <{sym_name = "types"}> ({
     "ac.type_alias"() <{sym_name = "Word", target = i32}> : () -> ()
     "ac.struct"() <{sym_name = "Header", fields = [{name = "opcode", type = i8}, {name = "tag", type = i16}]}> : () -> ()
-    "ac.enum"() <{sym_name = "Opcode", enumerants = ["read", "write"]}> : () -> ()
+    ac.enum @Opcode enumerants ["read", "write"]
     "ac.union"() <{sym_name = "Payload", fields = [{name = "kind", type = i8}, {name = "word", type = i32}], discriminator = "kind"}> : () -> ()
     "ac.packet"() <{sym_name = "Request", fields = [{name = "opcode", type = i8}, {name = "payload", type = i32}]}> : () -> ()
     "ac.transaction"() <{sym_name = "Dma", fields = [{name = "request", type = !ac.packet<@types::@Request>}, {name = "tag", type = i16}]}> : () -> ()
@@ -20,7 +20,7 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 // CHECK: ac.type_scope @types
 // CHECK: "ac.type_alias"
 // CHECK: ac.struct @Header
-// CHECK: "ac.enum"
+// CHECK: ac.enum @Opcode enumerants ["read", "write"]
 // CHECK: "ac.union"
 // CHECK: "ac.packet"
 // CHECK: ac.transaction @Dma

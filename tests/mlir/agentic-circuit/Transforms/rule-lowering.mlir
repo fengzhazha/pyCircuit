@@ -1,7 +1,7 @@
 // RUN: %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types)' %s | %FileCheck %s --check-prefix=TYPE
 // RUN: %acir_opt --pass-pipeline='builtin.module(canonicalize,cse)' %s | %FileCheck %s --check-prefix=MARKERS
 // RUN: %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types,ac-infer-rule-effects,ac-materialize-rule-checks,ac-materialize-rule-handshake)' %s | %FileCheck %s --check-prefix=MATERIALIZED
-// RUN: %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types,ac-infer-rule-effects,ac-materialize-rule-checks,ac-materialize-rule-handshake,ac-discharge-rule-obligations,ac-resolve-rule-schedule,ac-lower-rules-to-firing)' %s | %FileCheck %s --check-prefix=FIRING
+// RUN: %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types,ac-infer-rule-effects,ac-infer-rule-activation,ac-materialize-rule-checks,ac-materialize-rule-handshake,ac-discharge-rule-obligations,ac-resolve-rule-schedule,ac-lower-rules-to-firing)' %s | %FileCheck %s --check-prefix=FIRING
 // RUN: %acir_opt --pass-pipeline='builtin.module(ac-lower-rules)' %s | %FileCheck %s --check-prefix=LOWERED
 // RUN: %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-lower-rules,canonicalize,cse,ac-verify-rule-closure,ac-freeze-topology)' %s -o %t.frozen
 // RUN: %FileCheck %s --check-prefix=FROZEN < %t.frozen

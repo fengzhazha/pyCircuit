@@ -29,9 +29,13 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
     %priority_index, %priority_valid = ac.var.priority_encode %bits3 order "high" : !ac.var<i3> -> !ac.var<i2>, !ac.var<i1>
     %leading = ac.var.count_zeros %bits3 direction "leading" : !ac.var<i3> -> !ac.var<i2>
     %trailing = ac.var.count_zeros %bits3 direction "trailing" : !ac.var<i3> -> !ac.var<i2>
+    %extracted = ac.var.extract %bits3 from 1 width 2 : !ac.var<i3> -> !ac.var<i2>
+    %concatenated = ac.var.concat %extracted, %shift3 : !ac.var<i2>, !ac.var<i3> -> !ac.var<i5>
+    %inserted = ac.var.insert %bits3, %extracted at 1 : !ac.var<i3>, !ac.var<i2> -> !ac.var<i3>
     %updated_value = ac.var.with %item, %product field "value" : !ac.var<!ac.struct<@types::@WorkItem>>, !ac.var<i64> -> !ac.var<!ac.struct<@types::@WorkItem>>
     %updated = ac.var.with %updated_value, %difference field "remaining" : !ac.var<!ac.struct<@types::@WorkItem>>, !ac.var<i16> -> !ac.var<!ac.struct<@types::@WorkItem>>
-    ac.transform.yield %updated : !ac.var<!ac.struct<@types::@WorkItem>>
+    %selected = ac.var.select %positive, %updated, %item : !ac.var<i1>, !ac.var<!ac.struct<@types::@WorkItem>> -> !ac.var<!ac.struct<@types::@WorkItem>>
+    ac.transform.yield %selected : !ac.var<!ac.struct<@types::@WorkItem>>
   } : (!ac.queue<!ac.struct<@types::@WorkItem>>) -> !ac.queue<!ac.struct<@types::@WorkItem>>
   ac.sink %output : !ac.queue<!ac.struct<@types::@WorkItem>>
 }
@@ -51,4 +55,8 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 // CHECK: ac.var.priority_encode
 // CHECK: ac.var.count_zeros {{.*}} direction "leading"
 // CHECK: ac.var.count_zeros {{.*}} direction "trailing"
+// CHECK: ac.var.extract
+// CHECK: ac.var.concat
+// CHECK: ac.var.insert
 // CHECK: ac.var.with
+// CHECK: ac.var.select

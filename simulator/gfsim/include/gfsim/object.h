@@ -65,8 +65,13 @@ public:
   /// Arbitration: select the winning proposal among candidates.
   virtual void doArbitrate(Epoch epoch) {}
 
-  /// True when the next Xfer call will publish a committed state change.
+  /// True when the next Xfer call must finish an accepted commit transaction.
   virtual bool hasPendingCommit() const { return false; }
+
+  /// True when the most recent successful commit changed observable state.
+  /// The default is conservative: objects without a semantic equality policy
+  /// wake their activation dependents after every commit.
+  virtual bool lastCommitChanged() const { return true; }
 
   // ── Wake conditions ─────────────────────────────────────────────────
 
@@ -233,6 +238,9 @@ public:
   /// Schedule an object for Work at the given epoch.
   bool scheduleWork(ObjectId id, Epoch epoch);
 
+  /// Enroll an externally proposed Queue transfer at the current epoch.
+  bool scheduleExternalXfer(ObjectId id);
+
   /// Schedule an event for a future epoch.
   bool scheduleEvent(Event event);
 
@@ -242,6 +250,10 @@ public:
   /// Install canonical compressed activation adjacency.
   bool setActivationPlan(std::span<const uint32_t> offsets,
                          std::span<const ObjectId> targets);
+
+  /// Install same-epoch Xfer resources indexed by scheduled Work object ID.
+  bool setWorkClosurePlan(std::span<const uint32_t> offsets,
+                          std::span<const ObjectId> targets);
 
   /// Install the opaque dispatch ABI emitted by the legacy ACIR C++ path.
   bool setLegacyDispatchTable(LegacyDispatchTable table);
@@ -285,7 +297,8 @@ public:
   /// Record a Perfetto/Chrome-trace swimlane sample at the current epoch.
   void recordTraceEvent(std::string lane, std::string phase, uint64_t handle);
 
-  /// Record a Perfetto counter sample (IQ / ROB occupancy) at the current epoch.
+  /// Record a Perfetto counter sample (IQ / ROB occupancy) at the current
+  /// epoch.
   void recordTraceCounter(std::string lane, uint64_t value);
 
   std::string chromeTraceJson() const;
@@ -315,7 +328,9 @@ public:
   BuildProfile buildProfile() const { return profile_; }
   uint64_t workInvocationCount() const;
   uint64_t activationTraversalCount() const;
+  uint64_t workClosureTraversalCount() const;
   const std::vector<TimelineEvent> &timeline() const;
+  const std::vector<CommitEvent> &commitTimeline() const;
 
 private:
   std::unique_ptr<Module> root_;

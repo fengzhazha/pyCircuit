@@ -172,6 +172,25 @@ def pipeline() -> None:
     ac.sink(outgoing)
 """
 
+MASKED_MATCH_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Item:
+    opcode: ac.bits[4]
+    matched: bool
+
+@ac.system
+def pipeline() -> None:
+    incoming = ac.source(Item)
+    decoded = incoming.apply(
+        lambda item: item.with_fields(
+            matched=ac.matches(item.opcode, "10x1"),
+        )
+    )
+    ac.sink(decoded)
+"""
+
 
 class QueueCodegenTest(unittest.TestCase):
     def test_rule_program_cannot_bypass_native_mlir_lowering(self) -> None:
@@ -295,6 +314,94 @@ class QueueCodegenTest(unittest.TestCase):
             )
             self.assertEqual(0, compiled.returncode, compiled.stderr)
 
+    def test_masked_match_generates_and_executes_basic_pattern(self) -> None:
+        from agentic_circuit._queue_codegen import lower_queue_source_to_cpp
+
+        generated = lower_queue_source_to_cpp(MASKED_MATCH_SOURCE, "pipeline")
+        self.assertIn("result.matched = ((item.opcode & 13) == 9);", generated)
+
+        compiler = shutil.which("c++")
+        if compiler is None:
+            self.skipTest("C++ compiler is unavailable")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            model = root / "masked_match.cpp"
+            harness = root / "masked_match_harness.cpp"
+            executable = root / "masked_match"
+            model.write_text(generated, encoding="utf-8")
+            harness.write_text(
+                f"""#include "{model.name}"
+#include <cstdint>
+
+bool run(std::uint64_t opcode, bool expected) {{
+  ac_generated::Pipeline model;
+  if (!model.incoming().proposePush(ac_generated::Item{{opcode, false}}))
+    return false;
+  auto rows = model.dispatch_rows();
+  for (std::size_t tick = 0; tick < 5; ++tick) {{
+    const gfsim::Epoch epoch{{tick, 0}};
+    for (auto &row : rows)
+      row.work(row.object, epoch);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Arbitrate);
+    for (auto &row : rows)
+      row.xfer(row.object, epoch, gfsim::XferPhase::Commit);
+  }}
+  const auto &values = model.sink_0_values();
+  return values.size() == 1 && static_cast<bool>(values[0].matched) == expected;
+}}
+
+int main() {{
+  return run(0b1001, true) && run(0b0001, false) ? 0 : 1;
+}}
+""",
+                encoding="utf-8",
+            )
+            linked = subprocess.run(
+                (
+                    compiler,
+                    "-std=c++20",
+                    "-I",
+                    str(ROOT / "simulator/gfsim/include"),
+                    str(harness),
+                    "-o",
+                    str(executable),
+                ),
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(0, linked.returncode, linked.stderr)
+            executed = subprocess.run(
+                (str(executable),),
+                cwd=root,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(0, executed.returncode, executed.stderr)
+
+    def test_masked_match_direct_codegen_checks_real_operand_width(self) -> None:
+        from agentic_circuit._queue_codegen import lower_queue_source_to_cpp
+        from agentic_circuit._queue_frontend import QueueFrontendError
+
+        for pattern, actual_width in (("1x", 2), ("10xx11", 6)):
+            with self.subTest(pattern=pattern):
+                source = MASKED_MATCH_SOURCE.replace('"10x1"', repr(pattern))
+                with self.assertRaisesRegex(
+                    QueueFrontendError,
+                    rf"width {actual_width}, expected 4",
+                ):
+                    lower_queue_source_to_cpp(source, "pipeline")
+
+        non_bits = MASKED_MATCH_SOURCE.replace(
+            'ac.matches(item.opcode, "10x1")',
+            'ac.matches(item.matched, "x")',
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "requires a bits value"):
+            lower_queue_source_to_cpp(non_bits, "pipeline")
+
     def test_route_and_merge_generate_standard_typed_blocks(self) -> None:
         from agentic_circuit._queue_codegen import lower_queue_source_to_cpp
 
@@ -387,7 +494,12 @@ int main() {{
             output = root / "pipeline.cpp"
             source.write_text(SOURCE, encoding="utf-8")
             environment = os.environ.copy()
-            environment["PYTHONPATH"] = str(ROOT / "python/agentic-circuit/src")
+            environment["PYTHONPATH"] = os.pathsep.join(
+                (
+                    str(ROOT / "python/semantic-core/src"),
+                    str(ROOT / "python/agentic-circuit/src"),
+                )
+            )
             generated = subprocess.run(
                 (
                     str(ROOT / "compiler/acir/tools" / "ac-queue-cxxgen.py"),

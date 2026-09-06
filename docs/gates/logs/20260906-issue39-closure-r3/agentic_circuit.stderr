@@ -1,0 +1,140 @@
+
+[notice] A new release of pip is available: 26.1.2 -> 26.2.1
+[notice] To update, run: /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/agentic-circuit/venv/bin/python -m pip install --upgrade pip
+
+[notice] A new release of pip is available: 26.1.2 -> 26.2.1
+[notice] To update, run: /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/agentic-circuit/venv/bin/python -m pip install --upgrade pip
+....................s.............s.........................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 204 tests in 9.337s
+
+OK (skipped=2)
+.....................................................
+----------------------------------------------------------------------
+Ran 53 tests in 37.746s
+
+OK
+test_rule_retirement_builds_pyc_and_verilog (__main__.PycBackendTest.test_rule_retirement_builds_pyc_and_verilog) ... ok
+test_bitfield_scalar_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_bitfield_scalar_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+test_masked_decode_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_masked_decode_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+test_nested_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_nested_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+test_nominal_enum_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_nominal_enum_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+test_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+test_recursive_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog (__main__.PycBackendTest.test_recursive_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 26.860s
+
+OK
+
+[31m │  ⚠  Warning from the Material for MkDocs team[0m
+[31m │[0m
+[31m │[0m  MkDocs 2.0, the underlying framework of Material for MkDocs,
+[31m │[0m  will introduce backward-incompatible changes, including:
+[31m │[0m
+[31m │  × [0mAll plugins will stop working – the plugin system has been removed
+[31m │  × [0mAll theme overrides will break – the theming system has been rewritten
+[31m │  × [0mNo migration path exists – existing projects cannot be upgraded
+[31m │  × [0mClosed contribution model – community members can't report bugs
+[31m │  × [0mCurrently unlicensed – unsuitable for production use
+[31m │[0m
+[31m │[0m  Our full analysis:
+[31m │[0m
+[31m │[0m  [4mhttps://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/[0m
+[0m
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: /Users/zhoubot/linx-isa/tools/pyCircuit/_build/html
+INFO    -  The following pages exist in the docs directory, but are not included in the "nav" configuration:
+  - SIDECAR_SCHEDULE.md
+  - arm_data_type.md
+  - asl_alignment_todo.md
+  - cycle_balance_improvement.md
+  - cycle_balance_improvement_detailed_plan.md
+  - pycircuit_implementation_method.md
+  - simulation.md
+  - vec-operators.md
+  - acir/table-abstraction-design.zh-CN.md
+  - acir/spec/README.md
+  - acir/spec/agentic-circuit.md
+  - acir/spec/agentic-circuit.zh-CN.md
+  - acir/spec/verification.md
+  - acir/spec/00-charter/scope.md
+  - acir/spec/refs/history.md
+  - development/acir/support.md
+  - development/acir/verification/ir-coverage.md
+  - development/acir/verification/pyc-verilog-backend.md
+  - development/acir/verification/repository-layout.md
+  - gates/logs/20260303-093808/matrix_summary.md
+  - gates/logs/20260831-agentic-consolidation-r2/migration_closure.md
+  - gates/logs/20260901-ac-table-prototype/summary.md
+  - gates/logs/20260902-ac-table-masked-write/commands.md
+  - gates/logs/20260902-ac-table-masked-write/summary.md
+  - gates/logs/20260902-ac-table-slot-match/commands.md
+  - gates/logs/20260903-ac-table-allocation/summary.md
+  - gates/logs/20260903-ac-table-multi-writer/summary.md
+  - gates/logs/20260903-ac-table-shared-selection/summary.md
+  - gates/logs/20260903-ac-table-stack-closure-r5/closure_summary.md
+  - gates/logs/20260904-ac-rule-epoch05-r1/closure_summary.md
+  - gates/logs/20260904-ac-rule-epoch05-r4/closure_summary.md
+  - gates/logs/20260904-ac-rule-epoch05-r6/closure_summary.md
+  - gates/logs/20260904-framework-boundary-r1/boundary_summary.md
+  - gates/logs/20260904-pr-release-gate-tiering-r1/summary.md
+  - gates/logs/20260905-ac-commit-groups-r1/summary.md
+  - gates/logs/20260905-ac-multi-input-rule-r1/summary.md
+  - gates/logs/20260905-ac-stateful-rule-r1/summary.md
+  - gates/logs/20260905-ac-uint-widths-r1/summary.md
+  - gates/logs/20260905-agentic-retirement/summary.md
+  - gates/logs/20260905-pyc-count-leading-zeros-r1/summary.md
+  - gates/logs/20260905-pyc-popcount-rtl-r1/summary.md
+  - gates/logs/20260905-pyc-priority-rtl-r1/summary.md
+  - gates/logs/20260905-pyc-zero-count-family-r1/summary.md
+  - gates/logs/20260906-aggregate-payload/summary.md
+  - gates/logs/20260906-bitfield-spec/summary.md
+  - gates/logs/20260906-bounded-constraints/summary.md
+  - gates/logs/20260906-branch-local-effects/summary.md
+  - gates/logs/20260906-choose-key-snapshot-set/summary.md
+  - gates/logs/20260906-circular-rob/summary.md
+  - gates/logs/20260906-combined-module-reuse/summary.md
+  - gates/logs/20260906-conditional-rule-effects/summary.md
+  - gates/logs/20260906-enum-payload/summary.md
+  - gates/logs/20260906-field-snapshot-reservations/summary.md
+  - gates/logs/20260906-host-result-boundary/summary.md
+  - gates/logs/20260906-indexed-branch-join/summary.md
+  - gates/logs/20260906-internal-queue-module/summary.md
+  - gates/logs/20260906-isq-tick-equivalence/summary.md
+  - gates/logs/20260906-masked-matching/summary.md
+  - gates/logs/20260906-masked-matching-r2/summary.md
+  - gates/logs/20260906-mlir-rule-activation/summary.md
+  - gates/logs/20260906-multi-owner-module-reuse/summary.md
+  - gates/logs/20260906-multi-rule-module-reuse/summary.md
+  - gates/logs/20260906-nested-activation/summary.md
+  - gates/logs/20260906-nested-module-reuse/summary.md
+  - gates/logs/20260906-nested-payload/summary.md
+  - gates/logs/20260906-optional-output-presence/summary.md
+  - gates/logs/20260906-python-module-lowering/summary.md
+  - gates/logs/20260906-python-multi-state-module/summary.md
+  - gates/logs/20260906-python-nested-module/summary.md
+  - gates/logs/20260906-python-stateful-module/summary.md
+  - gates/logs/20260906-queue-descriptor-migration/summary.md
+  - gates/logs/20260906-queue-module-freeze/summary.md
+  - gates/logs/20260906-queuegraph-activation/summary.md
+  - gates/logs/20260906-recursive-type-descriptor/summary.md
+  - gates/logs/20260906-reusable-circular-rob/summary.md
+  - gates/logs/20260906-reusable-oldest-ready-isq/summary.md
+  - gates/logs/20260906-rob-tick-equivalence/summary.md
+  - gates/logs/20260906-same-owner-branch-join/summary.md
+  - gates/logs/20260906-serial-guard-chain/summary.md
+  - gates/logs/20260906-snapshot-set-isq/summary.md
+  - gates/logs/20260906-ssa-rule-presence/summary.md
+  - gates/logs/20260906-state-snapshot-reservations/summary.md
+  - gates/logs/20260906-stateful-module-reuse/summary.md
+  - gates/logs/20260906-table-semantic-activation/summary.md
+  - gates/logs/20260906-typed-rule-summary/summary.md
+  - gates/logs/20260906-work-xfer-closure/summary.md
+  - gates/logs/llvm22-upgrade-20260828/llvm22_upgrade_summary.md
+  - gates/logs/pyc6-unification/pyc6_migration_summary.md
+  - legal/AC-RELICENSE-BSD-3-CLAUSE.md
+  - rfcs/acir/D-BLOCK-MODEL-001.md
+  - rfcs/acir/D-RELEASE-LAYOUT-001.md
+  - rfcs/acir/D-RULE-LOWERING-001.md
+INFO    -  Documentation built in 1.84 seconds

@@ -5,6 +5,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Interfaces/DataLayoutInterfaces.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 
 using namespace mlir;
@@ -134,8 +135,12 @@ bool isImmutablePayloadType(Type type) {
     return isImmutablePayloadType(optional.getElementType());
   if (auto vector = dyn_cast<VectorType>(type))
     return isImmutablePayloadType(vector.getElementType());
+  if (auto array = dyn_cast<ValueArrayType>(type))
+    return isImmutablePayloadType(array.getElementType());
   if (auto vector = dyn_cast<mlir::VectorType>(type))
     return isImmutablePayloadType(vector.getElementType());
+  if (auto tuple = dyn_cast<mlir::TupleType>(type))
+    return llvm::all_of(tuple.getTypes(), isImmutablePayloadType);
   return false;
 }
 
@@ -186,6 +191,17 @@ LogicalResult VectorType::verify(function_ref<InFlightDiagnostic()> emitError,
   if (length <= 0)
     return emitError() << "vector length must be positive";
   return verifyValueElement(emitError, elementType);
+}
+
+LogicalResult
+ValueArrayType::verify(function_ref<InFlightDiagnostic()> emitError,
+                       int64_t length, Type elementType) {
+  if (length <= 0)
+    return emitError() << "value_array length must be positive";
+  if (!isImmutablePayloadType(elementType))
+    return emitError()
+           << "value_array element must be an immutable ACIR value type";
+  return success();
 }
 
 LogicalResult VarType::verify(function_ref<InFlightDiagnostic()> emitError,

@@ -20,7 +20,7 @@ TEST(ACIRTypesTest, PublicTypeInventoryRoundTrips) {
     llvm::StringLiteral spelling;
     mlir::TypeID typeID;
   };
-  const std::array<TypeCase, 17> cases = {{
+  const std::array<TypeCase, 18> cases = {{
       {"!ac.struct<@types::@Struct>", StructType::getTypeID()},
       {"!ac.packet<@types::@Packet>", PacketType::getTypeID()},
       {"!ac.transaction<@types::@Transaction>", TransactionType::getTypeID()},
@@ -29,6 +29,7 @@ TEST(ACIRTypesTest, PublicTypeInventoryRoundTrips) {
       {"!ac.optional<i8>", OptionalType::getTypeID()},
       {"!ac.list<i8>", ListType::getTypeID()},
       {"!ac.vector<4 x i8>", VectorType::getTypeID()},
+      {"!ac.value_array<4 x i8>", ValueArrayType::getTypeID()},
       {"!ac.flow<i8, @protocol>", FlowType::getTypeID()},
       {"!ac.endpoint<@interface, @role>", EndpointType::getTypeID()},
       {"!ac.resource_ref<@resource_type, @role>", ResourceRefType::getTypeID()},
@@ -60,9 +61,11 @@ TEST(ACIRTypesTest, QueueVarTypesRoundTripWithImmutablePayloads) {
     llvm::StringLiteral spelling;
     mlir::TypeID typeID;
   };
-  const std::array<TypeCase, 2> cases = {{
+  const std::array<TypeCase, 4> cases = {{
       {"!ac.var<i32>", VarType::getTypeID()},
       {"!ac.queue<!ac.struct<@types::@Token>>", QueueType::getTypeID()},
+      {"!ac.var<tuple<i3, i5>>", VarType::getTypeID()},
+      {"!ac.queue<!ac.value_array<4 x i8>>", QueueType::getTypeID()},
   }};
 
   for (const TypeCase &testCase : cases) {
@@ -172,6 +175,8 @@ TEST(ACIRTypesTest, CheckedBuildersRejectInvalidParameters) {
   auto emitError = [location] { return mlir::emitError(location); };
   EXPECT_FALSE(VectorType::getChecked(emitError, &context, int64_t{0},
                                       mlir::Type(payload)));
+  EXPECT_FALSE(ValueArrayType::getChecked(emitError, &context, int64_t{0},
+                                          mlir::Type(payload)));
   EXPECT_FALSE(DurationType::getChecked(emitError, &context, Unit::Bytes));
   auto functionType = mlir::FunctionType::get(&context, {payload}, {payload});
   EXPECT_FALSE(
@@ -181,6 +186,7 @@ TEST(ACIRTypesTest, CheckedBuildersRejectInvalidParameters) {
   auto variable = VarType::get(&context, payload);
   auto queue = QueueType::get(&context, payload);
   auto dynamicList = ListType::get(&context, payload);
+  auto valueArray = ValueArrayType::get(&context, int64_t{2}, payload);
   EXPECT_FALSE(
       QueueType::getChecked(emitError, &context, mlir::Type(variable)));
   EXPECT_FALSE(VarType::getChecked(emitError, &context, mlir::Type(queue)));
@@ -188,6 +194,10 @@ TEST(ACIRTypesTest, CheckedBuildersRejectInvalidParameters) {
       QueueType::getChecked(emitError, &context, mlir::Type(dynamicList)));
   EXPECT_FALSE(
       VarType::getChecked(emitError, &context, mlir::Type(dynamicList)));
+  EXPECT_TRUE(
+      VarType::getChecked(emitError, &context, mlir::Type(valueArray)));
+  EXPECT_FALSE(ValueArrayType::getChecked(emitError, &context, int64_t{2},
+                                          mlir::Type(queue)));
   auto queueCollection = QueueType::get(&context, payload);
   auto duplicateKeys =
       mlir::ArrayAttr::get(&context, {mlir::StringAttr::get(&context, "lane"),

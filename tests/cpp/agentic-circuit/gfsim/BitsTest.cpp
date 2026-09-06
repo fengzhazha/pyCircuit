@@ -72,6 +72,32 @@ TEST(UIntTest, SixtyFourBitArithmeticAlsoWrapsExactly) {
   EXPECT_EQ(~std::uint64_t{0}, (one - UInt<64>{2}).value());
 }
 
+TEST(UIntTest, ExtractConcatAndInsertPreserveStaticWidths) {
+  constexpr UInt<17> value{0x1a35b};
+  constexpr UInt<5> low = bitExtract<5>(value, 0);
+  constexpr UInt<3> middle = bitExtract<3>(value, 5);
+  constexpr UInt<9> joined = bitConcat(middle, UInt<1>{1}, low);
+  constexpr UInt<17> updated = bitInsert(value, UInt<3>{2}, 5);
+
+  static_assert(decltype(low)::width == 5);
+  static_assert(decltype(middle)::width == 3);
+  static_assert(decltype(joined)::width == 9);
+  EXPECT_EQ(low.value(), value.value() & 0x1f);
+  EXPECT_EQ(middle.value(), (value.value() >> 5) & 0x7);
+  EXPECT_EQ(joined.value(),
+            (middle.value() << 6) | (uint64_t{1} << 5) | low.value());
+  EXPECT_EQ(bitExtract<3>(updated, 5).value(), 2u);
+  EXPECT_EQ(bitExtract<5>(updated, 0), low);
+}
+
+TEST(UIntTest, UnaryFullWidthConcatDoesNotShiftByStorageWidth) {
+  constexpr UInt<64> value{0x8000000000000001ULL};
+  constexpr UInt<64> joined = bitConcat(value);
+
+  static_assert(joined.value() == value.value());
+  EXPECT_EQ(value, joined);
+}
+
 TEST(PriorityEncodeTest, SimQueueBlockPreservesLowAndHighOrder) {
   SimQueue<UInt<13>> lowInput("low_input", 1, nullptr, 1);
   SimQueue<PriorityEncodeResult<13>> lowOutput("low_output", 2, nullptr, 1);

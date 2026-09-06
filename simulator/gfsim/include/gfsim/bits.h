@@ -171,6 +171,41 @@ template <std::integral T> constexpr std::int64_t signedValue(T value) {
   return static_cast<std::int64_t>(value);
 }
 
+template <unsigned ResultWidth, unsigned InputWidth>
+constexpr UInt<ResultWidth> bitExtract(UInt<InputWidth> value, size_t lsb) {
+  static_assert(ResultWidth > 0 && ResultWidth <= InputWidth);
+  return lsb + ResultWidth > InputWidth
+             ? UInt<ResultWidth>{}
+             : UInt<ResultWidth>{value.value() >> lsb};
+}
+
+template <unsigned... Widths>
+  requires(sizeof...(Widths) > 0 && ((Widths + ...) <= 64))
+constexpr UInt<(Widths + ...)> bitConcat(UInt<Widths>... values) {
+  uint64_t result = 0;
+  auto append = [&]<unsigned Width>(UInt<Width> value) {
+    if constexpr (Width == 64)
+      result = value.value();
+    else
+      result = (result << Width) | value.value();
+  };
+  (append(values), ...);
+  return UInt<(Widths + ...)>{result};
+}
+
+template <unsigned BaseWidth, unsigned ValueWidth>
+constexpr UInt<BaseWidth> bitInsert(UInt<BaseWidth> base,
+                                    UInt<ValueWidth> value, size_t lsb) {
+  static_assert(ValueWidth <= BaseWidth);
+  if (lsb + ValueWidth > BaseWidth)
+    return base;
+  const uint64_t valueMask =
+      ValueWidth == 64 ? ~uint64_t{0} : (uint64_t{1} << ValueWidth) - 1;
+  const uint64_t mask = valueMask << lsb;
+  return UInt<BaseWidth>{(base.value() & ~mask) |
+                         ((value.value() & valueMask) << lsb)};
+}
+
 template <unsigned Width> struct PacketTraits<UInt<Width>> {
   static constexpr bool isPacket = false;
   static constexpr std::string_view schema = {};

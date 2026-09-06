@@ -1,0 +1,10 @@
+{
+  "run_id": "20260906-bounded-constraints",
+  "script": "run_agentic_circuit.sh",
+  "status": "pass",
+  "lanes": ["AC G0", "AC G1", "AC G2"],
+  "resume_from": "g0",
+  "contract_epoch": "0.5",
+  "pyc_interface": "pyc6",
+  "cases": ["arbiter", "atomic-transform", "bit-widths", "popcount", "rule-retirement", "bitfield", "nested-payload", "enum-payload", "aggregate-payload", "recursive-aggregate-payload"]
+}

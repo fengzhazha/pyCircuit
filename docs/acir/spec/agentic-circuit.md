@@ -205,6 +205,150 @@ signedness as a distinct type. The retained `ac.s8/s16/s32/s64` names therefore
 also use signless unsigned relational lowering for now; signed comparison
 semantics require a future type-system decision.
 
+### Static bits and named bitfield views
+
+`ac.bits[N]` is the static-width spelling of the same exact unsigned value as
+`ac.uN`; `N` must resolve from a deterministic static expression to an integer
+in `[1, 64]`. Raw Python slicing is half-open:
+`word[4:21]` extracts 17 bits starting at bit 4. `ac.concat(a, b)` places `a`
+above `b`, and `ac.insert(base, value, lsb=N)` returns a new value without
+mutating `base`.
+
+`ac.BitfieldSpec(width=N, fields={name: (msb, lsb)})` adds names to closed bit
+ranges. Different fields may overlap as alternate read views. A single update
+must select disjoint fields:
+
+```python
+INSTRUCTION = ac.BitfieldSpec(
+    width=32,
+    fields={
+        "opcode": (31, 26),
+        "rd": (25, 21),
+        "imm17": (20, 4),
+        "low25": (24, 0),  # overlapping read view
+    },
+)
+
+opcode = INSTRUCTION(word).opcode
+opcode_rd = INSTRUCTION(word)["opcode", "rd"]
+updated = INSTRUCTION.update(word, rd=replacement)
+```
+
+Named and multi-field reads lower to `ac.var.extract` and MSB-first
+`ac.var.concat`; updates lower to immutable `ac.var.insert`. `ac.bitfield`
+retains canonical width/range metadata and a stable SHA-256 in ACIR. Verifiers
+resolve every field-qualified operation back to that declaration before
+topology freeze. The Python frontend contains no ready/full/Queue transaction
+logic for these values.
+
+### Bounded value constraints
+
+The compiler uses a small deterministic abstract domain with four facts:
+`Constant`, `FiniteSet`, `ClosedInterval`, and `Unknown`. Constraints are
+separate from `ValueType`: they do not change type identity or specialization
+fingerprints, and the frontend does not serialize range attributes or markers
+into ACIR. Widths, fixed shapes, aggregate indices, slice/insert bounds, and
+topology loop counts must still become concrete before ACIR is emitted.
+
+Typed bit transfers follow the exact `ac.var` semantics: arithmetic wraps
+modulo (2^N), and a logical shift by at least (N) yields zero. Finite-set and
+Cartesian propagation are capped at 64 values; topology expansion is capped at
+10,000 iterations. When a fact exceeds a cap or cannot be represented safely,
+analysis widens conservatively and proof sites fail closed.
+
+`ACDataFlowAnalyzer` is the public compiler analysis. It recomputes constraints
+from ACIR SSA through MLIR dataflow and proves every dynamic persistent-list or
+Table index is within `[0, entries - 1]` before rule lowering, topology freeze,
+and QueueGraph planning. MLIR's generic `DataFlowSolver` remains private to the
+analyzer implementation. For example, a `u2` index is safe for five entries,
+while an unconstrained `u3` index is rejected unless preceding operations
+produce a narrower proven fact. QueueGraph independently recomputes the same
+obligations so forged Frozen ACIR cannot bypass the verifier.
+
+This slice is intentionally path-insensitive. Dynamic aggregate extract/insert,
+guard-derived refinement, runtime-loop termination proofs, and general enum
+branch exhaustiveness remain separate extensions.
+
+### Masked bit matching
+
+`ac.matches(value, pattern)` is the decode-oriented masked comparison for an
+exact-width bits value. `pattern` must be a Python string literal containing
+only lowercase `0`, `1`, and `x`, and its length must equal the value width.
+The first character names the most-significant bit. `x` is a compile-time
+don't-care position; it does not introduce runtime X/Z semantics.
+
+```python
+is_compute = ac.matches(opcode, "1xx0")
+```
+
+The frontend converts the pattern to one canonical `mask` and `value` and
+emits `ac.var.matches`. ACIR verifies input/result types, width bounds, and
+that `value` sets no bit outside `mask`. QueueGraph preserves the operation as
+`masked_match`, serializing both constants as exact-width lowercase hex strings
+so bit 63 is lossless. gfsim evaluates `(input & mask) == value`; PYC lowering
+uses only vendor-neutral `pyc.constant`, `pyc.and`, and `pyc.eq`.
+
+The parser implementation is shared through the semantic core, but the Agentic
+surface deliberately enables only the basic grammar above. pyCircuit's existing
+extended syntax remains a separate frontend policy. Agentic Circuit does not
+add pattern objects, alternation, captures, runtime patterns, Python
+`match/case`, or general ASL pattern matching.
+
+### Variable properties
+
+Python exposes ordinary values, module/class fields, and lexical scopes rather
+than hardware-named variable annotations. MLIR infers two independent
+properties: lifetime is static, temporary, or persistent; update permission is
+immutable or assignable. `const` is static immutable. Rule parameters, returns,
+and local expressions are temporary immutable SSA snapshots. Scope-owned state
+is persistent assignable state, but every committed value read by one rule
+activation remains immutable; assignment proposes the next committed value.
+
+These properties are compiler facts, not Python markers. Subsequent analysis
+selects storage and transport from type, access pattern, def-use, scheduling,
+and target/NDF constraints. `ac.var` is the single ACIR variable-value
+concept across expressions and inferred state.
+
+Persistent class/module fields lower to the same `ac.var` family. Internal
+`ac.var.decl` names the lexical state, `ac.var.read` produces an immutable
+committed snapshot, and `ac.var.assign` proposes the next value within one
+rule. Storage selection eliminates these operations before rule closure. The
+first executable slice accepts a zero-initialized scalar integer or flat struct
+and selects a single-entry committed implementation; the Python frontend does
+not expose that choice.
+
+A fixed persistent list uses ordinary Python syntax such as
+`entries: list[Entry] = [0] * 8`. The frontend emits a shaped `ac.var.decl`
+plus `ac.var.read_element`/`ac.var.assign_element`; storage selection maps that
+logical variable to touched-entry committed storage. Dynamic indices currently
+are accepted only when `ACDataFlowAnalyzer` proves their value domain is within
+the list shape; authors do not write a frontend range check or marker.
+
+`ac.find(values, where=predicate, key=key)` is the storage-neutral collection
+query for a persistent Python list. It returns an intrinsic value with
+`.valid`, `.index`, and `.value`; omitting `key` selects the first matching
+index, while providing a fixed-width integer key selects the minimum key with
+stable index tie-breaking. Raw ACIR uses `ac.var.match` and `ac.var.choose`.
+Storage selection rewrites them to the existing committed Table query without
+changing the Python variable model. The selected index/value may affect state
+only under the corresponding `.valid` condition.
+
+A predicate may read another persistent list. Such an owner is an activation
+source but not a transaction resource unless the rule writes it. Generated
+policies capture read-only committed storage through const references; only
+writable owners participate in prepare/publish/commit. This supports an ISQ
+whose readiness table update wakes one oldest-ready query instead of bulk
+rewriting every resident entry.
+
+The current single-condition rule subset also carries verifier-derived typed
+summary attributes for guard kind, Queue availability/capacity checks, effects,
+output-presence kind, state accesses, schedule kind, and lexical arbitration
+membership. These closed enums replace strings as the analysis vocabulary for
+the supported 0/1-output subset, while the old strings remain derived readable
+summaries. A `predicate` summary is not a path identity: general CFG and
+selected multi-output semantics require an SSA `!ac.var<i1>` presence value on
+each output and state proposal and remain a later contract.
+
 `ac.priority_encode(value, order="low")` is a semantic combinational helper.
 Its `.index` and `.valid` projections share one `ac.var.priority_encode` in
 ACIR. `order="low"` selects the least-significant asserted bit and
@@ -649,25 +793,151 @@ Queue effects, checks, ready/valid handshake, scheduling, commit, or rollback.
 def increment(item):
     return item.with_fields(value=item.value + 1)
 
-incoming = ac.source(Item)
-outgoing = increment(incoming)
+@ac.system
+def pipeline(incoming: Item) -> Item:
+    outgoing = increment(incoming)
+    return outgoing
 ```
 
-The epoch 0.5 phase-one frontend accepts one type-preserving Queue input and
-one total return path. It emits transient `ac.rule` IR with exact input
-provenance and a typed pending handshake obligation. MLIR passes separately
-infer effects, establish an explicit empty-check contract, discharge handshake,
-resolve scheduling, and lower to marker-free `ac.firing`. Dynamic-check
-obligations are rejected in phase one because no executable checked IR exists
-yet. A proof pass may canonicalize this pure one-input/one-output firing to
-`ac.transform` for QueueGraph/gfsim and PYC.
+Non-`const` system parameters and typed returns are the preferred external
+boundary surface. The compiler inserts internal `ac.source` and `ac.sink`
+nodes; multiple outputs use an ordered `tuple[...]` annotation and tuple
+return. Explicit Python `source(...)` and `sink(...)` remain transitional.
+
+The epoch 0.5 pure-rule frontend accepts one or more Queue inputs and one total
+return path. Every argument is the immutable committed head payload of its
+corresponding Queue. It emits transient variadic `ac.rule` IR and one typed
+pending output-handshake obligation. MLIR passes infer all input-consume and
+output-produce effects, establish an explicit empty-check contract, materialize
+the `ready_valid_Nx1` handshake, resolve scheduling, and lower to marker-free
+`ac.firing`. Dynamic-check obligations are rejected in this slice because no
+executable checked IR exists yet. A proof pass canonicalizes the closed pure
+firing to a variadic `ac.transform`; QueueGraph/gfsim then realizes it as one
+atomic transform, so output backpressure never consumes only a subset of the
+inputs. Input Queue payloads may differ; the single result currently preserves
+the primary input payload type.
+
+A stateful rule may return no value. In that form the compiler infers an
+`Nx0` consume-only transaction: selected inputs and state proposals commit
+together and no dummy Queue or sink is created. A stateful rule may also have
+no Queue input and return one value. A single Python `if` around its state
+assignment/return lowers to typed `ac.rule.condition` and then
+`ac.firing.condition`; a false condition forms no candidate transaction.
+Output capacity remains part of the inferred transaction, so a state-driven
+retire cannot clear its entry while its result Queue is backpressured.
+
+An outputless rule with exactly one Queue payload may explicitly finish a token
+without selecting its state effects by using one or more ordinary serial early
+returns:
+
+```python
+@ac.rule
+def complete(entries, completion):
+    old = entries[completion.index]
+    if old.generation != completion.generation:
+        return
+    if old.epoch != completion.epoch:
+        return
+    entries[completion.index] = completion
+```
+
+This is distinct from the blocking trailing `if` above. The compiler emits a
+constant-true candidate condition for input consumption and combines the
+inverted early-return predicates into one SSA conjunction attached as `when` on
+generic `ac.var.assign` operations. Storage selection preserves that SSA
+presence on `ac.table.propose`. The early returns must be contiguous and precede
+all state effects, so flattening pure, total predicate evaluation does not move
+a write across a return. All conditional state effects in this restricted form
+share the resulting predicate; it cannot be combined with a blocking guard,
+multiple Queue payloads, or a selected output yet.
+
+An outputless one-input rule may also use one ordinary `if/else` whose branches
+assign distinct persistent owners. The frontend preserves the branch test and
+its Boolean complement as separate SSA presence values. Rule, Firing, and
+QueueGraph verification independently require exactly one shared predicate or
+one structurally proven complementary pair. Generated gfsim evaluates one Work
+candidate and prepares only the selected owner; the input and selected state
+still publish through one atomic group. If both arms assign the same scalar
+owner, the compiler emits one `ac.var.select` value join followed by one
+unconditional state proposal. QueueGraph/gfsim use a ternary expression and PYC
+uses `pyc.mux`; the owner therefore retains one write slot and one commit.
+If both arms assign the same persistent list, the compiler joins both value and
+index with typed `ac.var.select` operations, then emits one unconditional
+`ac.var.assign_element`. Each authored index must retain the existing exact
+width/full-domain safety proof. A branch value that depends on another
+branch-written owner remains rejected until general state joins are available.
+
+One stateful output may be optional. A trailing Python
+`if condition: return value` followed by `return` means the input and preceding
+state effects are always selected, while the output is selected only by the
+condition. The frontend emits `ac.rule.output ... when`, and MLIR independently
+derives predicate-qualified output capacity/effect summaries. A full output
+Queue therefore blocks the complete transaction only when output presence is
+true; the absent-output path consumes input and commits state without requiring
+capacity. Rule/Firing/QueueGraph verifiers require one input and a constant-true
+candidate for this differing output presence.
+
+`ACDataFlowAnalyzer` walks backward from candidate, output-presence, and
+state-effect presence values and materializes compiler-owned state-snapshot
+proof. A top-level `ac.table.get` becomes `ac.state.snapshot` with an exact
+static or proven full-domain dynamic index. A source `ac.table.match` reserves
+its complete scanned owner; a foreign Table read inside that match predicate
+becomes `ac.state.snapshot_set`, keyed by the match mask, so only indices
+actually read during the same scan are reserved. A foreign Table read inside a
+`table.choose` key region uses the choose index result as canonical evaluation
+provenance. Its dependency mask is updated only after the candidate-mask test
+and immediately before that candidate's key evaluation. The current
+snapshot-set contract supports at most 64 entries. Table reads in a shared,
+non-transactional choose key are rejected rather than lowered without snapshot
+closure.
+
+The closure verifier independently recomputes the complete proof set before
+freeze. QueueGraph preserves scalar/all/set reservations independently from
+writes, activation sources, and transaction resources. Generated gfsim folds a
+set reservation into a `uint64_t` mask during the original match scan, without
+a second state traversal or heap allocation. A scalar rule parameter bound to
+lexical persistent state is inferred from the state-prefix call binding and
+lowered to `ac.var.read` even when it is read-only, so authors do not need a
+self-assignment to force serialization.
+
+Snapshot proof also carries ordered `read_fields`. A direct `ac.var.get` from a
+Table result narrows the reservation to that field; consuming the complete
+Entry records every declared field, and scalar entries use `$entry`.
+QueueGraph verifies the field names against the Entry declaration. Generated
+gfsim uses a compact `StateReservation`: complete Entry reads retain an entry
+mask, while partial reads use one 64-bit relation whose bit position encodes an
+exact `(entry, field)` pair. Same-entry field-merge writes conflict only when
+that pair is present, while replace writes still conflict with every read of
+the entry. Relation union preserves heterogeneous clauses without a
+cross-product or heap allocation. Partial relations currently require
+`entries * declared_fields <= 64`; complete Entry and scalar masks retain the
+existing 64-entry limit.
+
+One rule activation may update multiple lexical persistent values. Scalar and
+fixed-list assignments remain generic `ac.var` operations until storage
+selection; the resulting heterogeneous state owners are carried by one
+`gfsim::QueueStateTransition`. Work computes one immutable candidate containing
+all owner writes. Arbitrate either reserves and publishes every owner and
+selected Queue, or publishes none.
+
+`examples/agentic-circuit/state/circular_rob.py` exercises this path as a real
+four-entry circular ROB. Ordinary scalar variables hold head, tail, occupancy,
+and recovery epoch; a normal `list[RobEvent]` holds entries. Its four rules
+implement recovery, allocation, completion, and state-driven retirement. The
+generated test proves full/empty distinction, fixed-width head/tail wrap,
+per-slot generation rejection, recovery-epoch rejection, out-of-order
+completion, in-order retirement, and allocation/retirement output
+backpressure. The Python source contains no Queue/Table/source/sink/readiness or
+commit operations. Its generation and recovery epoch are 16-bit finite tags;
+the environment must not retain a completion across `2^16` same-slot reuses or
+recovery epochs.
 
 Python `ac.atomic()` and `Queue.firing()` are removed and produce migration
 diagnostics directing authors to `@ac.rule`. The lower-level words remain
 compiler implementation concepts, not Python APIs.
 
-The first stateful rule subset adds one Table parameter without exposing the
-transaction machinery:
+The first stateful rule subset adds one Table parameter followed by one or more
+Queue payload parameters without exposing the transaction machinery:
 
 ```python
 @ac.rule
@@ -676,24 +946,27 @@ def install(rob, entry):
     rob[entry.index] = entry
     return old
 
-outgoing = install(rob, incoming)
+outgoing = install(rob, incoming, metadata)
 ```
 
-The Table Entry and input/output Queue payload types MUST match. The body MAY
-bind one committed Table Entry observation, MUST perform exactly one complete
-Entry replacement, and MUST return one payload. A dynamic `ac.uN` index is
+The Table Entry, primary input, and any output Queue payload types MUST match;
+additional input Queue payloads may differ. The body MAY bind one committed
+Table Entry observation, MUST perform exactly one complete Entry replacement,
+and MAY return zero or one payload. A dynamic `ac.uN` index is
 accepted only for a `2^N`-entry Table; a constant index must be in range. This
 statically discharges bounds while executable dynamic checked IR remains
 pending.
 
 The frontend emits firing-local `ac.table.propose`. Separate MLIR passes infer
-`input.consume`, `output.produce`, and the Table replace effect; materialize
-`ready_valid_1x1_table`; require exclusive Table scheduling; discharge every
-marker; and retain the result as stateful `ac.firing`. QueueGraph lowers the
+every input consume, the output produce, and the Table replace effect;
+materialize `ready_valid_Nx1_table`; infer lexical priority and typed state
+footprints; discharge every marker; and retain the result as stateful
+`ac.firing`. QueueGraph lowers the
 closed firing to `gfsim::QueueTableTransition`. It is not canonicalized to
 `ac.transform`, and PYC continues to reject the provisional Table boundary.
-Field or masked updates, multiple Queue endpoints, multiple proposals, CFG
-branches, Reg effects, and arbitration are not part of this subset.
+Field or masked updates, optional or multiple outputs, multiple state
+proposals, CFG branches, Reg effects, and arbitration are not part of this
+subset.
 
 ### Bounded feedback
 
@@ -855,6 +1128,90 @@ Valid examples:
 !ac.var<!ac.struct<@types::@WorkItem>>
 !ac.queue<!ac.struct<@types::@WorkItem>>
 ```
+
+Before MLIR rendering, the frontend represents values with immutable recursive
+descriptors: logical bool, exact bits, nominal enum/struct, structural tuple,
+and fixed value array. Each descriptor has canonical identity, stable SHA-256,
+and recursive bit width. `BoolType()` and `BitsType(1)` are deliberately
+different compiler facts even though both currently render as `i1`. Persistent
+Python lists are state containers and are not `ArrayType` values. Fixed payload
+arrays render as `!ac.value_array<N x T>`; `!ac.array` remains a static
+Queue/Var topology collection. Tuple and value-array elements must be
+recursively immutable. The executable frontend admits acyclic nested structs,
+standard Python enum values, structural tuple construction, fixed value-array
+construction, and constant aggregate indexing.
+
+Tuple and fixed-array payloads use ordinary Python annotations and values:
+
+```python
+@ac.struct
+class Packet:
+    pair: tuple[ac.bits[3], ac.bits[5]]
+    lanes: ac.array[4, ac.bits[4]]
+
+updated = item.with_fields(
+    pair=(item.pair[0] + 1, item.pair[1] + 1),
+    lanes=(item.lanes[1], item.lanes[2], item.lanes[3], item.lanes[0]),
+)
+```
+
+Tuple/list literals must have the exact statically known arity, and aggregate
+indices must be static and in range before Frozen ACIR. The compiler lowers
+them through typed `ac.var.tuple`, `ac.var.array`, and `ac.var.element`, keeps
+aggregate identity and width in QueueGraph, and uses one packed value in gfsim
+and PYC rather than expanding a hardware container object in Python.
+Enum and nominal struct elements are recursively packed before construction and
+restored after selection, using the same MSB-first field order as PYC. Width
+addition/multiplication is checked; a field wider than 64 bits or a malformed
+element boundary is rejected before backend generation.
+
+QueueProgram retains these descriptors on Queue payloads, persistent values,
+Table entries, memories, slots, rule state effects, and reusable module
+signatures. Expression lowering returns `(SSA name, ValueType)` and performs
+identity, width, enum, aggregate, and field checks on descriptors. MLIR spelling
+is produced only by the ACIR text renderer; the C++ QueueGraph begins its own
+string representation only after parsing that verified ACIR boundary.
+`BoolType()` and `BitsType(1)` remain distinct inside the frontend while a
+small explicit pair of epoch-0.5 compatibility helpers preserves the accepted
+`i1` equality and integer-width boundaries until a separate hard-break
+decision.
+
+One nominal struct may now contain another nominal struct. Declarations may
+appear in either source order; cycles are rejected. Nested access and update
+use ordinary Python values:
+
+```python
+@ac.struct
+class Packet:
+    header: Header
+    payload: ac.bits[17]
+
+updated = item.with_fields(
+    header=item.header.with_fields(mode=item.header.mode + 1)
+)
+```
+
+The compiler emits typed chained `ac.var.get`/`ac.var.with`, orders generated
+C++ declarations by dependency, and recursively packs the same value for PYC
+C++ and Verilog. It does not flatten the Python struct or duplicate nested
+types per instance.
+
+Nominal values use the standard Python enum class:
+
+```python
+from enum import Enum
+
+class Mode(Enum):
+    IDLE = 0
+    RUN = 1
+    WAIT = 2
+```
+
+Members must be contiguous from zero in declaration order. A nested struct
+field may use `Mode`; `Mode.RUN` lowers to a verified `ac.var.enum` value.
+Enums support equality and inequality only in the current slice. QueueGraph
+retains the member list and encoding width, gfsim emits one compact C++ enum,
+and PYC/Verilog use the same exact-width ordinal.
 
 Invalid examples:
 
@@ -1068,14 +1425,115 @@ canonicalization pass proves that this complete contract is preserved.
 
 ### Frozen logical identity
 
-The flat QueueGraph representation carries `ac.model_kind = "queue_graph"`
-and the exact singleton-domain declaration `ac.queue_graph_domain = "cycle"`.
-Those attributes are required in addition to `ac.system`; the representation
-may not contain structured `ac.system` or `ac.module*` declarations. Every
-phase-one rule domain must equal that declaration. QueueGraph planning and all
-QueueGraph generators accept only verified epoch 0.5 frozen input with an empty
-flat owner manifest and a matching topology digest. Raw or forged models are
-rejected rather than frozen implicitly by a backend.
+Every QueueGraph representation carries `ac.model_kind = "queue_graph"` and
+the exact singleton-domain declaration `ac.queue_graph_domain = "cycle"`.
+Every phase-one rule domain must equal that declaration. QueueGraph planning
+and generation accept only verified epoch 0.5 frozen input with a matching
+owner manifest and topology digest. Raw or forged models are rejected rather
+than frozen implicitly by a backend.
+
+The legacy flat representation additionally carries the string attribute
+`ac.system`; it contains no structured `ac.system` or `ac.module*`
+declarations and freezes with an empty owner manifest. The module-preserving
+representation instead uses one selected `ac.system`, materialized
+`ac.module` definitions, `ac.instance` placements, and module-local
+`ac.scope` Queue graphs. The freeze pass computes, inserts, and verifies:
+
+- one `ac.definition_fingerprint` for each reusable module definition;
+- one `ac.specialization` fingerprint for the root and for every instance,
+  derived from the definition fingerprint plus canonical static arguments;
+- identical specialization identities for repeated instances of the same
+  definition and argument set; and
+- the selected system and elaborated instance-owner manifest in the global
+  topology seal.
+
+Backends must key generated implementation classes by specialization and bind
+instances to independently owned ports and state. They must not flatten a
+repeated module merely because its placements have different hierarchy paths.
+For a stateful specialization, the implementation class owns the Table and
+transition member layout, while each constructed instance owns a distinct
+runtime Table object and dense object IDs. Reusing a specialization therefore
+shares executable structure, never committed state or transaction ownership.
+Within one specialization, multiple firing rules may bind different subsets of
+the module's typed Queue interface while sharing one local state owner. Their
+firing IDs and generated dispatch rows preserve frozen lexical priority. A
+losing same-owner rule retains all of its inputs and recomputes from the next
+committed snapshot; another module instance arbitrates against its own state,
+not against the first instance.
+One firing may also propose writes to multiple module-local state owners. The
+specialization class stores the `QueueStateTransition` policy and member layout
+once, while each instance constructs every Table independently. All selected
+Queue effects and owner writes remain one prepare/publish/no-fail commit group;
+failure to reserve any instance-local owner leaves every input and owner
+unchanged.
+Different rules in one module may touch different ordered subsets of the
+module's owner set. Each generated transition receives only its own Queue and
+owner subset, while the class constructs the union of all declared owners once
+per instance. Lexical arbitration therefore remains rule-local without adding
+unrelated Tables to a transaction.
+Specializations may instantiate other specializations. Planning constructs the
+acyclic specialization dependency graph in child-before-parent order. A parent
+plan stores one direct child specialization body and instance bindings; codegen
+emits the child class once, then the parent class, and recursively partitions
+the parent's dense runtime-ID range across child instances. Repeating the parent
+therefore repeats only object construction and bindings, not either class body.
+A parent specialization may own internal Queues connecting local blocks to
+child instances. Internal Queues belong to the parent instance's runtime-ID
+interval and are constructed once per parent object; exported child results bind
+directly to the parent interface. Internal storage is never promoted to the root
+or shared between repeated parent instances.
+
+Python authors declare reusable behavior as an ordinary typed `@ac.module`
+function and invoke it with ordinary calls from `@ac.system`. The frontend does
+not expose Queue ports, instance objects, specialization fingerprints, source,
+sink, readiness, or backpressure. The first lowering slice accepts a pure 1x1
+module whose expression return becomes a module-local transform; typed system
+parameters and results become internal boundaries, and calls become
+`ac.instance` placements.
+A module expression return may directly call another typed module. The frontend
+emits a parent `ac.module` containing a child `ac.instance`; existing
+specialization planning and codegen preserve child-before-parent reuse. The
+Python function still returns an ordinary value and names no hierarchy object.
+The stateful module slice accepts one or more zero-initialized scalar lexical
+variables, one serial assignment per variable, and a typed result expression:
+
+```python
+@ac.module
+def accumulator(value: ac.u8) -> ac.u8:
+    total: ac.u8 = 0
+    total = total + value
+    return total
+```
+
+All committed variables are read at activation start. Assignments update the
+local immutable value environment in source order, then the raw IR records one
+`ac.var.assign` proposal per owner. MLIR selects storage and infers one
+Queue-plus-state atomic transaction; repeated calls reuse one implementation
+class while each instance constructs independent committed state. Arbitrary
+arity, conditional updates, shaped module state, static parameters, and
+inferred repeated-value fanout remain follow-up slices.
+
+Rule-backed modules reuse the same callable-body parser and QueueProgram event
+renderer as systems. Such a module may expose multiple typed inputs and outputs
+and invoke multiple ordinary rules; each rule still returns zero or one Queue.
+Module arguments bind borrowed Queue values internally, and typed Python return
+names become `ac.return` operands. A root system may place the module with an
+ordinary tuple assignment. The compiler, not Python, materializes
+`ac.instance`, interface bindings, specialization identity, and per-instance
+state.
+
+`reusable_circular_rob.py` exercises this path with one 3-input/2-output ROB,
+five lexical state owners, four rules, and two independent placements. Its
+specialization body and generated class occur once. Direct interface-to-rule
+graphs are supported; arbitrary internal Queue graphs and repeated-input
+fanout inside one module remain follow-up work.
+
+For host-integrated simulation, compiler option `--host-results` preserves
+typed system returns as Top module Queue results instead of inserting automatic
+sinks. Generated `result_N()` accessors expose committed occupancy and
+`try_take_result_N(system)` enrolls one dequeue in the external-Xfer frontier.
+The same Python source is used in standalone and host modes; Python never names
+the boundary Queue or sink.
 
 Every Queue-producing operation MUST carry exact frozen logical output names
 before QueueGraph extraction:
@@ -1085,10 +1543,11 @@ before QueueGraph extraction:
 - names are unique across the system;
 - each Queue records payload type, scope path, depth, and latency.
 
-The canonical QueueGraph JSON uses schema
-`agentic-circuit-queue-graph-plan`, version `0.5`. Its ordering and bytes MUST
-not depend on host addresses, hash iteration, allocation order, or checkout
-path.
+The flat canonical QueueGraph JSON uses schema
+`agentic-circuit-queue-graph-plan`, version `0.5`. The module-preserving plan
+extends this into definition-, specialization-, and instance-indexed records.
+Its ordering and bytes MUST not depend on host addresses, hash iteration,
+allocation order, or checkout path.
 
 ### Queue graph verification
 
@@ -1129,6 +1588,46 @@ One block MUST NOT observe another block's uncommitted proposal in the same
 epoch. Independent Work order MUST NOT change architectural results,
 diagnostics, committed statistics, or refinement observations.
 
+### Incremental activation
+
+QueueGraph plans derive activation from typed Queue endpoints and Table
+footprints. A committed input/output Queue or semantically changed referenced
+Table wakes every subscribed block at the next epoch. A Table proposal that
+commits the same final values still completes its atomic transaction, progress,
+and observation bookkeeping, but it does not propagate activation. A separate
+Work-closure relation adds all consumed/produced Queues and writable Tables to
+that block's same-epoch Arbitrate/Probe/Commit barrier without invoking their
+no-op Work methods.
+
+For rule-backed blocks, `ac-infer-rule-activation` freezes enum-typed input,
+output, and state resource records after `ACDataFlowAnalyzer` has produced
+state footprints. Firing verification re-derives those records before
+QueueGraph extraction. Generated system inputs expose `offer_<name>(system,
+value)`, which schedules the external Queue proposal without adding any
+readiness or scheduling operation to Python authoring.
+
+The runtime evaluates Work blocks first, arbitrates those owners before
+closure-only resources, probes the complete closure, and only then begins the
+Commit loop. External Queue offers use a distinct Xfer frontier rather than
+pretending the Queue is a Work block.
+Host-result dequeue uses the same frontier. A returned value is only accepted
+after the following system step commits its Queue pop; that commit wakes any
+producer stalled by the previously full result Queue.
+
+The validated runtime profile records each committed ObjectId, epoch, and
+semantic-change bit after the global Probe barrier. This commit timeline is an
+equivalence/debugging surface; the fast profile does not allocate or append
+these records on the commit hot path.
+
+Zero-input rules receive one initial activation and then sleep until a
+referenced owner changes or an output dequeue removes backpressure. Extracted
+activation edges and the initial frontier are canonical compiler evidence;
+backends MUST NOT guess them from generated C++ text. Physical binding recurses
+through the supported specialization hierarchy, mapping borrowed interfaces,
+parent-local Queues, blocks, Tables, and child ObjectId intervals without
+flattening classes. Generated `activation_complete()` states whether the whole
+reachable hierarchy is covered.
+
 ### Capacity and latency
 
 `SimQueue<T>` counts committed entries, delayed entries, and push proposals
@@ -1149,6 +1648,27 @@ Xfer.
 
 No legal lowering may commit an input pop while a required output push is
 rejected.
+
+For the current single-condition, zero-or-one-output rule subset, path
+selection is explicit SSA evidence rather than only a summary category.
+`ac.rule.output` and `ac.firing.output` bind each returned value and ordinal to
+one `!ac.var<i1>` presence value, and each firing-local `ac.table.propose`
+carries its presence value through storage selection. Rule and Firing
+verification independently require exactly one candidate condition, complete
+output ordinal coverage, returned-value identity, and each effect presence to
+imply the candidate. The narrow conditional-effect form allows presence to
+differ only when the candidate is constant true, there is exactly one input,
+and all differing effects share one predicate. QueueGraph retains candidate and
+effect presence separately. Generated gfsim distinguishes `nullopt` (stall and
+retain input) from an engaged plan with absent writes (consume input without a
+state commit). It reserves analyzer-derived snapshot indices long enough to
+validate the committed decision against overlapping lexical writers, then
+cancels unselected reservations without publishing a Table proposal. Snapshot
+readers remain mutually compatible; snapshot/write overlap conflicts, while
+disjoint indices proceed independently. Python exposes
+none of these proof or reservation operations. General predicate read-set
+inference for candidate/output and match/choose index sets, CFG joins, and
+multiple selected outputs remain outside this subset.
 
 ### Credit transfer
 

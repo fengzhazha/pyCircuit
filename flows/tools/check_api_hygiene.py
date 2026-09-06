@@ -11,9 +11,11 @@ def _repo_root() -> Path:
 
 
 ROOT = _repo_root()
+SEMANTIC_CORE = ROOT / "python" / "semantic-core" / "src"
 FRONTEND = ROOT / "python" / "pycircuit" / "src"
-if str(FRONTEND) not in sys.path:
-    sys.path.insert(0, str(FRONTEND))
+for source_root in (FRONTEND, SEMANTIC_CORE):
+    if str(source_root) not in sys.path:
+        sys.path.insert(0, str(source_root))
 
 from pycircuit.api_contract import TEXT_RULES, TextRule, scan_text  # noqa: E402
 from pycircuit.diagnostics import render_diagnostic  # noqa: E402

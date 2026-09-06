@@ -1,0 +1,36 @@
+full Queue/gfsim integration
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/integration/agentic-circuit/e2e/test_queue_codegen.py
+exit: 0
+result: 32 passed, 1 skipped in 49.92s
+
+full PYC C++/Verilator integration
+command: ACIR_QUEUE_PYCGEN=.pycircuit_out/acir/dev-llvm22/bin/acir-queue-pycgen PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/integration/agentic-circuit/e2e .pycircuit_out/agentic-circuit/venv/bin/python -m unittest test_pyc_backend -v
+exit: 0
+result: Ran 17 tests in 71.876s; OK
+
+direct Python QueueProgram-to-gfsim adapter
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit:.pycircuit_out/acir/dev-llvm22/python .pycircuit_out/agentic-circuit/venv/bin/python -m unittest python_frontend.test_queue_codegen -v
+exit: 0
+result: Ran 11 tests in 6.916s; OK
+
+Agentic descriptor hygiene and contract suite
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit:.pycircuit_out/acir/dev-llvm22/python .pycircuit_out/agentic-circuit/venv/bin/python -m unittest discover -s tests/python/agentic-circuit/contracts -p 'test_*.py'
+exit: 0
+result: Ran 42 tests in 5.823s; OK
+
+pyCircuit unit
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:python/pycircuit/src pytest tests/unit -m unit -q
+exit: 0
+result: 37 passed
+
+independent code review
+result: APPROVE; original bool/u1 compatibility and hygiene-gate findings resolved
+
+source hygiene
+command: ruff check --select E,F,I --ignore E501 python/agentic-circuit/src/agentic_circuit/_queue_frontend.py python/agentic-circuit/src/agentic_circuit/_queue_codegen.py tests/python/agentic-circuit/python_frontend/test_queue_frontend.py tests/python/agentic-circuit/python_frontend/test_queue_codegen.py tests/python/agentic-circuit/python_frontend/test_public_api.py tests/python/agentic-circuit/contracts/test_queue_type_hygiene.py tests/unit/test_semantic_core.py
+exit: 0
+result: All checks passed
+
+command: git diff --check && python3 -m compileall -q python/agentic-circuit/src/agentic_circuit tests/python/agentic-circuit/contracts/test_queue_type_hygiene.py
+exit: 0
+result: passed

@@ -19,14 +19,17 @@ namespace gfsim {
 struct SimSystem::Impl {
   std::map<ObjectId, SimObject *> objects;
   std::map<Epoch, std::set<ObjectId>> scheduledWork;
+  std::map<Epoch, std::set<ObjectId>> scheduledExternalXfer;
   EventQueue eventQueue{"events", kInvalidObjectId, nullptr};
   DispatchTable dispatch;
   ActivationPlan activation;
+  ActivationPlan workClosure;
   LegacyDispatchTable legacyDispatch;
   LegacyActivationGraph legacyActivation;
   uint64_t committedEventCount = 0;
   uint64_t workInvocations = 0;
   uint64_t activationTraversals = 0;
+  uint64_t workClosureTraversals = 0;
   bool executingEpoch = false;
   std::optional<ObjectId> activeProposalOwner;
   NoProgressReport noProgress;
@@ -40,6 +43,7 @@ struct SimSystem::Impl {
   std::map<std::string, uint64_t> domainCycles;
   std::map<std::string, StatSnapshot, std::less<>> generatedStats;
   std::vector<TimelineEvent> timeline;
+  std::vector<CommitEvent> commitTimeline;
   ObservationRecorder observations;
   PtoTraceProvider ptoTrace;
   std::optional<uint64_t> deadlockWindow;
@@ -243,6 +247,7 @@ bool SimSystem::setDispatchTable(std::span<const DispatchRow> rows) {
                 "dispatch rows must be complete and densely indexed");
   impl_->dispatch = candidate;
   impl_->activation = ActivationPlan{};
+  impl_->workClosure = ActivationPlan{};
   impl_->preflightValidated = false;
   return true;
 }
@@ -257,6 +262,16 @@ bool SimSystem::setActivationPlan(std::span<const uint32_t> offsets,
   return true;
 }
 
+bool SimSystem::setWorkClosurePlan(std::span<const uint32_t> offsets,
+                                   std::span<const ObjectId> targets) {
+  ActivationPlan candidate(offsets, targets);
+  if (!candidate.validate(impl_->dispatch.size()))
+    return fail("invalid_work_closure_plan",
+                "Work closure offsets and targets must be canonical and dense");
+  impl_->workClosure = candidate;
+  return true;
+}
+
 bool SimSystem::setLegacyDispatchTable(LegacyDispatchTable table) {
   if ((!table.rows && table.objectCount != 0) ||
       (table.rows && table.objectCount == 0))
@@ -264,8 +279,8 @@ bool SimSystem::setLegacyDispatchTable(LegacyDispatchTable table) {
                 "legacy dispatch storage and object count disagree");
   for (uint32_t id = 0; id < table.objectCount; ++id) {
     const LegacyDispatchThunk &row = table.rows[id];
-    if (!row.object || !row.work || !row.xfer || !row.reset ||
-        !row.validate || !row.validate(row.object))
+    if (!row.object || !row.work || !row.xfer || !row.reset || !row.validate ||
+        !row.validate(row.object))
       return fail("invalid_dispatch_table",
                   "legacy dispatch rows must be complete and valid");
   }
@@ -392,14 +407,10 @@ void SimSystem::recordTraceEvent(std::string lane, std::string phase,
     using D = PtoScheduleDescriptor;
     event.sequence = (descriptor >> D::kSequenceShift) & 0xffu;
     event.opcode = (descriptor >> D::kOpcodeShift) & D::kOpcodeMask;
-    event.dependencyValid =
-        (descriptor >> D::kDependencyValidShift) & 7u;
-    event.dependencies[0] =
-        (descriptor >> D::kDependency0Shift) & 0xffu;
-    event.dependencies[1] =
-        (descriptor >> D::kDependency1Shift) & 0xffu;
-    event.dependencies[2] =
-        (descriptor >> D::kDependency2Shift) & 0xffu;
+    event.dependencyValid = (descriptor >> D::kDependencyValidShift) & 7u;
+    event.dependencies[0] = (descriptor >> D::kDependency0Shift) & 0xffu;
+    event.dependencies[1] = (descriptor >> D::kDependency1Shift) & 0xffu;
+    event.dependencies[2] = (descriptor >> D::kDependency2Shift) & 0xffu;
   } catch (const std::runtime_error &) {
   }
   impl_->timeline.push_back(std::move(event));
@@ -479,8 +490,7 @@ std::string occupancyTrackName(std::string_view lane) {
 bool keepSliceEvent(const TimelineEvent &event) {
   if (event.counter)
     return false;
-  return event.lane == "Vector" || event.lane == "Cube" ||
-         event.lane == "Tlsu";
+  return event.lane == "Vector" || event.lane == "Cube" || event.lane == "Tlsu";
 }
 
 bool keepOccupancyEvent(const TimelineEvent &event) {
@@ -604,8 +614,8 @@ std::string SimSystem::chromeTraceJson() const {
       std::string track = occupancyTrackName(event.lane);
       std::ostringstream body;
       body << "{\"name\":\"" << jsonEscape(track) << "\",\"cat\":\""
-           << jsonEscape(event.lane)
-           << "\",\"ph\":\"C\",\"ts\":" << ts << ",\"pid\":1,\"tid\":" << tid
+           << jsonEscape(event.lane) << "\",\"ph\":\"C\",\"ts\":" << ts
+           << ",\"pid\":1,\"tid\":" << tid
            << ",\"args\":{\"occupancy\":" << event.handle << "}}";
       push(ts, kOrderC, body.str());
       continue;
@@ -613,10 +623,9 @@ std::string SimSystem::chromeTraceJson() const {
     if (!keepSliceEvent(event))
       continue;
     const char *phase = chromePhase(event.phase);
-    const std::string name =
-        (phase[0] == 'B' || phase[0] == 'E')
-            ? std::string(laneDisplay(event.lane))
-            : event.phase;
+    const std::string name = (phase[0] == 'B' || phase[0] == 'E')
+                                 ? std::string(laneDisplay(event.lane))
+                                 : event.phase;
     int tid = timelineTid(event.lane);
     std::ostringstream body;
     body << "{\"name\":\"" << jsonEscape(name) << "\",\"cat\":\""
@@ -652,14 +661,14 @@ std::string SimSystem::chromeTraceJson() const {
       std::ostringstream start;
       start << "{\"name\":\"dep\",\"cat\":\"dep\",\"ph\":\"s\",\"id\":"
             << flowId << ",\"pid\":1,\"tid\":" << anchor[producer].tid
-            << ",\"ts\":" << anchor[producer].ts << ",\"args\":{\"from\":"
-            << producer << ",\"to\":" << seq << "}}";
+            << ",\"ts\":" << anchor[producer].ts
+            << ",\"args\":{\"from\":" << producer << ",\"to\":" << seq << "}}";
       std::ostringstream finish;
       finish << "{\"name\":\"dep\",\"cat\":\"dep\",\"ph\":\"f\",\"id\":"
              << flowId << ",\"pid\":1,\"tid\":" << anchor[seq].tid
              << ",\"ts\":" << anchor[seq].ts
-             << ",\"bp\":\"e\",\"args\":{\"from\":" << producer << ",\"to\":"
-             << seq << "}}";
+             << ",\"bp\":\"e\",\"args\":{\"from\":" << producer
+             << ",\"to\":" << seq << "}}";
       push(anchor[producer].ts, kOrderS, start.str());
       push(anchor[seq].ts, kOrderF, finish.str());
       ++flowId;
@@ -718,8 +727,16 @@ uint64_t SimSystem::activationTraversalCount() const {
   return impl_->activationTraversals;
 }
 
+uint64_t SimSystem::workClosureTraversalCount() const {
+  return impl_->workClosureTraversals;
+}
+
 const std::vector<TimelineEvent> &SimSystem::timeline() const {
   return impl_->timeline;
+}
+
+const std::vector<CommitEvent> &SimSystem::commitTimeline() const {
+  return impl_->commitTimeline;
 }
 
 bool SimSystem::scheduleWork(ObjectId id, Epoch epoch) {
@@ -731,9 +748,9 @@ bool SimSystem::scheduleWork(ObjectId id, Epoch epoch) {
   if (epoch < epoch_)
     return fail("work_before_current_epoch",
                 "work cannot be scheduled before the committed epoch");
-  const bool hasLegacy =
-      impl_->legacyDispatch.rows && id < impl_->legacyDispatch.objectCount &&
-      impl_->legacyDispatch.rows[id].object;
+  const bool hasLegacy = impl_->legacyDispatch.rows &&
+                         id < impl_->legacyDispatch.objectCount &&
+                         impl_->legacyDispatch.rows[id].object;
   if (!lookup(id) && !hasLegacy)
     return fail("unknown_work_target",
                 "work target is absent from the static dispatch table");
@@ -744,6 +761,21 @@ bool SimSystem::scheduleWork(ObjectId id, Epoch epoch) {
     epoch = epoch_.nextDelta();
   }
   impl_->scheduledWork[epoch].insert(id);
+  return true;
+}
+
+bool SimSystem::scheduleExternalXfer(ObjectId id) {
+  if (terminated_)
+    return false;
+  if (impl_->executingEpoch)
+    return fail("external_xfer_during_work",
+                "external Queue transfer cannot enter a frozen Work epoch");
+  SimObject *object = lookup(id);
+  if (!object || (object->kind() != ObjectKind::Queue &&
+                  object->kind() != ObjectKind::EventQueue))
+    return fail("invalid_external_xfer_target",
+                "external transfer target must be a dispatched Queue");
+  impl_->scheduledExternalXfer[epoch_].insert(id);
   return true;
 }
 
@@ -852,6 +884,19 @@ bool SimSystem::step() {
     impl_->scheduledWork.erase(current);
   }
 
+  std::set<ObjectId> xferClosure = currentWork;
+  if (auto current = impl_->scheduledExternalXfer.find(epoch_);
+      current != impl_->scheduledExternalXfer.end()) {
+    xferClosure.insert(current->second.begin(), current->second.end());
+    impl_->scheduledExternalXfer.erase(current);
+  }
+  if (!impl_->workClosure.empty())
+    for (ObjectId worker : currentWork)
+      for (ObjectId resource : impl_->workClosure.targetsFor(worker)) {
+        ++impl_->workClosureTraversals;
+        xferClosure.insert(resource);
+      }
+
   impl_->executingEpoch = true;
   for (ObjectId id : currentWork) {
     ++impl_->workInvocations;
@@ -871,7 +916,7 @@ bool SimSystem::step() {
       return false;
   }
 
-  for (ObjectId id : currentWork) {
+  auto arbitrate = [&](ObjectId id) {
     impl_->activeProposalOwner = id;
     const bool hasLegacy =
         impl_->legacyDispatch.rows && id < impl_->legacyDispatch.objectCount;
@@ -882,12 +927,23 @@ bool SimSystem::step() {
         object->doArbitrate(epoch_);
     }
     impl_->activeProposalOwner.reset();
+  };
+  for (ObjectId id : currentWork) {
+    arbitrate(id);
+    if (terminated_)
+      return false;
+  }
+  for (ObjectId id : xferClosure) {
+    if (currentWork.contains(id))
+      continue;
+    arbitrate(id);
     if (terminated_)
       return false;
   }
 
   std::vector<ObjectId> committedSources;
-  for (ObjectId id : currentWork) {
+  std::map<ObjectId, bool> pendingCommits;
+  for (ObjectId id : xferClosure) {
     SimObject *object = lookup(id);
     const DispatchRow *row = impl_->dispatch.lookup(id);
     const LegacyDispatchThunk *legacy =
@@ -898,6 +954,7 @@ bool SimSystem::step() {
         legacy ? true
                : (row ? row->xfer(row->object, epoch_, XferPhase::Probe)
                       : object && object->hasPendingCommit());
+    pendingCommits[id] = willCommit;
     if (willCommit) {
       auto previousCommit = impl_->lastCommitTick.find(id);
       if (!legacy && previousCommit != impl_->lastCommitTick.end() &&
@@ -905,7 +962,16 @@ bool SimSystem::step() {
         return fail("multiple_stateful_commits",
                     "a stateful object cannot commit twice in one tick");
     }
+  }
 
+  for (ObjectId id : xferClosure) {
+    SimObject *object = lookup(id);
+    const DispatchRow *row = impl_->dispatch.lookup(id);
+    const LegacyDispatchThunk *legacy =
+        impl_->legacyDispatch.rows && id < impl_->legacyDispatch.objectCount
+            ? &impl_->legacyDispatch.rows[id]
+            : nullptr;
+    const bool willCommit = pendingCommits.at(id);
     bool committed = false;
     if (legacy) {
       legacy->xfer(legacy->object, epoch_);
@@ -920,7 +986,11 @@ bool SimSystem::step() {
       return fail("xfer_probe_mismatch",
                   "Xfer pending state changed between probe and commit");
     if (committed) {
-      committedSources.push_back(id);
+      const bool semanticChanged = !object || object->lastCommitChanged();
+      if (profile_ == BuildProfile::Validated)
+        impl_->commitTimeline.push_back({epoch_, id, semanticChanged});
+      if (semanticChanged)
+        committedSources.push_back(id);
       impl_->lastCommitTick[id] = epoch_.time;
       impl_->lastProgressTick = epoch_.time;
     }
@@ -997,6 +1067,9 @@ bool SimSystem::step() {
   bool nextEpochIsEvent = false;
   if (!impl_->scheduledWork.empty())
     nextEpoch = impl_->scheduledWork.begin()->first;
+  if (!impl_->scheduledExternalXfer.empty() &&
+      (!nextEpoch || impl_->scheduledExternalXfer.begin()->first < *nextEpoch))
+    nextEpoch = impl_->scheduledExternalXfer.begin()->first;
   if (auto event = impl_->eventQueue.nextEvent();
       event && (!nextEpoch || event->readyTime <= *nextEpoch)) {
     nextEpoch = event->readyTime;
@@ -1098,9 +1171,12 @@ TerminationResult SimSystem::runLegacy() {
   terminated_ = false;
   result_ = {};
   impl_->scheduledWork.clear();
+  impl_->scheduledExternalXfer.clear();
   impl_->committedEventCount = 0;
   impl_->workInvocations = 0;
   impl_->activationTraversals = 0;
+  impl_->workClosureTraversals = 0;
+  impl_->commitTimeline.clear();
   impl_->generatedStats.clear();
 
   for (ObjectId id = 0; id < impl_->legacyDispatch.objectCount; ++id)
@@ -1231,10 +1307,13 @@ void SimSystem::reset() {
   terminated_ = false;
   result_ = TerminationResult{};
   impl_->scheduledWork.clear();
+  impl_->scheduledExternalXfer.clear();
   impl_->eventQueue.reset();
   impl_->committedEventCount = 0;
   impl_->workInvocations = 0;
   impl_->activationTraversals = 0;
+  impl_->workClosureTraversals = 0;
+  impl_->commitTimeline.clear();
   impl_->executingEpoch = false;
   impl_->activeProposalOwner.reset();
   impl_->noProgress = {};

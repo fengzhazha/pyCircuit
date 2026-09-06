@@ -8,12 +8,14 @@ add_acir_library(ACIRAnalysis SOURCES
   ProcessStateCost.cpp
   ProcessStatePlan.cpp
   ProcessStateReport.cpp
+  VariableAnalysis.cpp
 )
 target_link_libraries(ACIRAnalysis PUBLIC
   ACIRDialect
   ACIRBindings
   MLIRFuncDialect
   MLIRSideEffectInterfaces
+  MLIRAnalysis
   LLVMSupport
 )
 target_include_directories(ACIRAnalysis PUBLIC

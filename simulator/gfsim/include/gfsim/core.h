@@ -107,6 +107,15 @@ struct TimelineEvent {
   bool counter = false;
 };
 
+/// One validated-profile record of an object participating in Commit.
+struct CommitEvent {
+  Epoch epoch;
+  ObjectId objectId = kInvalidObjectId;
+  bool semanticChanged = false;
+
+  bool operator==(const CommitEvent &) const = default;
+};
+
 struct TerminationResult {
   TerminationClass classification = TerminationClass::Incomplete;
   Epoch finalEpoch;

@@ -11,6 +11,8 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
   "builtin.unrealized_conversion_cast"() : () -> !ac.var<!ac.struct<@types::@Token>>
   "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   "builtin.unrealized_conversion_cast"() : () -> !ac.queue<!ac.struct<@types::@Token>>
+  "builtin.unrealized_conversion_cast"() : () -> !ac.var<tuple<i3, i5>>
+  "builtin.unrealized_conversion_cast"() : () -> !ac.queue<!ac.value_array<4 x i8>>
   "builtin.unrealized_conversion_cast"() : () -> !ac.array<4 x !ac.queue<i32>>
   "builtin.unrealized_conversion_cast"() : () -> !ac.map<["cube", "scalar", "vector"], !ac.queue<i32>>
   "builtin.unrealized_conversion_cast"() : () -> !ac.set<4 x !ac.var<i1>>
@@ -21,6 +23,8 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 // CHECK: !ac.var<!ac.struct<@types::@Token>>
 // CHECK: !ac.queue<i32>
 // CHECK: !ac.queue<!ac.struct<@types::@Token>>
+// CHECK: !ac.var<tuple<i3, i5>>
+// CHECK: !ac.queue<!ac.value_array<4 x i8>>
 // CHECK: !ac.array<4 x !ac.queue<i32>>
 // CHECK: !ac.map<["cube", "scalar", "vector"], !ac.queue<i32>>
 // CHECK: !ac.set<4 x !ac.var<i1>>

@@ -18,11 +18,14 @@ std::unique_ptr<mlir::Pass> createVerifyACIRFilePass();
 std::unique_ptr<mlir::Pass> createLowerProcessStatePass();
 
 #define GEN_PASS_DECL_VERIFYMODELPASS
+#define GEN_PASS_DECL_VERIFYVALUECONSTRAINTSPASS
 #define GEN_PASS_DECL_LOWERPROCESSSTATEPASS
+#define GEN_PASS_DECL_LOWERVARIABLESTATEPASS
 #define GEN_PASS_DECL_CANONICALIZEMODELPASS
 #define GEN_PASS_DECL_FREEZETOPOLOGYPASS
 #define GEN_PASS_DECL_INFERRULETYPESPASS
 #define GEN_PASS_DECL_INFERRULEEFFECTSPASS
+#define GEN_PASS_DECL_INFERRULEACTIVATIONPASS
 #define GEN_PASS_DECL_MATERIALIZERULECHECKSPASS
 #define GEN_PASS_DECL_MATERIALIZERULEHANDSHAKEPASS
 #define GEN_PASS_DECL_DISCHARGERULEOBLIGATIONSPASS
@@ -39,6 +42,10 @@ mlir::LogicalResult canonicalizeModel(mlir::ModuleOp model);
 /// Reject every transient rule and typed marker before
 /// freeze/hash/serialization.
 mlir::LogicalResult verifyRuleClosure(mlir::ModuleOp model);
+
+/// Prove that every dynamic state index is within its declared resource
+/// extent. Unknown constraints fail closed.
+mlir::LogicalResult verifyValueConstraints(mlir::ModuleOp model);
 
 /// Add the canonical staged rule-to-marker-free-IR pipeline. Topology freeze
 /// remains a separate stage so compiler drivers can preserve stage evidence.

@@ -4,7 +4,6 @@ import importlib
 import unittest
 from dataclasses import FrozenInstanceError
 
-
 PUBLIC = {
     "system",
     "module",
@@ -23,6 +22,12 @@ PUBLIC = {
     "set",
     "instances",
     "view",
+    "find",
+    "bits",
+    "BitfieldSpec",
+    "concat",
+    "insert",
+    "matches",
     "queue",
     "ResourceRef",
     "address_space",
@@ -75,6 +80,11 @@ class PublicApiTest(unittest.TestCase):
         for name in PUBLIC:
             self.assertIsNotNone(getattr(api, name))
 
+    def test_variable_has_no_long_form_public_alias(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        self.assertFalse(hasattr(api, "variable"))
+
     def test_unsigned_bit_types_cover_every_width_from_one_through_sixty_four(
         self,
     ) -> None:
@@ -84,6 +94,52 @@ class PublicApiTest(unittest.TestCase):
             bit_type = getattr(api, f"u{width}")
             self.assertEqual(width, bit_type.width)
             self.assertFalse(bit_type.signed)
+
+    def test_bits_factory_uses_the_same_static_width_contract(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        for width in (1, 3, 5, 17, 64):
+            self.assertEqual(getattr(api, f"u{width}"), api.bits[width])
+        for width in (0, 65):
+            with self.assertRaisesRegex(ValueError, r"\[1, 64\]"):
+                api.bits[width]
+
+    def test_bitfield_spec_is_immutable_and_has_stable_layout_metadata(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        first = api.BitfieldSpec(
+            width=32,
+            fields={"opcode": (31, 26), "rd": (25, 21), "imm26": (25, 0)},
+        )
+        reordered = api.BitfieldSpec(
+            width=32,
+            fields={"imm26": (25, 0), "rd": (25, 21), "opcode": (31, 26)},
+        )
+
+        self.assertEqual(first.fingerprint, reordered.fingerprint)
+        self.assertEqual((26, 6), first.field_slices()["opcode"])
+        self.assertEqual(26, first.field_width("imm26"))
+        with self.assertRaises(TypeError):
+            first.fields["new"] = (1, 0)
+        with self.assertRaises(FrozenInstanceError):
+            first._layout = reordered._layout
+
+    def test_bitfield_spec_rejects_invalid_layouts_and_wide_values(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        with self.assertRaisesRegex(ValueError, "out of range"):
+            api.BitfieldSpec(width=8, fields={"bad": (8, 0)})
+        with self.assertRaisesRegex(ValueError, r"\[1, 64\]"):
+            api.BitfieldSpec(width=65, fields={"wide": (64, 0)})
+
+    def test_array_annotation_uses_existing_pythonic_array_intrinsic(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        descriptor = api.array[4, api.bits[5]]
+        self.assertEqual("!ac.value_array<4 x i5>", descriptor.mlir())
+        self.assertEqual(20, descriptor.bit_width())
+        with self.assertRaisesRegex(ValueError, "positive"):
+            api.array[0, api.bits[5]]
 
     def test_scalar_type_rejects_out_of_range_widths(self) -> None:
         types = importlib.import_module("agentic_circuit._types")
@@ -160,6 +216,9 @@ class PublicApiTest(unittest.TestCase):
             lambda: api.set({object()}),
             lambda: api.instances(1, 2),
             lambda: api.view(object(), "field"),
+            lambda: api.concat(object(), object()),
+            lambda: api.insert(object(), object(), lsb=0),
+            lambda: api.matches(object(), "1xx0"),
             lambda: api.source(int),
             lambda: api.count_leading_zeros(object()),
             lambda: api.count_trailing_zeros(object()),
