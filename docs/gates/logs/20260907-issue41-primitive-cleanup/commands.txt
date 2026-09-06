@@ -1,0 +1,12 @@
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:python/pycircuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/unit tests/system/test_primitive_selection.py tests/test_pyc_canonical_ops.py tests/vec
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/integration/agentic-circuit/e2e/test_queue_codegen.py
+PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install ACIR_QUEUE_PYCGEN=.pycircuit_out/toolchain/install/bin/acir-queue-pycgen PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/integration/agentic-circuit/e2e .pycircuit_out/agentic-circuit/venv/bin/python -m unittest test_pyc_backend -v
+.pycircuit_out/venv-llvm22/bin/python tools/check-pyc-inventory.py
+.pycircuit_out/agentic-circuit/venv/bin/python tools/agentic-circuit/check-contracts.py
+.pycircuit_out/toolchain/install/bin/pyc-opt tests/mlir/pyc/canonical-ops-valid.mlir -o /dev/null
+.pycircuit_out/toolchain/install/bin/pyc-opt tests/mlir/pyc/canonical-cmp-invalid.mlir -o /dev/null
+.pycircuit_out/toolchain/install/bin/pyc-opt tests/mlir/pyc/canonical-select-invalid.mlir -o /dev/null
+PYC_GATE_RUN_ID=20260907-issue41-primitive-cleanup bash flows/scripts/run_agentic_circuit.sh
+PYC_GATE_RUN_ID=20260907-issue41-primitive-cleanup PYC_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue41-primitive-cleanup/agentic-circuit/toolchain/install PYC_SIM_CASE_TIMEOUT_SEC=900 PYC_SIM_RETRY_ON_TIMEOUT=0 bash flows/scripts/run_sims.sh
+PYC_GATE_RUN_ID=20260907-issue41-primitive-cleanup PYC_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue41-primitive-cleanup/agentic-circuit/toolchain/install PYC_SIM_JOBS=4 bash flows/scripts/run_semantic_regressions_v6.sh
+PYC_GATE_RUN_ID=20260907-issue41-primitive-cleanup PYC_TOOLCHAIN_ROOT=.pycircuit_out/gates/20260907-issue41-primitive-cleanup/agentic-circuit/toolchain/install PYC_SKIP_SEMANTIC_REGRESSIONS=1 PYC_DECISION_STATUS_STRICT=1 bash flows/scripts/run_examples.sh

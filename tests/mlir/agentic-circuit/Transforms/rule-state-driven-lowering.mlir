@@ -15,7 +15,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @entries entry !ac.struct<@types::@Entry> entries 2 init 0 owner "/" stable_id "table/entries"
   %retired = ac.rule depths [1] latencies [1]
       name "retire" stable_id "retire_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body:
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     %old = ac.table.get @entries[%index] : !ac.var<i1> -> !ac.var<!ac.struct<@types::@Entry>>
@@ -33,14 +33,11 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 }
 
 // LOWERED: %{{.*}} = ac.firing depths [1] latencies [1]
-// LOWERED-SAME: guard "dynamic"
-// LOWERED-SAME: handshake "ready_valid_0x1_table"
-// LOWERED-SAME: effects ["output.produce", "table.replace:entries"]
 // LOWERED: ac.firing.condition %{{.*}} : !ac.var<i1>
 // LOWERED: ac.table.propose @entries[%{{[0-9]+}}] = %{{[0-9]+}} when %[[PRESENT:[0-9]+]] : !ac.var<i1>
 // LOWERED: ac.firing.output %{{.*}} when %[[PRESENT]] ordinal 0
 // LOWERED: ac.activation_sources = [{kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @entries}]
-// LOWERED-SAME: ac.arbitration_membership = [{kind = #ac<rule_arbitration_kind lexical_priority>, priority = 0 : i64, resource = @entries}]
+// LOWERED-SAME: ac.arbitration_membership = [{priority = 0 : i64, resource = @entries}]
 // LOWERED-SAME: ac.checks_typed = [{guard_kind = #ac<rule_guard_kind predicate>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}]
 // LOWERED-SAME: ac.guard_kind = #ac<rule_guard_kind predicate>
 // LOWERED-SAME: ac.initially_active = true

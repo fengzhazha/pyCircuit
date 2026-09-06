@@ -648,7 +648,7 @@ func.func @counter(%clk: !pyc.clock, %rst: !pyc.reset, %enable: i1) -> i8 {
   %v1 = pyc.wire {pyc.name = "count__next"} : i8
   %v4 = pyc.reg %clk, %rst, %v2, %v1, %v3 : i8      // 推导出的反馈寄存器
   %v13 = pyc.add %v11, %v12 : i8, i8 -> i8
-  %v14 = pyc.mux %enable, %v13, %v5 : i1, i8, i8 -> i8
+  %v14 = pyc.select %enable, %v13, %v5 : i1, i8, i8 -> i8
   pyc.assign %v1, %v14 : i8
   func.return %v5 : i8
 }

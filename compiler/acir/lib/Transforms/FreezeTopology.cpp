@@ -100,8 +100,7 @@ LogicalResult freezeFlatQueueGraph(ModuleOp model) {
     return model.emitError(
         "flat QueueGraph freeze requires ac.model_kind = \"queue_graph\"");
   for (Operation &operation : model.getBody()->getOperations()) {
-    if (isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp,
-            ac::ModuleGeneratedOp>(operation))
+    if (isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp>(operation))
       return operation.emitOpError(
           "is not legal at the top level of a flat QueueGraph model");
   }

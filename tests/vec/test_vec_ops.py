@@ -184,7 +184,7 @@ def test_circuit_priority_mux_lowers_chain_and_tree_forms(repo_root: Path) -> No
     m.output("tree", m.priority_mux(sel, vals, mode="tree"))
     mlir = m.emit_mlir()
 
-    assert mlir.count("pyc.mux") == 6
+    assert mlir.count("pyc.select") == 6
     assert mlir.count("pyc.or") == 2
     assert mlir.count("pyc.v_get") == 13
 

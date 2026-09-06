@@ -417,7 +417,7 @@ static std::optional<LogicalResult> emitScalarOpAssign(Operation &op, raw_ostrea
        << nt.get(r.getRhs()) << ")));\n";
     return success();
   }
-  if (auto m = dyn_cast<pyc::MuxOp>(op)) {
+  if (auto m = dyn_cast<pyc::SelectOp>(op)) {
     os << "assign " << nt.get(m.getResult()) << " = (" << nt.get(m.getSel()) << " ? " << nt.get(m.getA()) << " : "
        << nt.get(m.getB()) << ");\n";
     return success();
@@ -445,17 +445,14 @@ static std::optional<LogicalResult> emitScalarOpAssign(Operation &op, raw_ostrea
     os << "assign " << nt.get(n.getResult()) << " = (~" << nt.get(n.getIn()) << ");\n";
     return success();
   }
-  if (auto e = dyn_cast<pyc::EqOp>(op)) {
-    os << "assign " << nt.get(e.getResult()) << " = (" << nt.get(e.getLhs()) << " == " << nt.get(e.getRhs()) << ");\n";
-    return success();
-  }
-  if (auto u = dyn_cast<pyc::UltOp>(op)) {
-    os << "assign " << nt.get(u.getResult()) << " = (" << nt.get(u.getLhs()) << " < " << nt.get(u.getRhs()) << ");\n";
-    return success();
-  }
-  if (auto s = dyn_cast<pyc::SltOp>(op)) {
-    os << "assign " << nt.get(s.getResult()) << " = ($signed(" << nt.get(s.getLhs()) << ") < $signed("
-       << nt.get(s.getRhs()) << "));\n";
+  if (auto cmp = dyn_cast<pyc::CmpOp>(op)) {
+    os << "assign " << nt.get(cmp.getResult()) << " = (";
+    if (cmp.getPredicate() == "slt")
+      os << "$signed(" << nt.get(cmp.getLhs()) << ") < $signed(" << nt.get(cmp.getRhs()) << ")";
+    else
+      os << nt.get(cmp.getLhs()) << (cmp.getPredicate() == "eq" ? " == " : " < ")
+         << nt.get(cmp.getRhs());
+    os << ");\n";
     return success();
   }
   if (auto t = dyn_cast<pyc::TruncOp>(op)) {
@@ -508,21 +505,6 @@ static std::optional<LogicalResult> emitScalarOpAssign(Operation &op, raw_ostrea
     else
       os << "assign " << nt.get(ex.getResult()) << " = " << nt.get(ex.getIn()) << "[" << (lsb + ow - 1) << ":"
          << lsb << "];\n";
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::ShliOp>(op)) {
-    os << "assign " << nt.get(sh.getResult()) << " = (" << nt.get(sh.getIn()) << " << " << sh.getAmountAttr().getInt()
-       << ");\n";
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::LshriOp>(op)) {
-    os << "assign " << nt.get(sh.getResult()) << " = (" << nt.get(sh.getIn()) << " >> " << sh.getAmountAttr().getInt()
-       << ");\n";
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::AshriOp>(op)) {
-    os << "assign " << nt.get(sh.getResult()) << " = ($signed(" << nt.get(sh.getIn()) << ") >>> "
-       << sh.getAmountAttr().getInt() << ");\n";
     return success();
   }
   if (auto sh = dyn_cast<pyc::ShlOp>(op)) {
@@ -1140,11 +1122,11 @@ static LogicalResult emitFunc(func::FuncOp f, raw_ostream &os, const VerilogEmit
 
       if (isa<pyc::ConstantOp, pyc::AliasOp, pyc::ResetActiveOp, pyc::AddOp,
               pyc::SubOp, pyc::MulOp, pyc::UdivOp, pyc::UremOp, pyc::SdivOp,
-              pyc::SremOp, pyc::MuxOp, pyc::AndOp, pyc::OrOp, pyc::XorOp,
+              pyc::SremOp, pyc::SelectOp, pyc::AndOp, pyc::OrOp, pyc::XorOp,
               pyc::NotOp, pyc::AssertOp, pyc::AssignOp, pyc::CombOp,
-              arith::SelectOp, pyc::EqOp, pyc::UltOp, pyc::SltOp, pyc::TruncOp,
-              pyc::ZextOp, pyc::SextOp, pyc::ExtractOp, pyc::ShliOp,
-              pyc::LshriOp, pyc::AshriOp, pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
+              arith::SelectOp, pyc::CmpOp, pyc::TruncOp,
+              pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
+              pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
               pyc::ConcatOp, pyc::PriorityEncodeOp, pyc::PopcountOp,
               pyc::CountZerosOp, pyc::VGetOp, pyc::VCreateOp, pyc::VBroadcastOp,
               pyc::VBroadcastDimOp, pyc::VOrReduceOp, pyc::VAndReduceOp,

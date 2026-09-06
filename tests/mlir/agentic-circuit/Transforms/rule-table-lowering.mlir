@@ -14,7 +14,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "install" stable_id "install_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
     %old = ac.table.get @rob [%index] : !ac.var<i1> -> !ac.var<!ac.struct<@types::@Entry>>
@@ -30,9 +30,6 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 // LOWERED-NOT: ac.rule
 // LOWERED-NOT: ac.marker
 // LOWERED: ac.firing
-// LOWERED-SAME: handshake "ready_valid_1x1_table"
-// LOWERED-SAME: schedule "table_lexical_priority"
-// LOWERED-SAME: effects ["input.consume", "output.produce", "table.replace:rob"]
 // LOWERED: ac.table.propose @rob
 // LOWERED: ac.firing.yield
 // LOWERED: ac.rule_footprints = [{access = "read", guard_kind = #ac<rule_guard_kind always>, index_kind = "dynamic", resource = @rob}, {access = "replace", fields = ["index", "value"], guard_kind = #ac<rule_guard_kind always>, index_kind = "dynamic", resource = @rob}]

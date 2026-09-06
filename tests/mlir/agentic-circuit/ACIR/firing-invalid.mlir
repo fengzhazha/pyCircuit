@@ -16,9 +16,7 @@
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %a, %b = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     ac.firing.yield %item, %item : !ac.var<i32>, !ac.var<i32>
   } : (!ac.queue<i32>) -> (!ac.queue<i32>, !ac.queue<i32>)
@@ -29,23 +27,20 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent" effects [] {
+      stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     %enabled = ac.var.constant true as !ac.var<i1>
     ac.firing.condition %enabled : !ac.var<i1>
     ac.firing.yield %item : !ac.var<i32>
   } {ac.rule_footprints = [], ac.rule_priority = 0 : i64} : (!ac.queue<i32>) -> !ac.queue<i32>
 }
-// EFFECTLESS: requires explicit identity, guard, handshake, schedule, and effects
+// EFFECTLESS: requires complete typed rule summary evidence
 
 //--- payload.mlir
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     %small = ac.var.constant 1 : i16 as !ac.var<i16>
     ac.firing.yield %small : !ac.var<i16>
@@ -57,9 +52,7 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "bogus" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "bad" domain "bogus" {
   ^body(%item: !ac.var<i32>):
     ac.firing.yield %item : !ac.var<i32>
   } : (!ac.queue<i32>) -> !ac.queue<i32>
@@ -70,9 +63,7 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     %enabled = ac.var.constant true as !ac.var<i1>
     ac.firing.condition %enabled : !ac.var<i1>
@@ -86,9 +77,7 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "bad" domain "cycle" guard "dynamic" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     %candidate = ac.var.constant false as !ac.var<i1>
     %present = ac.var.constant true as !ac.var<i1>
@@ -104,10 +93,7 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i8>
-  ac.firing %input depths [] latencies [] stable_id "bad" domain "cycle"
-      guard "dynamic" checks [] handshake "ready_valid_1x0_table"
-      schedule "table_lexical_priority"
-      effects ["input.consume", "table.replace:state"] {
+  ac.firing %input depths [] latencies [] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant false as !ac.var<i1>
     %candidate = ac.var.constant false as !ac.var<i1>
@@ -123,9 +109,7 @@ module attributes {ac.contract_epoch = "0.5"} {
 //--- zero-input-divergence.mlir
 module attributes {ac.contract_epoch = "0.5"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
-  ac.firing depths [] latencies [] stable_id "bad" domain "cycle"
-      guard "true" checks [] handshake "ready_valid_0x0_table"
-      schedule "table_lexical_priority" effects ["table.replace:state"] {
+  ac.firing depths [] latencies [] stable_id "bad" domain "cycle" {
   ^body:
     %index = ac.var.constant false as !ac.var<i1>
     %value = ac.var.constant 1 : i8 as !ac.var<i8>
@@ -144,10 +128,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   ac.table @left entry i8 entries 1 init 0 owner "/" stable_id "table/left"
   ac.table @right entry i8 entries 1 init 0 owner "/" stable_id "table/right"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i8>
-  ac.firing %input depths [] latencies [] stable_id "bad" domain "cycle"
-      guard "true" checks [] handshake "ready_valid_1x0_table"
-      schedule "table_lexical_priority"
-      effects ["input.consume", "table.replace:left", "table.replace:right"] {
+  ac.firing %input depths [] latencies [] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant false as !ac.var<i1>
     %candidate = ac.var.constant true as !ac.var<i1>
@@ -166,26 +147,22 @@ module attributes {ac.contract_epoch = "0.5"} {
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "forged"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "forged" domain "cycle" guard "not-a-guard"
-      checks ["not-a-check"] handshake "bogus" schedule "implicit-priority"
-      effects ["unknown.effect"] {
+      stable_id "forged" domain "cycle" {
   ^body(%item: !ac.var<i32>):
     %enabled = ac.var.constant true as !ac.var<i1>
     ac.firing.condition %enabled : !ac.var<i1>
     ac.firing.yield %item : !ac.var<i32>
-  } {ac.rule_footprints = [], ac.rule_priority = 0 : i64} : (!ac.queue<i32>) -> !ac.queue<i32>
+  } {ac.rule_footprints = [], ac.rule_priority = 0 : i64, functional_guard = "forged"} : (!ac.queue<i32>) -> !ac.queue<i32>
   ac.sink %output : !ac.queue<i32>
 }
-// FORGED: has invalid phase-one guard/checks/handshake/schedule/effects contract
+// FORGED: legacy firing summary attribute 'functional_guard' is not part of canonical ACIR
 
 //--- missing-snapshot.mlir
 module attributes {ac.contract_epoch = "0.5"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i8>
   ac.firing %input depths [] latencies [] stable_id "missing_snapshot"
-      domain "cycle" guard "true" checks [] handshake "ready_valid_1x0_table"
-      schedule "table_lexical_priority"
-      effects ["input.consume", "table.replace:state"] {
+      domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant false as !ac.var<i1>
     %old = ac.table.get @state[%index] : !ac.var<i1> -> !ac.var<i8>
@@ -195,7 +172,7 @@ module attributes {ac.contract_epoch = "0.5"} {
     ac.table.propose @state[%index] = %item when %fresh : !ac.var<i1>
         mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
     ac.firing.yield
-  } : (!ac.queue<i8>) -> ()
+  } {ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @state}], ac.arbitration_membership = [{priority = 0 : i64, resource = @state}], ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}], ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_read>, resource = @state}, {guard_kind = #ac<rule_guard_kind predicate>, kind = #ac<rule_effect_kind state_write>, resource = @state}], ac.guard_kind = #ac<rule_guard_kind always>, ac.initially_active = false, ac.output_presence = [], ac.rule_footprints = [{access = "read", guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @state}, {access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind predicate>, index_kind = "static", resource = @state}], ac.rule_priority = 0 : i64, ac.schedule_kind = #ac<rule_schedule_kind lexical_priority>, ac.state_accesses = [{guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind read>, resource = @state}, {fields = ["$entry"], guard_kind = #ac<rule_guard_kind predicate>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind replace>, resource = @state}], ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @state}]} : (!ac.queue<i8>) -> ()
 }
 // SNAPSHOT: state snapshot evidence must exactly match predicate reads
 
@@ -204,9 +181,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i8>
   ac.firing %input depths [] latencies [] stable_id "extra_snapshot"
-      domain "cycle" guard "true" checks [] handshake "ready_valid_1x0_table"
-      schedule "table_lexical_priority"
-      effects ["input.consume", "table.replace:state"] {
+      domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant false as !ac.var<i1>
     %candidate = ac.var.constant true as !ac.var<i1>
@@ -216,5 +191,5 @@ module attributes {ac.contract_epoch = "0.5"} {
     ac.state.snapshot @state[%index : !ac.var<i1>] for %candidate : !ac.var<i1>
         kind #ac<rule_index_kind static> read_fields ["$entry"]
     ac.firing.yield
-  } : (!ac.queue<i8>) -> ()
+  } {ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @state}], ac.arbitration_membership = [{priority = 0 : i64, resource = @state}], ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}], ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_write>, resource = @state}], ac.guard_kind = #ac<rule_guard_kind always>, ac.initially_active = false, ac.output_presence = [], ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @state}], ac.rule_priority = 0 : i64, ac.schedule_kind = #ac<rule_schedule_kind lexical_priority>, ac.state_accesses = [{fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind replace>, resource = @state}], ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @state}]} : (!ac.queue<i8>) -> ()
 }

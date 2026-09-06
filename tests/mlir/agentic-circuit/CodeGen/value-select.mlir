@@ -16,5 +16,5 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.sink %output {ac.name = "sink"} : !ac.queue<i8>
 }
 
-// PYC: pyc.mux {{.*}} : i1, i8, i8 -> i8
+// PYC: pyc.select {{.*}} : i1, i8, i8 -> i8
 // GFSIM: auto v{{[0-9]+}} = v{{[0-9]+}} ? item : v{{[0-9]+}};

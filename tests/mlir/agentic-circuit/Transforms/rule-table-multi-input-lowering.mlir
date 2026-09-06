@@ -14,7 +14,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %delta = ac.source depth 2 latency 1 {ac.name = "delta"} : !ac.queue<!ac.struct<@types::@Delta>>
   %output = ac.rule %entry, %delta depths [1] latencies [1]
       name "install" stable_id "install_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>, %item1: !ac.var<!ac.struct<@types::@Delta>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
     %old = ac.table.get @rob [%index] : !ac.var<i1> -> !ac.var<!ac.struct<@types::@Entry>>
@@ -33,8 +33,6 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 
 // LOWERED-NOT: ac.rule
 // LOWERED: = ac.firing
-// LOWERED-SAME: handshake "ready_valid_2x1_table"
-// LOWERED-SAME: schedule "table_lexical_priority"
 // LOWERED: ac.table.propose @rob
 
 // GFSIM: std::optional<gfsim::TableTransitionPlan<Entry, Entry>> operator()(gfsim::Epoch epoch, const gfsim::SimTable<Entry> &table_ref, const Entry &item, const Delta &item1)

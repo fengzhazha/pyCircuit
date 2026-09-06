@@ -22,7 +22,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 // PYC: %[[MASK:.*]] = pyc.constant 0x8000000000000001 : i64
 // PYC: %[[MASKED:.*]] = pyc.and {{.*}}, %[[MASK]] : i64, i64 -> i64
 // PYC: %[[EXPECTED:.*]] = pyc.constant 0x8000000000000001 : i64
-// PYC: pyc.eq %[[MASKED]], %[[EXPECTED]] : i64, i64 -> i1
+// PYC: pyc.cmp %[[MASKED]], %[[EXPECTED]] {predicate = "eq"} : i64, i64 -> i1
 
 // GFSIM: & std::uint64_t{0x8000000000000001}
 // GFSIM-SAME: == std::uint64_t{0x8000000000000001}

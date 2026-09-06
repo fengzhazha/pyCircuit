@@ -410,13 +410,13 @@ def emit_verilog(module: Module, runtime_dir: Path) -> str:
                 )
             continue
 
-        if rhs.startswith("pyc.mux "):
-            match = re.fullmatch(r"pyc\.mux\s+(.*?)\s*:\s*(.*?)\s*->\s*(\S+)", rhs)
+        if rhs.startswith("pyc.select "):
+            match = re.fullmatch(r"pyc\.select\s+(.*?)\s*:\s*(.*?)\s*->\s*(\S+)", rhs)
             if not match or len(lhs) != 1:
-                raise PYCVerilogError(f"cannot parse mux: {line}")
+                raise PYCVerilogError(f"cannot parse select: {line}")
             inputs = _ssa_names(match.group(1))
             if len(inputs) != 3:
-                raise PYCVerilogError(f"mux expects select, true, false: {line}")
+                raise PYCVerilogError(f"select expects condition, true, false: {line}")
             select, true_value, false_value = (_value(values, item) for item in inputs)
             annotated_types = _parse_types(match.group(2))
             out = add_value(lhs[0], match.group(3))
@@ -426,7 +426,7 @@ def emit_verilog(module: Module, runtime_dir: Path) -> str:
                 or true_value.type != out.type
                 or false_value.type != out.type
             ):
-                raise PYCVerilogError("mux select/data types are inconsistent")
+                raise PYCVerilogError("select condition/data types are inconsistent")
             assigns.append(
                 f"  assign {out.net} = {select.net} ? {true_value.net} : {false_value.net};"
             )
@@ -475,7 +475,7 @@ def emit_verilog(module: Module, runtime_dir: Path) -> str:
             continue
 
         binary = re.fullmatch(
-            r"pyc\.(and|or|xor|add|sub|mul|eq|ne|ult|slt|ule|ugt|uge)\s+"
+            r"pyc\.(and|or|xor|add|sub|mul)\s+"
             r"(.*?)\s*:\s*(.*?)\s*->\s*(\S+)",
             rhs,
         )
@@ -487,19 +487,8 @@ def emit_verilog(module: Module, runtime_dir: Path) -> str:
             operand_types = _parse_types(binary.group(3))
             if operand_types != [left.type, right.type]:
                 raise PYCVerilogError("binary operand annotations are inconsistent")
-            comparison = binary.group(1) in {
-                "eq",
-                "ne",
-                "ult",
-                "slt",
-                "ule",
-                "ugt",
-                "uge",
-            }
             out = add_value(lhs[0], binary.group(4))
-            if comparison and out.type != "i1":
-                raise PYCVerilogError("comparison result must be i1")
-            if not comparison and out.type != left.type:
+            if out.type != left.type:
                 raise PYCVerilogError("binary result type must match operands")
             operator = {
                 "and": "&",
@@ -508,18 +497,33 @@ def emit_verilog(module: Module, runtime_dir: Path) -> str:
                 "add": "+",
                 "sub": "-",
                 "mul": "*",
-                "eq": "==",
-                "ne": "!=",
-                "ult": "<",
-                "slt": "<",
-                "ule": "<=",
-                "ugt": ">",
-                "uge": ">=",
             }[binary.group(1)]
-            if binary.group(1) == "slt":
-                expression = f"$signed({left.net}) < $signed({right.net})"
+            expression = f"{left.net} {operator} {right.net}"
+            assigns.append(f"  assign {out.net} = {expression};")
+            continue
+
+        compare = re.fullmatch(
+            r'pyc\.cmp\s+(.*?)\s*\{\s*predicate\s*=\s*"(eq|ult|slt)"\s*\}'
+            r"\s*:\s*(.*?)\s*->\s*(\S+)",
+            rhs,
+        )
+        if compare and len(lhs) == 1:
+            inputs = _ssa_names(compare.group(1))
+            if len(inputs) != 2:
+                raise PYCVerilogError(f"cmp expects two operands: {line}")
+            left, right = (_value(values, item) for item in inputs)
+            if _parse_types(compare.group(3)) != [left.type, right.type]:
+                raise PYCVerilogError("cmp operand annotations are inconsistent")
+            out = add_value(lhs[0], compare.group(4))
+            if out.type != "i1":
+                raise PYCVerilogError("cmp result must be i1")
+            predicate = compare.group(2)
+            if predicate == "eq":
+                expression = f"{left.net} == {right.net}"
+            elif predicate == "ult":
+                expression = f"{left.net} < {right.net}"
             else:
-                expression = f"{left.net} {operator} {right.net}"
+                expression = f"$signed({left.net}) < $signed({right.net})"
             assigns.append(f"  assign {out.net} = {expression};")
             continue
 

@@ -168,9 +168,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @table entry i8 entries 2 init 0 owner "/" stable_id "table/table"
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<i8>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "install" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1_table" schedule "table_lexical_priority"
-      effects ["input.consume", "output.produce", "table.replace:table"] {
+      stable_id "install" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 1 : i2 as !ac.var<i2>
     %enabled = ac.var.constant true as !ac.var<i1>
@@ -180,7 +178,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
         write_fields ["$entry"] : !ac.var<i2>, !ac.var<i8>
     ac.firing.output %item when %enabled ordinal 0 : !ac.var<i8>, !ac.var<i1>
     ac.firing.yield %item : !ac.var<i8>
-  } {ac.name = "output", ac.rule_definition = "install", ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64} : (!ac.queue<i8>) -> !ac.queue<i8>
+  } {ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @table}], ac.arbitration_membership = [{priority = 0 : i64, resource = @table}], ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}], ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind output_produce>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_write>, resource = @table}], ac.guard_kind = #ac<rule_guard_kind always>, ac.initially_active = false, ac.name = "output", ac.output_presence = [{ordinal = 0 : i64, presence_kind = #ac<rule_output_presence_kind always>}], ac.rule_definition = "install", ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64, ac.schedule_kind = #ac<rule_schedule_kind lexical_priority>, ac.state_accesses = [{fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind replace>, resource = @table}], ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @table}]} : (!ac.queue<i8>) -> !ac.queue<i8>
   ac.sink %output {ac.name = "sink"} : !ac.queue<i8>
 }
 )mlir";
@@ -563,7 +561,8 @@ int main() {
   auto pyc = generateQueueGraphPyc(plan);
   ASSERT_TRUE(bool(pyc)) << llvm::toString(pyc.takeError());
   EXPECT_NE(pyc->find("pyc.and"), std::string::npos);
-  EXPECT_NE(pyc->find("pyc.eq"), std::string::npos);
+  EXPECT_NE(pyc->find("pyc.cmp"), std::string::npos);
+  EXPECT_NE(pyc->find("predicate = \"eq\""), std::string::npos);
 
   for (const std::pair<std::string, std::string> &forgery : {
            std::pair<std::string, std::string>{"9223372036854775809",
@@ -1218,6 +1217,25 @@ TEST(QueueGraphPlanTest, EmitsCanonicalScalarQueuePyc) {
             std::string::npos);
 }
 
+TEST(QueueGraphPlanTest, LowersUnsignedAcirShrToCanonicalPycLshr) {
+  QueueGraphPlan plan;
+  plan.system = "unsigned_shift";
+  plan.queues = {{"input", "i8", "/", 2, 1}, {"output", "i8", "/", 2, 1}};
+  plan.blocks.push_back({"source", "input", "/", {}, {"input"}, {2}, {1}});
+  QueueBlockPlan transform{"transform", "output", "/", {"input"},
+                           {"output"},  {2},      {1}};
+  transform.expressions = {{"v0", "constant", "i8", {}, "", "", "1 : i8"},
+                           {"v1", "shr", "i8", {"item", "v0"}, "", "", ""}};
+  transform.yields = {"v1"};
+  plan.blocks.push_back(std::move(transform));
+  plan.blocks.push_back({"sink", "sink_0", "/", {"output"}, {}});
+
+  auto pyc = generateQueueGraphPyc(plan);
+  ASSERT_TRUE(bool(pyc)) << llvm::toString(pyc.takeError());
+  EXPECT_NE(pyc->find("pyc.lshr"), std::string::npos);
+  EXPECT_EQ(pyc->find("pyc.shr"), std::string::npos);
+}
+
 TEST(QueueGraphPlanTest, EmitsAtomicTransformWithIndependentArity) {
   QueueGraphPlan plan;
   plan.system = "atomic_sum";
@@ -1305,7 +1323,7 @@ TEST(QueueGraphPlanTest, EmitsStaticQueueCollectionSelectForBothBackends) {
   auto pyc = generateQueueGraphPyc(plan);
   ASSERT_TRUE(bool(pyc)) << llvm::toString(pyc.takeError());
   EXPECT_NE(pyc->find("select_selector_out_of_range"), std::string::npos);
-  EXPECT_NE(pyc->find("pyc.mux"), std::string::npos);
+  EXPECT_NE(pyc->find("pyc.select"), std::string::npos);
 }
 
 TEST(QueueGraphPlanTest, EmitsTypedReorderForBothBackends) {
@@ -1331,7 +1349,8 @@ TEST(QueueGraphPlanTest, EmitsTypedReorderForBothBackends) {
   auto pyc = generateQueueGraphPyc(plan);
   ASSERT_TRUE(bool(pyc)) << llvm::toString(pyc.takeError());
   EXPECT_NE(pyc->find("pyc.reg"), std::string::npos);
-  EXPECT_NE(pyc->find("pyc.ult"), std::string::npos);
+  EXPECT_NE(pyc->find("pyc.cmp"), std::string::npos);
+  EXPECT_NE(pyc->find("predicate = \"ult\""), std::string::npos);
   EXPECT_GE(std::count(pyc->begin(), pyc->end(), '\n'), 40);
 }
 
@@ -1496,9 +1515,9 @@ TEST(QueueGraphPlanTest, EmitsQueuePredicateAsPycComparison) {
     bool negated;
   };
   constexpr Case cases[] = {
-      {"eq", "pyc.eq", false},   {"ne", "pyc.eq", true},
-      {"slt", "pyc.slt", false}, {"sle", "pyc.slt", true},
-      {"sgt", "pyc.slt", false}, {"sge", "pyc.slt", true},
+      {"eq", "predicate = \"eq\"", false},   {"ne", "predicate = \"eq\"", true},
+      {"slt", "predicate = \"slt\"", false}, {"sle", "predicate = \"slt\"", true},
+      {"sgt", "predicate = \"slt\"", false}, {"sge", "predicate = \"slt\"", true},
   };
   for (const Case &testCase : cases) {
     SCOPED_TRACE(testCase.predicate.str());
@@ -1752,7 +1771,8 @@ TEST(QueueGraphPlanTest, RejectsForgedFrozenFiringBeforePlanExtraction) {
   ac::FiringOp firing;
   module->walk([&](ac::FiringOp candidate) { firing = candidate; });
   ASSERT_TRUE(firing);
-  firing.setHandshakeAttr(mlir::StringAttr::get(&context, "ready_valid_1x1"));
+  firing->setAttr("handshake",
+                  mlir::StringAttr::get(&context, "ready_valid_1x1"));
 
   auto plan = buildQueueGraphPlan(*module);
   ASSERT_FALSE(bool(plan));

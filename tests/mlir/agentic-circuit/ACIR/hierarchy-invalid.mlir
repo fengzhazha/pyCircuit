@@ -5,11 +5,9 @@
 // RUN: %not %acir_opt %t/bad-return.mlir 2>&1 | %FileCheck %s --check-prefix=BAD-RETURN
 // RUN: %not %acir_opt %t/duplicate-path.mlir 2>&1 | %FileCheck %s --check-prefix=DUP-PATH
 // RUN: %not %acir_opt %t/dynamic-param.mlir 2>&1 | %FileCheck %s --check-prefix=DYNAMIC
-// RUN: %not %acir_opt %t/generic-binding.mlir 2>&1 | %FileCheck %s --check-prefix=BINDING
 // RUN: %not %acir_opt %t/private-export.mlir 2>&1 | %FileCheck %s --check-prefix=PRIVATE
 // RUN: %not %acir_opt %t/missing-static-arg.mlir 2>&1 | %FileCheck %s --check-prefix=STATIC-ARG
 // RUN: %not %acir_opt %t/unresolved-static-symbol.mlir 2>&1 | %FileCheck %s --check-prefix=STATIC-SYMBOL
-// RUN: %not %acir_opt %t/unknown-generator.mlir 2>&1 | %FileCheck %s --check-prefix=UNKNOWN-GENERATOR
 // RUN: %not %acir_opt %t/nonzero-epoch.mlir 2>&1 | %FileCheck %s --check-prefix=EPOCH
 // RUN: %not %acir_opt %t/unresolved-workload.mlir 2>&1 | %FileCheck %s --check-prefix=WORKLOAD
 // RUN: %not %acir_opt %t/direct-recursion.mlir 2>&1 | %FileCheck %s --check-prefix=DIRECT-RECURSION
@@ -87,12 +85,6 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 }
 // DYNAMIC: static parameters must contain only concrete builtin static values
 
-//--- generic-binding.mlir
-builtin.module attributes {ac.contract_epoch = "0.5"} {
-  "ac.module.generated"() <{sym_name = "Leaf", function_type = () -> (), static_params = {}, generator = {registry = "generic", name = "fallback"}}> : () -> ()
-}
-// BINDING: requires exact registered {registry, name} metadata
-
 //--- private-export.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.module"() <{sym_name = "Top", function_type = (!ac.resource_token<@owned>) -> !ac.resource_token<@owned>, static_params = {}}> ({
@@ -117,12 +109,6 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.module.extern"() <{sym_name = "Leaf", function_type = () -> (), static_params = {target = @Missing}, implementation = {registry = "cpp", name = "Leaf"}}> : () -> ()
 }
 // STATIC-SYMBOL: unresolved static symbol reference '@Missing'
-
-//--- unknown-generator.mlir
-builtin.module attributes {ac.contract_epoch = "0.5"} {
-  "ac.module.generated"() <{sym_name = "Leaf", function_type = () -> (), static_params = {}, generator = {registry = "unknown", name = "Leaf"}}> : () -> ()
-}
-// UNKNOWN-GENERATOR: generated module requires registered registry 'ac'
 
 //--- nonzero-epoch.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {

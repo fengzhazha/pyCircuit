@@ -28,6 +28,7 @@ def repo_root() -> Path:
 @pytest.fixture(scope="session")
 def pyc_pythonpath(repo_root: Path) -> str:
     parts = [
+        repo_root / "python" / "semantic-core" / "src",
         repo_root / "python" / "pycircuit" / "src",
         repo_root / "designs",
         repo_root,

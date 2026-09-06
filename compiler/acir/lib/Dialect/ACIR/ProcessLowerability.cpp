@@ -38,9 +38,8 @@ bool isAllowedProcessOperation(Operation *operation) {
       isa<func::CallOp, func::ReturnOp, scf::IfOp, scf::ForOp, scf::WhileOp,
           scf::ConditionOp, scf::YieldOp>(operation))
     return true;
-  return isa<RecordCreateOp, RecordGetOp, RecordWithOp, PacketSerializeOp,
-             PacketDeserializeOp, TrySendOp, TryRecvOp, ScheduleOp, WaitUntilOp,
-             WaitForOp, AwaitEventOp, YieldSimOp, TraceOpenOp, TraceNextOp,
+  return isa<TrySendOp, TryRecvOp, ScheduleOp, WaitUntilOp, WaitForOp,
+             AwaitEventOp, YieldSimOp, TraceOpenOp, TraceNextOp,
              TraceDecodeOp, TraceEofOp, TracePositionOp, RequireOp, EnsureOp,
              AssertOp, ProbeOp, StatAddOp, InstrumentationOp>(operation);
 }

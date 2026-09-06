@@ -5,7 +5,6 @@
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/arbitration.mlir 2>&1 | %FileCheck %s --check-prefix=ARBITRATION
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/unresolved.mlir 2>&1 | %FileCheck %s --check-prefix=UNRESOLVED
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/bad-provider.mlir 2>&1 | %FileCheck %s --check-prefix=PROVIDER
-// RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/bad-payload.mlir 2>&1 | %FileCheck %s --check-prefix=PAYLOAD
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/bad-process.mlir 2>&1 | %FileCheck %s --check-prefix=PROCESS
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/bad-probe.mlir 2>&1 | %FileCheck %s --check-prefix=PROBE
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-verify-model)' %t/bad-contract.mlir 2>&1 | %FileCheck %s --check-prefix=CONTRACT
@@ -90,24 +89,6 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
       implementation {registry = "cpp", name = "NotRegistered"}
 }
 // PROVIDER: structural provider 'cpp:NotRegistered' is not registered
-
-//--- bad-payload.mlir
-builtin.module attributes {ac.contract_epoch = "0.5"} {
-  ac.protocol @p {
-    ac.role @sender dual @receiver cardinality "exclusive"
-    ac.role @receiver dual @sender cardinality "exclusive"
-    ac.state @idle initial true terminal false
-    ac.state @done initial false terminal true
-    ac.event @push from @sender to @receiver payload i32 action "offer"
-    ac.transition from @idle to @done on @push transfer true retain false guard {}
-  }
-  ac.module @Top() parameters {} graph {
-    ac.queue @q payload !ac.list<i32> entries 1 ordering "fifo" protocol @p
-        ownership "exclusive" id "q" path "q"
-    ac.return
-  }
-}
-// PAYLOAD: queue payload does not match endpoint protocol schema
 
 //--- bad-process.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {

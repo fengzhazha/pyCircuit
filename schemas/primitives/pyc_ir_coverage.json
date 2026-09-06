@@ -1,0 +1,1897 @@
+{
+  "dialect": "pyc",
+  "operations": [
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.add",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
+        "tests/mlir/agentic-circuit/Transforms/rule-multi-input-lowering.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AddOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
+        "tests/mlir/agentic-circuit/Transforms/rule-multi-input-lowering.mlir",
+        "tests/python/agentic-circuit/contracts/test_contracts.py",
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/unit/test_semantic_core.py",
+        "tests/v6/test_v6_vector.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.alias",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/arbiter.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AliasOp",
+      "tests": [
+        "tests/mlir/agentic-circuit/CodeGen/arbiter.mlir"
+      ],
+      "verifier": null,
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.and",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AndOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
+        "tests/test_bitmask_match.py",
+        "tests/test_pyc_enum.py",
+        "tests/unit/test_semantic_core.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.ashr",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AshrOp",
+      "tests": [
+        "tests/mlir/pyc/canonical-ops-valid.mlir",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.assert",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AssertOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/Dialect/ACIR/OpsTest.cpp",
+        "tests/python/agentic-circuit/tools/test_pyc_verilog_backend.py",
+        "tests/test_assert_fits.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.assign",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AssignOp",
+      "tests": [
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.async_fifo",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_AsyncFifoOp",
+      "tests": [],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckFrontendContractPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CollectCompileStatsPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.byte_mem",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ByteMemOp",
+      "tests": [],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.cdc_sync",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_CdcSyncOp",
+      "tests": [],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.cmp",
+      "negative_mlir": [
+        "tests/mlir/pyc/canonical-cmp-invalid.mlir"
+      ],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_CmpOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir",
+        "tests/mlir/pyc/canonical-cmp-invalid.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir",
+        "tests/python/agentic-circuit/tools/test_pyc_verilog_backend.py",
+        "tests/test_assert_fits.py",
+        "tests/test_bitmask_match.py",
+        "tests/test_pyc_canonical_ops.py",
+        "tests/test_pyc_enum.py",
+        "tests/test_signed_compare.py",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.comb",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_CombOp",
+      "tests": [
+        "tests/unit/test_primitive_catalog.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.concat",
+      "negative_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/collections-invalid.mlir"
+      ],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/collections-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/view-provenance.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/bit-operations.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ConcatOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/cpp/agentic-circuit/Dialect/ACIR/OpsTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/ACIR/collections-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/collections-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/view-provenance.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/bit-operations.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_public_api.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/LowerSCFToPYCStaticPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.constant",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ConstantOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/masked-match.mlir",
+        "tests/python/agentic-circuit/contracts/test_contracts.py",
+        "tests/test_pyc_canonical_ops.py",
+        "tests/test_pyc_enum.py",
+        "tests/vec/cases.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": null,
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.count_zeros",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/count-leading-zeros.mlir",
+        "tests/mlir/pyc/count-leading-zeros-primitive.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": {
+        "candidates": [
+          {
+            "implementation_id": "pyc.bsd.count_zeros.v1",
+            "semantic_id": "pyc.count_zeros.v1"
+          }
+        ],
+        "catalog": "library/verilog/rtl_catalog.json",
+        "pass": "compiler/mlir/lib/Transforms/SelectRtlPrimitivesPass.cpp"
+      },
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_CountZerosOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/mlir/agentic-circuit/CodeGen/count-leading-zeros.mlir",
+        "tests/mlir/pyc/count-leading-zeros-primitive.mlir",
+        "tests/system/test_primitive_selection.py",
+        "tests/unit/test_pyc6_surface.py",
+        "tests/unit/test_pyc_ir_inventory.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.extract",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-operations.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ExtractOp",
+      "tests": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/bit-operations.mlir",
+        "tests/test_assert_fits.py",
+        "tests/test_bitfield_view.py",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.fifo",
+      "negative_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/protocols-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-forward-malformed-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-invalid.mlir"
+      ],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/contracts-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/interfaces-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/process-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/protocols-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-valid.mlir",
+        "tests/mlir/agentic-circuit/Transforms/zero-delay-cycles.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_FifoOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/Analysis/ModelAnalysisTest.cpp",
+        "tests/cpp/agentic-circuit/CodeGen/ModelPlanTest.cpp",
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/cpp/agentic-circuit/Dialect/ACIR/OpsTest.cpp",
+        "tests/cpp/agentic-circuit/gfsim/core_test.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/ACIR/contracts-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/interfaces-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/process-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/protocols-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/protocols-valid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-forward-malformed-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/resources-valid.mlir",
+        "tests/mlir/agentic-circuit/Transforms/zero-delay-cycles.mlir"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckFrontendContractPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadInstancesPass.cpp",
+        "compiler/mlir/lib/Transforms/FlattenInstancesPass.cpp",
+        "compiler/mlir/lib/Transforms/InlineFunctionsPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.instance",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/design.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py",
+        "python/pycircuit/src/pycircuit/trace_dsl.py",
+        "python/pycircuit/src/pycircuit/v6.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_InstanceOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/Dialect/ACSim/OpsTest.cpp",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.lshr",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_LshrOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir",
+        "tests/test_pyc_canonical_ops.py",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [
+        "examples/pycircuit/fmac/primitive_standard_cells.py"
+      ],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.mul",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_MulOp",
+      "tests": [
+        "tests/unit/test_semantic_core.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.not",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/agentic-circuit/lit.cfg.py"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_NotOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/agentic-circuit/lit.cfg.py",
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.or",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_OrOp",
+      "tests": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.popcount",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/popcount.mlir",
+        "tests/mlir/pyc/popcount-primitive.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/__init__.py",
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": {
+        "candidates": [
+          {
+            "implementation_id": "pyc.bsd.popcount.v1",
+            "semantic_id": "pyc.popcount.v1"
+          }
+        ],
+        "catalog": "library/verilog/rtl_catalog.json",
+        "pass": "compiler/mlir/lib/Transforms/SelectRtlPrimitivesPass.cpp"
+      },
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_PopcountOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/cpp/agentic-circuit/gfsim/BitsTest.cpp",
+        "tests/mlir/agentic-circuit/CodeGen/popcount.mlir",
+        "tests/mlir/pyc/popcount-primitive.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_public_api.py",
+        "tests/system/test_primitive_selection.py",
+        "tests/unit/test_pyc6_surface.py",
+        "tests/unit/test_pyc_ir_inventory.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.priority_encode",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/priority-primitive.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/__init__.py",
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": {
+        "candidates": [
+          {
+            "implementation_id": "pyc.bsd.priority_encode.v1",
+            "semantic_id": "pyc.priority_encode.v1"
+          }
+        ],
+        "catalog": "library/verilog/rtl_catalog.json",
+        "pass": "compiler/mlir/lib/Transforms/SelectRtlPrimitivesPass.cpp"
+      },
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_PriorityEncodeOp",
+      "tests": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/priority-primitive.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_determinism.py",
+        "tests/python/agentic-circuit/python_frontend/test_public_api.py",
+        "tests/system/test_primitive_selection.py",
+        "tests/unit/test_pyc6_surface.py",
+        "tests/unit/test_pyc_ir_inventory.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CollectCompileStatsPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp",
+        "compiler/mlir/lib/Transforms/PackI1RegsPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_credit_backend.py",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.reg",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hierarchical.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_RegOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_credit_backend.py",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/test_bitfield_view.py",
+        "tests/unit/test_v6_forward_signal.py",
+        "tests/v6/test_v6_vector.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.reset_active",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/v6.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ResetActiveOp",
+      "tests": [],
+      "verifier": null,
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckFrontendContractPass.cpp"
+      ],
+      "cpp_emitter": null,
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.rtl.comb",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [],
+      "replacement": null,
+      "rtl_selection": {
+        "candidates": [
+          {
+            "implementation_id": "pyc.bsd.priority_encode.v1",
+            "semantic_id": "pyc.priority_encode.v1"
+          },
+          {
+            "implementation_id": "pyc.bsd.popcount.v1",
+            "semantic_id": "pyc.popcount.v1"
+          },
+          {
+            "implementation_id": "pyc.bsd.count_zeros.v1",
+            "semantic_id": "pyc.count_zeros.v1"
+          }
+        ],
+        "catalog": "library/verilog/rtl_catalog.json",
+        "pass": "compiler/mlir/lib/Transforms/SelectRtlPrimitivesPass.cpp"
+      },
+      "stage": "backend-pyc",
+      "status": "normative",
+      "symbol": "PYC_RtlCombOp",
+      "tests": [
+        "tests/system/test_primitive_selection.py",
+        "tests/unit/test_pyc_ir_inventory.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.sdiv",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SdivOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/LowerSCFToPYCStaticPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.select",
+      "negative_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/collections-invalid.mlir",
+        "tests/mlir/pyc/canonical-select-invalid.mlir"
+      ],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/collections-valid.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/value-select.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/api_contract.py",
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SelectOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/cpp/agentic-circuit/gfsim/QueueBlocksTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/integration/agentic-circuit/e2e/test_queue_codegen.py",
+        "tests/mlir/agentic-circuit/ACIR/collections-invalid.mlir",
+        "tests/mlir/agentic-circuit/ACIR/collections-valid.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/value-select.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir",
+        "tests/mlir/pyc/canonical-select-invalid.mlir",
+        "tests/test_pyc_canonical_ops.py",
+        "tests/vec/cases.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.sext",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/__init__.py",
+        "python/pycircuit/src/pycircuit/api_contract.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SextOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.shl",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ShlOp",
+      "tests": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/mlir/pyc/canonical-ops-valid.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
+        "tests/test_pyc_canonical_ops.py",
+        "tests/unit/test_semantic_core.py",
+        "tests/vec/cases.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.srem",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SremOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.sub",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/v6.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SubOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py",
+        "tests/unit/test_semantic_core.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckFrontendContractPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CollectCompileStatsPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.sync_mem",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SyncMemOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/integration/agentic-circuit/e2e/test_pyc_backend.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckFrontendContractPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CollectCompileStatsPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateDeadStatePass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.sync_mem_dp",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit_cache.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_SyncMemDPOp",
+      "tests": [],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.trunc",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/__init__.py",
+        "python/pycircuit/src/pycircuit/api_contract.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_TruncOp",
+      "tests": [
+        "tests/test_assert_fits.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.udiv",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_UdivOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.urem",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_UremOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_add_reduce",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VAddReduceOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/cases.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_and_reduce",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VAndReduceOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/cases.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_broadcast",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VBroadcastOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_broadcast_dim",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VBroadcastDimOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_create",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VCreateOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_get",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VGetOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.v_or_reduce",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": "scalarize-before-canonical-pyc",
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "pending-removal",
+      "symbol": "PYC_VOrReduceOp",
+      "tests": [
+        "tests/unit/test_pyc_ir_inventory.py",
+        "tests/vec/cases.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckCombCyclesPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/EliminateWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.wire",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/ACIR/interfaces-valid.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py",
+        "python/pycircuit/src/pycircuit/jit.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_WireOp",
+      "tests": [
+        "tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp",
+        "tests/mlir/agentic-circuit/ACIR/interfaces-valid.mlir",
+        "tests/mlir/agentic-circuit/CodeGen/atomic-transform.mlir",
+        "tests/v6/test_v6_vector.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": null,
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CombCanonicalizePass.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/SLPPackWiresPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.xor",
+      "negative_mlir": [],
+      "positive_mlir": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir"
+      ],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/dsl.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_XorOp",
+      "tests": [
+        "tests/mlir/agentic-circuit/CodeGen/bit-widths.mlir",
+        "tests/python/agentic-circuit/python_frontend/test_queue_frontend.py",
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/oracle.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/CheckClockDomainsPass.cpp",
+        "compiler/mlir/lib/Transforms/CheckLogicDepthPass.cpp",
+        "compiler/mlir/lib/Transforms/CombDepGraph.cpp",
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "operation",
+      "name": "pyc.yield",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_YieldOp",
+      "tests": [],
+      "verifier": null,
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    },
+    {
+      "acir_producer": [],
+      "canonicalization": [
+        "compiler/mlir/lib/Transforms/FuseCombPass.cpp",
+        "compiler/mlir/lib/Transforms/VectorUnrollPass.cpp"
+      ],
+      "cpp_emitter": "compiler/mlir/lib/Emit/CppEmitter.cpp",
+      "e2e": [],
+      "examples": [],
+      "folder": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "kind": "operation",
+      "name": "pyc.zext",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/__init__.py",
+        "python/pycircuit/src/pycircuit/api_contract.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/hw.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ZextOp",
+      "tests": [
+        "tests/vec/cases.py",
+        "tests/vec/generate.py",
+        "tests/vec/test_vec_ops.py"
+      ],
+      "verifier": "compiler/mlir/lib/Dialect/PYC/PYCOps.cpp",
+      "verilog_emitter": "compiler/mlir/lib/Emit/VerilogEmitter.cpp"
+    }
+  ],
+  "schema": "pyc-ir-coverage-v1",
+  "types": [
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [],
+      "cpp_emitter": null,
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "type",
+      "name": "!pyc.clock",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/cli.py",
+        "python/pycircuit/src/pycircuit/data.py",
+        "python/pycircuit/src/pycircuit/design.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py",
+        "python/pycircuit/src/pycircuit/lib/mem2port.py",
+        "python/pycircuit/src/pycircuit/lib/queue.py",
+        "python/pycircuit/src/pycircuit/lib/regfile.py",
+        "python/pycircuit/src/pycircuit/lib/sram.py",
+        "python/pycircuit/src/pycircuit/schedule_ir.py",
+        "python/pycircuit/src/pycircuit/v6.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ClockType",
+      "tests": [],
+      "verifier": null,
+      "verilog_emitter": null
+    },
+    {
+      "acir_producer": [
+        "compiler/acir/lib/CodeGen/QueueGraphPyc.cpp"
+      ],
+      "canonicalization": [],
+      "cpp_emitter": null,
+      "e2e": [],
+      "examples": [],
+      "folder": null,
+      "kind": "type",
+      "name": "!pyc.reset",
+      "negative_mlir": [],
+      "positive_mlir": [],
+      "python_producer": [
+        "python/pycircuit/src/pycircuit/cli.py",
+        "python/pycircuit/src/pycircuit/data.py",
+        "python/pycircuit/src/pycircuit/design.py",
+        "python/pycircuit/src/pycircuit/dsl.py",
+        "python/pycircuit/src/pycircuit/jit.py",
+        "python/pycircuit/src/pycircuit/lib/mem2port.py",
+        "python/pycircuit/src/pycircuit/lib/queue.py",
+        "python/pycircuit/src/pycircuit/lib/regfile.py",
+        "python/pycircuit/src/pycircuit/lib/sram.py",
+        "python/pycircuit/src/pycircuit/schedule_ir.py",
+        "python/pycircuit/src/pycircuit/v6.py"
+      ],
+      "replacement": null,
+      "rtl_selection": null,
+      "stage": "canonical-pyc",
+      "status": "normative",
+      "symbol": "PYC_ResetType",
+      "tests": [],
+      "verifier": null,
+      "verilog_emitter": null
+    }
+  ]
+}

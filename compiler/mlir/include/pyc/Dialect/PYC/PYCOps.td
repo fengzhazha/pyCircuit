@@ -96,8 +96,8 @@ def PYC_SremOp : PYC_Op<"srem", [Pure]> {
   let hasFolder = 1;
 }
 
-def PYC_MuxOp : PYC_Op<"mux", [Pure]> {
-  let summary = "2:1 mux (combinational)";
+def PYC_SelectOp : PYC_Op<"select", [Pure]> {
+  let summary = "Select one of two values (combinational)";
   let arguments = (ins AnyIntegerOrV:$sel, AnyIntegerOrV:$a, AnyIntegerOrV:$b);
   let results = (outs AnyIntegerOrV:$result);
   let hasVerifier = 1;
@@ -141,27 +141,10 @@ def PYC_NotOp : PYC_Op<"not", [Pure, SameOperandsAndResultType]> {
   let hasFolder = 1;
 }
 
-def PYC_EqOp : PYC_Op<"eq", [Pure]> {
-  let summary = "Integer equality compare (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$lhs, AnyIntegerOrV:$rhs);
-  let results = (outs AnyIntegerOrV:$result);
-  let hasVerifier = 1;
-  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs) `,` type($rhs) `->` type($result)";
-  let hasFolder = 1;
-}
-
-def PYC_UltOp : PYC_Op<"ult", [Pure]> {
-  let summary = "Unsigned less-than compare (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$lhs, AnyIntegerOrV:$rhs);
-  let results = (outs AnyIntegerOrV:$result);
-  let hasVerifier = 1;
-  let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs) `,` type($rhs) `->` type($result)";
-  let hasFolder = 1;
-}
-
-def PYC_SltOp : PYC_Op<"slt", [Pure]> {
-  let summary = "Signed less-than compare (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$lhs, AnyIntegerOrV:$rhs);
+def PYC_CmpOp : PYC_Op<"cmp", [Pure]> {
+  let summary = "Integer comparison with a closed predicate";
+  let arguments = (ins AnyIntegerOrV:$lhs, AnyIntegerOrV:$rhs,
+                       StrAttr:$predicate);
   let results = (outs AnyIntegerOrV:$result);
   let hasVerifier = 1;
   let assemblyFormat = "$lhs `,` $rhs attr-dict `:` type($lhs) `,` type($rhs) `->` type($result)";
@@ -204,38 +187,12 @@ def PYC_ExtractOp : PYC_Op<"extract", [Pure]> {
   let hasFolder = 1;
 }
 
-def PYC_ShliOp : PYC_Op<"shli", [Pure, SameOperandsAndResultType]> {
-  let summary = "Shift-left by immediate (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$in, I64Attr:$amount);
-  let results = (outs AnyIntegerOrV:$result);
-  let hasVerifier = 1;
-  let assemblyFormat = "$in attr-dict `:` type($result)";
-  let hasFolder = 1;
-}
-
-def PYC_LshriOp : PYC_Op<"lshri", [Pure, SameOperandsAndResultType]> {
-  let summary = "Logical shift-right by immediate (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$in, I64Attr:$amount);
-  let results = (outs AnyIntegerOrV:$result);
-  let hasVerifier = 1;
-  let assemblyFormat = "$in attr-dict `:` type($result)";
-  let hasFolder = 1;
-}
-
-def PYC_AshriOp : PYC_Op<"ashri", [Pure, SameOperandsAndResultType]> {
-  let summary = "Arithmetic shift-right by immediate (element-wise for vectors)";
-  let arguments = (ins AnyIntegerOrV:$in, I64Attr:$amount);
-  let results = (outs AnyIntegerOrV:$result);
-  let hasVerifier = 1;
-  let assemblyFormat = "$in attr-dict `:` type($result)";
-  let hasFolder = 1;
-}
-
 def PYC_ShlOp : PYC_Op<"shl", [Pure, AllTypesMatch<["in", "result"]>]> {
   let summary = "Shift-left by value (element-wise for vectors)";
   let arguments = (ins AnyIntegerOrV:$in, AnyInteger:$amount);
   let results = (outs AnyIntegerOrV:$result);
   let hasVerifier = 1;
+  let hasFolder = 1;
   let assemblyFormat = "$in `,` $amount attr-dict `:` type($result) `,` type($amount)";
 }
 
@@ -244,6 +201,7 @@ def PYC_LshrOp : PYC_Op<"lshr", [Pure, AllTypesMatch<["in", "result"]>]> {
   let arguments = (ins AnyIntegerOrV:$in, AnyInteger:$amount);
   let results = (outs AnyIntegerOrV:$result);
   let hasVerifier = 1;
+  let hasFolder = 1;
   let assemblyFormat = "$in `,` $amount attr-dict `:` type($result) `,` type($amount)";
 }
 
@@ -252,6 +210,7 @@ def PYC_AshrOp : PYC_Op<"ashr", [Pure, AllTypesMatch<["in", "result"]>]> {
   let arguments = (ins AnyIntegerOrV:$in, AnyInteger:$amount);
   let results = (outs AnyIntegerOrV:$result);
   let hasVerifier = 1;
+  let hasFolder = 1;
   let assemblyFormat = "$in `,` $amount attr-dict `:` type($result) `,` type($amount)";
 }
 

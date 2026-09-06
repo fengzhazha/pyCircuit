@@ -23,7 +23,7 @@ bool validSegment(StringRef segment) {
 }
 
 bool isModuleDeclaration(Operation *op) {
-  return isa_and_nonnull<ModuleOp, ModuleExternOp, ModuleGeneratedOp>(op);
+  return isa_and_nonnull<ModuleOp, ModuleExternOp>(op);
 }
 
 Operation *lookupDefinition(SymbolTable &symbols, FlatSymbolRefAttr reference) {

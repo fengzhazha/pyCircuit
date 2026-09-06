@@ -9,7 +9,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   ac.table @entries entry i2 entries 4 init 0 owner "/" stable_id "table/entries"
   ac.table @priority entry i2 entries 4 init 0 owner "/" stable_id "table/priority"
   %output = ac.rule depths [1] latencies [1] name "issue" stable_id "issue"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body:
     %mask = ac.table.match @entries predicate {
     ^bb0(%entry: !ac.var<i2>):
@@ -40,7 +40,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   ac.table @priority entry i2 entries 4 init 0 owner "/" stable_id "table/priority"
   ac.table @other entry i2 entries 4 init 0 owner "/" stable_id "table/other"
   %output = ac.rule depths [1] latencies [1] name "issue" stable_id "issue"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body:
     %mask = ac.table.match @entries predicate {
     ^bb0(%entry: !ac.var<i2>):
@@ -96,7 +96,7 @@ module attributes {ac.contract_epoch = "0.5"} {
       stable_id "table/wide"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i6>
   ac.rule %input depths [] latencies [] name "read" stable_id "read"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body(%item: !ac.var<i6>):
     %old = ac.table.get @wide[%item] : !ac.var<i6> -> !ac.var<!ac.struct<@types::@Pair>>
     %true = ac.var.constant true as !ac.var<i1>

@@ -33,24 +33,25 @@ All examples below live inside a standard MLIR `module { ... }` and use
 %y = pyc.urem %a, %b : i8
 %y = pyc.sdiv %a, %b : i8
 %y = pyc.srem %a, %b : i8
-%y = pyc.mux %sel, %a, %b : i8
+%y = pyc.select %sel, %a, %b : i1, i8, i8 -> i8
 %y = pyc.and %a, %b : i8
 %y = pyc.or  %a, %b : i8
 %y = pyc.xor %a, %b : i8
 %y = pyc.not %a : i8
 
-%p = pyc.eq %a, %b : i8
-%p = pyc.ult %a, %b : i8
-%p = pyc.slt %a, %b : i8
+%p = pyc.cmp %a, %b {predicate = "eq"} : i8, i8 -> i1
+%p = pyc.cmp %a, %b {predicate = "ult"} : i8, i8 -> i1
+%p = pyc.cmp %a, %b {predicate = "slt"} : i8, i8 -> i1
 
 %lo = pyc.trunc %x : i64 -> i32
 %zx = pyc.zext  %x : i8  -> i64
 %sx = pyc.sext  %x : i8  -> i64
 
 %s = pyc.extract %x {lsb = 4} : i16 -> i8
-%sh = pyc.shli %x {amount = 2} : i16
-%sh = pyc.lshri %x {amount = 2} : i16
-%sh = pyc.ashri %x {amount = 2} : i16
+%two = pyc.constant 2 : i16
+%sh = pyc.shl %x, %two : i16, i16
+%lsh = pyc.lshr %x, %two : i16, i16
+%ash = pyc.ashr %x, %two : i16, i16
 
 %bus = pyc.concat(%a, %b, %c) : (i8, i16, i1) -> i25
 ```
@@ -208,7 +209,7 @@ The Python AST/JIT frontend may emit a small subset of standard MLIR dialects:
 These are **not** part of the stable PYC dialect contract: `pycc` runs
 `pyc-lower-scf-static` to lower them into static PYC hardware ops:
 
-- `scf.if` → `pyc.mux` networks (both branches are speculated; must be side-effect-free)
+- `scf.if` → `pyc.select` networks (both branches are speculated; must be side-effect-free)
 - `scf.for` → fully unrolled logic (bounds must be compile-time constants)
 
 Note: MLIR canonicalization may also introduce `arith.select` during cleanup.

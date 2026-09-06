@@ -45,17 +45,6 @@ LogicalResult requireRuleAttribute(ac::RuleOp rule, StringRef name,
   return rule.emitOpError() << "requires '" << name << "' before " << stage;
 }
 
-std::string ruleHandshake(ac::RuleOp rule, bool hasTableProposal) {
-  return "ready_valid_" + std::to_string(rule.getInputs().size()) + "x" +
-         std::to_string(rule.getOutputs().size()) +
-         (hasTableProposal ? "_table" : "");
-}
-
-std::string firingHandshake(ac::FiringOp firing) {
-  return "ready_valid_" + std::to_string(firing.getInputs().size()) + "x" +
-         std::to_string(firing.getOutputs().size());
-}
-
 std::optional<bool> constantBool(Value value) {
   auto constant = value.getDefiningOp<ac::VarConstantOp>();
   auto integer =
@@ -136,8 +125,6 @@ DictionaryAttr stateRuleEffect(Builder &builder, ac::RuleEffectKind kind,
 LogicalResult inferRuleTypes(ModuleOp model) {
   for (ac::TypeConstraintMarkerOp marker :
        collectMarkers<ac::TypeConstraintMarkerOp>(model)) {
-    if (marker.getConstraint() != ac::TypeConstraintKind::QueuePayload)
-      return marker.emitOpError("unsupported type-constraint kind");
     ac::RuleOp rule = marker->getParentOfType<ac::RuleOp>();
     if (!rule || !llvm::is_contained(rule.getBody().front().getArguments(),
                                      marker.getInput()))
@@ -175,8 +162,6 @@ LogicalResult inferRuleEffects(ModuleOp model) {
     return failure();
   for (ac::ValueFactMarkerOp marker :
        collectMarkers<ac::ValueFactMarkerOp>(model)) {
-    if (marker.getFact() != ac::ValueFactKind::CommittedInput)
-      return marker.emitOpError("unsupported value-fact kind");
     ac::RuleOp rule = marker->getParentOfType<ac::RuleOp>();
     if (!rule ||
         !llvm::is_contained(rule.getBody().front().getArguments(),
@@ -204,21 +189,6 @@ LogicalResult inferRuleEffects(ModuleOp model) {
     SmallVector<ac::TableProposeOp> proposals;
     rule.getBody().walk(
         [&](ac::TableProposeOp proposal) { proposals.push_back(proposal); });
-    SmallVector<StringRef> effectNames;
-    if (!rule.getInputs().empty())
-      effectNames.push_back("input.consume");
-    if (!rule.getOutputs().empty())
-      effectNames.push_back("output.produce");
-    SmallVector<std::string> tableEffects;
-    if (!proposals.empty()) {
-      llvm::StringSet<> seenTables;
-      for (ac::TableProposeOp proposal : proposals)
-        if (seenTables.insert(proposal.getTable()).second)
-          tableEffects.push_back("table.replace:" + proposal.getTable().str());
-      for (const std::string &effect : tableEffects)
-        effectNames.push_back(effect);
-    }
-    rule->setAttr("ac.rule.effects", builder.getStrArrayAttr(effectNames));
     SmallVector<Attribute> typedEffects;
     SmallVector<Value> outputPresences(rule.getOutputs().size());
     rule.getBody().walk([&](ac::RuleOutputOp output) {
@@ -382,12 +352,11 @@ LogicalResult materializeRuleChecks(ModuleOp model) {
   model.walk([&](ac::RuleOp rule) {
     if (failed(result))
       return;
-    if (failed(requireRuleAttribute(rule, "ac.rule.effects",
+    if (failed(requireRuleAttribute(rule, "ac.rule.effects_typed",
                                     "check materialization"))) {
       result = failure();
       return;
     }
-    SmallVector<Attribute> checks;
     for (ac::PendingObligationMarkerOp marker :
          collectMarkers<ac::PendingObligationMarkerOp>(model)) {
       if (marker->getParentOfType<ac::RuleOp>() != rule ||
@@ -403,7 +372,6 @@ LogicalResult materializeRuleChecks(ModuleOp model) {
       result = failure();
       return;
     }
-    rule->setAttr("ac.rule.checks", builder.getArrayAttr(checks));
     const ac::RuleGuardKind candidateGuard =
         inferredGuardKind(rule.getOperation());
     SmallVector<Value> outputPresences(rule.getOutputs().size());
@@ -451,7 +419,7 @@ LogicalResult materializeRuleHandshake(ModuleOp model) {
   model.walk([&](ac::RuleOp rule) {
     if (failed(result))
       return;
-    if (failed(requireRuleAttribute(rule, "ac.rule.checks",
+    if (failed(requireRuleAttribute(rule, "ac.rule.checks_typed",
                                     "handshake materialization"))) {
       result = failure();
       return;
@@ -485,11 +453,6 @@ LogicalResult materializeRuleHandshake(ModuleOp model) {
       result = failure();
       return;
     }
-    bool hasTableProposal = false;
-    rule.getBody().walk([&](ac::TableProposeOp) { hasTableProposal = true; });
-    rule->setAttr("ac.rule.handshake",
-                  StringAttr::get(model.getContext(),
-                                  ruleHandshake(rule, hasTableProposal)));
   });
   return result;
 }
@@ -511,34 +474,18 @@ LogicalResult dischargeRuleObligations(ModuleOp model) {
       continue;
     }
     if (marker.getResolver() == ac::ObligationResolver::Handshake) {
-      auto handshake = rule->getAttrOfType<StringAttr>("ac.rule.handshake");
-      bool hasTableProposal = false;
-      rule.getBody().walk([&](ac::TableProposeOp) { hasTableProposal = true; });
-      const std::string expected = ruleHandshake(rule, hasTableProposal);
-      if (!handshake || handshake.getValue() != expected ||
-          !marker.getResult().hasOneUse() ||
+      if (!marker.getResult().hasOneUse() ||
           !isa<ac::RuleReturnOp>(marker.getResult().use_begin()->getOwner())) {
         marker.emitOpError(
-            "handshake discharge requires returned-value handshake evidence");
+            "handshake discharge requires returned-value structural evidence");
         result = failure();
         continue;
       }
     } else if (marker.getResolver() == ac::ObligationResolver::Checks) {
-      auto checks = rule->getAttrOfType<ArrayAttr>("ac.rule.checks");
-      bool found = checks && llvm::any_of(checks, [&](Attribute attribute) {
-                     auto record = dyn_cast<DictionaryAttr>(attribute);
-                     return record &&
-                            record.getAs<StringAttr>("origin") ==
-                                marker.getOriginAttr() &&
-                            record.getAs<StringAttr>("path") ==
-                                marker.getPathPredicateAttr();
-                   });
-      if (!found) {
-        marker.emitOpError(
-            "check discharge requires matching materialized check evidence");
-        result = failure();
-        continue;
-      }
+      marker.emitOpError(
+          "dynamic check obligations are not supported by typed summaries");
+      result = failure();
+      continue;
     } else {
       marker.emitOpError("has no implemented discharge verifier");
       result = failure();
@@ -562,7 +509,7 @@ LogicalResult resolveRuleSchedule(ModuleOp model) {
   model.walk([&](ac::RuleOp rule) {
     if (failed(result))
       return;
-    if (failed(requireRuleAttribute(rule, "ac.rule.handshake",
+    if (failed(requireRuleAttribute(rule, "ac.rule.checks_typed",
                                     "schedule resolution"))) {
       result = failure();
       return;
@@ -753,9 +700,6 @@ LogicalResult resolveRuleSchedule(ModuleOp model) {
           readFieldsAttr);
     }
     const int64_t priority = lexicalPriority++;
-    rule->setAttr(
-        "ac.rule.guard",
-        StringAttr::get(model.getContext(), always ? "true" : "dynamic"));
     rule->setAttr("ac.rule.priority", builder.getI64IntegerAttr(priority));
     rule->setAttr(
         "ac.rule.guard_kind",
@@ -774,20 +718,12 @@ LogicalResult resolveRuleSchedule(ModuleOp model) {
       if (!arbitrated.insert(proposal.getTable()).second)
         continue;
       NamedAttrList record;
-      record.set("kind", ac::RuleArbitrationKindAttr::get(
-                             model.getContext(),
-                             ac::RuleArbitrationKind::LexicalPriority));
       record.set("resource", proposal.getTableAttr());
       record.set("priority", builder.getI64IntegerAttr(priority));
       arbitration.push_back(builder.getDictionaryAttr(record));
     }
     rule->setAttr("ac.rule.arbitration_membership",
                   builder.getArrayAttr(arbitration));
-    rule->setAttr(
-        "ac.rule.schedule",
-        StringAttr::get(model.getContext(), proposals.empty()
-                                                ? "independent"
-                                                : "table_lexical_priority"));
   });
   return result;
 }
@@ -797,8 +733,7 @@ LogicalResult lowerRulesToFiring(ModuleOp model) {
   model.walk([&](ac::RuleOp rule) { rules.push_back(rule); });
   for (ac::RuleOp rule : rules) {
     for (StringRef attribute :
-         {"ac.rule.effects", "ac.rule.checks", "ac.rule.handshake",
-          "ac.rule.guard", "ac.rule.schedule", "ac.rule.priority",
+         {"ac.rule.priority",
           "ac.rule.footprints", "ac.rule.activation_sources",
           "ac.rule.transaction_resources", "ac.rule.initially_active",
           "ac.rule.effects_typed", "ac.rule.checks_typed",
@@ -858,11 +793,6 @@ LogicalResult lowerRulesToFiring(ModuleOp model) {
     state.addAttribute("output_latencies", rule.getOutputLatenciesAttr());
     state.addAttribute("stable_id", rule.getStableIdAttr());
     state.addAttribute("time_domain", rule.getTimeDomainAttr());
-    state.addAttribute("functional_guard", rule->getAttr("ac.rule.guard"));
-    state.addAttribute("checks", rule->getAttr("ac.rule.checks"));
-    state.addAttribute("handshake", rule->getAttr("ac.rule.handshake"));
-    state.addAttribute("schedule", rule->getAttr("ac.rule.schedule"));
-    state.addAttribute("effects", rule->getAttr("ac.rule.effects"));
     state.addAttribute("ac.rule_priority", rule->getAttr("ac.rule.priority"));
     state.addAttribute("ac.rule_footprints",
                        rule->getAttr("ac.rule.footprints"));
@@ -900,19 +830,13 @@ LogicalResult lowerRulesToFiring(ModuleOp model) {
 LogicalResult canonicalizePureFirings(ModuleOp model) {
   SmallVector<ac::FiringOp> firings;
   model.walk([&](ac::FiringOp firing) { firings.push_back(firing); });
-  Builder attrBuilder(model.getContext());
   for (ac::FiringOp firing : firings) {
-    const ArrayAttr pureEffects =
-        attrBuilder.getStrArrayAttr({"input.consume", "output.produce"});
     bool hasTableProposal = false;
     firing.getBody().walk([&](ac::TableProposeOp) { hasTableProposal = true; });
     if (hasTableProposal)
       continue;
     if (firing.getInputs().empty() || firing.getOutputs().size() != 1 ||
-        firing.getFunctionalGuard() != "true" || !firing.getChecks().empty() ||
-        firing.getHandshake() != firingHandshake(firing) ||
-        firing.getSchedule() != "independent" ||
-        firing.getTimeDomain() != "cycle" || firing.getEffects() != pureEffects)
+        firing.getTimeDomain() != "cycle")
       return firing.emitOpError(
           "is not proven equivalent to the phase-one pure transform subset");
 
@@ -956,11 +880,6 @@ LogicalResult canonicalizePureFirings(ModuleOp model) {
         state.addAttribute(name, attribute);
     state.addAttribute("ac.rule_stable_id", firing.getStableIdAttr());
     state.addAttribute("ac.rule_time_domain", firing.getTimeDomainAttr());
-    state.addAttribute("ac.rule_guard", firing.getFunctionalGuardAttr());
-    state.addAttribute("ac.rule_checks", firing.getChecksAttr());
-    state.addAttribute("ac.rule_handshake", firing.getHandshakeAttr());
-    state.addAttribute("ac.rule_schedule", firing.getScheduleAttr());
-    state.addAttribute("ac.rule_effects", firing.getEffectsAttr());
     state.addAttribute("ac.rule_priority", firing->getAttr("ac.rule_priority"));
     state.addAttribute("ac.rule_footprints",
                        firing->getAttr("ac.rule_footprints"));

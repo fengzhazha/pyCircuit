@@ -11,7 +11,6 @@ __path__ = extend_path(__path__, __name__)
 from . import _types as _types_module
 from ._definitions import (
     extern_module,
-    generated_module,
     interface,
     module,
     packet,
@@ -49,7 +48,6 @@ __all__ = (
     "system",
     "module",
     "extern_module",
-    "generated_module",
     "struct",
     "packet",
     "transaction",

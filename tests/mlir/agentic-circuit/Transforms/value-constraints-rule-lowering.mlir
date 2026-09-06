@@ -6,7 +6,7 @@ builtin.module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_gra
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<i2>
   %output = ac.rule %input depths [1] latencies [1]
       name "bounded_table" stable_id "bounded_table" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%index: !ac.var<i2>):
     %old = ac.table.get @entries[%index] : !ac.var<i2> -> !ac.var<i2>
     ac.table.propose @entries[%index] = %index mode "replace"

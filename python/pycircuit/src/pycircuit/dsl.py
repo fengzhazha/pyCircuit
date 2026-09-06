@@ -292,7 +292,7 @@ class Module:
 
         tmp = self._get_next_temp_var()
         self._emit(
-            f"{tmp} = pyc.mux {sel.ref}, {a.ref}, {b.ref} : {sel.ty}, {a.ty}, {b.ty} -> {result_ty}"
+            f"{tmp} = pyc.select {sel.ref}, {a.ref}, {b.ref} : {sel.ty}, {a.ty}, {b.ty} -> {result_ty}"
         )
         return Signal(ref=tmp, ty=result_ty)
 
@@ -311,13 +311,37 @@ class Module:
         return Signal(ref=tmp, ty=a.ty)
 
     def eq(self, a: Signal, b: Signal) -> Signal:
-        return self._emit_elementwise_binary("eq", a, b, compare=True)
+        return self._emit_compare("eq", a, b)
 
     def ult(self, a: Signal, b: Signal) -> Signal:
-        return self._emit_elementwise_binary("ult", a, b, compare=True)
+        return self._emit_compare("ult", a, b)
 
     def slt(self, a: Signal, b: Signal) -> Signal:
-        return self._emit_elementwise_binary("slt", a, b, compare=True)
+        return self._emit_compare("slt", a, b)
+
+    def _emit_compare(self, predicate: str, a: Signal, b: Signal) -> Signal:
+        if predicate not in {"eq", "ult", "slt"}:
+            raise ValueError(f"unsupported comparison predicate: {predicate}")
+        a_ty = a.ty
+        b_ty = b.ty
+        a_is_vec = isinstance(a_ty, Vector)
+        b_is_vec = isinstance(b_ty, Vector)
+        if a_ty.width != b_ty.width:
+            raise TypeError(f"cmp widths must match: {a_ty} vs {b_ty}")
+        if a_is_vec and b_is_vec and a_ty.shape() != b_ty.shape():
+            raise TypeError(f"cmp vector shapes must match: {a_ty} vs {b_ty}")
+        value_ty = a_ty if a_is_vec else b_ty
+        result_ty = (
+            Vector.from_shape(value_ty.shape(), Bits(1))
+            if a_is_vec or b_is_vec
+            else Bits(1)
+        )
+        tmp = self._get_next_temp_var()
+        self._emit(
+            f'{tmp} = pyc.cmp {a.ref}, {b.ref} {{predicate = "{predicate}"}} '
+            f": {a_ty}, {b_ty} -> {result_ty}"
+        )
+        return Signal(ref=tmp, ty=result_ty)
 
     def trunc(self, a: Signal, *, width: int) -> Signal:
         if not isinstance(a.ty, (Bits, Vector)):
@@ -393,33 +417,6 @@ class Module:
                 f"{tmp} = pyc.extract {a.ref} {{lsb = {int(lsb)}, msb = {int(msb)}}} : {a.ty} -> {out_ty}"
             )
         return Signal(ref=tmp, ty=out_ty)
-
-    def shli(self, a: Signal, *, amount: int) -> Signal:
-        if not isinstance(a.ty, (Bits, Vector)):
-            raise TypeError("shli requires an integer or vector-of-integer input")
-        if amount < 0:
-            raise ValueError("shli amount must be >= 0")
-        tmp = self._get_next_temp_var()
-        self._emit(f"{tmp} = pyc.shli {a.ref} {{amount = {int(amount)}}} : {a.ty}")
-        return Signal(ref=tmp, ty=a.ty)
-
-    def lshri(self, a: Signal, *, amount: int) -> Signal:
-        if not isinstance(a.ty, (Bits, Vector)):
-            raise TypeError("lshri requires an integer or vector-of-integer input")
-        if amount < 0:
-            raise ValueError("lshri amount must be >= 0")
-        tmp = self._get_next_temp_var()
-        self._emit(f"{tmp} = pyc.lshri {a.ref} {{amount = {int(amount)}}} : {a.ty}")
-        return Signal(ref=tmp, ty=a.ty)
-
-    def ashri(self, a: Signal, *, amount: int) -> Signal:
-        if not isinstance(a.ty, (Bits, Vector)):
-            raise TypeError("ashri requires an integer or vector-of-integer input")
-        if amount < 0:
-            raise ValueError("ashri amount must be >= 0")
-        tmp = self._get_next_temp_var()
-        self._emit(f"{tmp} = pyc.ashri {a.ref} {{amount = {int(amount)}}} : {a.ty}")
-        return Signal(ref=tmp, ty=a.ty)
 
     def shl(self, a: Signal, amount: Signal) -> Signal:
         if not isinstance(a.ty, (Bits, Vector)) or not isinstance(amount.ty, Bits):

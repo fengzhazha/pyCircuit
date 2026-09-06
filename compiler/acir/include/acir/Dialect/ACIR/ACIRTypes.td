@@ -31,28 +31,8 @@ def ACIR_StructType : ACIR_LayoutNamedType<"Struct", "struct">;
 def ACIR_PacketType : ACIR_LayoutNamedType<"Packet", "packet">;
 def ACIR_TransactionType : ACIR_DataNamedType<"Transaction", "transaction">;
 def ACIR_EnumType : ACIR_LayoutNamedType<"Enum", "enum">;
-def ACIR_UnionType : ACIR_LayoutNamedType<"Union", "union">;
-def ACIR_AddressType : ACIR_NamedType<"Address", "address">;
 def ACIR_ResourceTokenType
     : ACIR_NamedType<"ResourceToken", "resource_token">;
-
-def ACIR_OptionalType : ACIR_Type<"Optional", "optional"> {
-  let parameters = (ins "mlir::Type":$elementType);
-  let assemblyFormat = "`<` $elementType `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_ListType : ACIR_Type<"List", "list"> {
-  let parameters = (ins "mlir::Type":$elementType);
-  let assemblyFormat = "`<` $elementType `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_VectorType : ACIR_Type<"Vector", "vector"> {
-  let parameters = (ins "int64_t":$length, "mlir::Type":$elementType);
-  let assemblyFormat = "`<` $length `x` $elementType `>`";
-  let genVerifyDecl = 1;
-}
 
 // An immutable fixed-length payload value. This is deliberately distinct from
 // ac.array, which is a static collection of Queue/Var topology objects.
@@ -75,19 +55,6 @@ def ACIR_QueueType : ACIR_Type<"Queue", "queue"> {
 }
 
 def ACIR_ArrayType : ACIR_Type<"Array", "array"> {
-  let parameters = (ins "int64_t":$length, "mlir::Type":$elementType);
-  let assemblyFormat = "`<` $length `x` $elementType `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_MapType : ACIR_Type<"Map", "map"> {
-  let parameters = (ins "mlir::ArrayAttr":$keys,
-                        "mlir::Type":$elementType);
-  let assemblyFormat = "`<` $keys `,` $elementType `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_SetType : ACIR_Type<"Set", "set"> {
   let parameters = (ins "int64_t":$length, "mlir::Type":$elementType);
   let assemblyFormat = "`<` $length `x` $elementType `>`";
   let genVerifyDecl = 1;
@@ -116,19 +83,6 @@ def ACIR_ChannelType : ACIR_Type<"Channel", "channel"> {
   let parameters = (ins "mlir::Type":$elementType,
                         "mlir::FlatSymbolRefAttr":$protocol);
   let assemblyFormat = "`<` $elementType `,` $protocol `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_DurationType : ACIR_Type<"Duration", "duration"> {
-  let parameters = (ins EnumParameter<ACIR_Unit>:$unit);
-  let assemblyFormat = "`<` $unit `>`";
-  let genVerifyDecl = 1;
-}
-
-def ACIR_RateType : ACIR_Type<"Rate", "rate"> {
-  let parameters = (ins EnumParameter<ACIR_Unit>:$numerator,
-                        EnumParameter<ACIR_Unit>:$denominator);
-  let assemblyFormat = "`<` $numerator `,` $denominator `>`";
   let genVerifyDecl = 1;
 }
 

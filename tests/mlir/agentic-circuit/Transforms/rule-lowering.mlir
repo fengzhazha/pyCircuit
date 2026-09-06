@@ -13,11 +13,11 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.observe %input name "input_probe" : !ac.queue<i32>
   %output = ac.rule %input depths [2] latencies [1]
       name "increment" stable_id "top/increment_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^rule(%item: !ac.var<i32>):
-    %typed = ac.marker.type %item state unknown constraint queue_payload
+    %typed = ac.marker.type %item state unknown
         : !ac.var<i32>
-    %fact = ac.marker.value %typed fact committed_input identity "input"
+    %fact = ac.marker.value %typed identity "input"
         path "true" : !ac.var<i32>
     %one = ac.var.constant 1 : i32 as !ac.var<i32>
     %sum = ac.var.add %fact, %one : !ac.var<i32>
@@ -29,26 +29,31 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 }
 
 // TYPE-NOT: ac.marker.type
-// TYPE: ac.marker.value %{{.*}} fact committed_input identity "input" path "true"
+// TYPE: ac.marker.value %{{.*}} identity "input" path "true"
 
 // MARKERS: ac.marker.type
 // MARKERS: ac.marker.value
 // MARKERS: ac.marker.obligation
 
 // MATERIALIZED: ac.marker.obligation %{{.*}} state materialized resolver handshake
-// MATERIALIZED: ac.rule.handshake = "ready_valid_1x1"
 
 // FIRING-NOT: ac.rule
 // FIRING-NOT: ac.marker
+// FIRING-NOT: functional_guard
+// FIRING-NOT: handshake
+// FIRING-NOT: schedule =
+// FIRING-NOT: effects =
 // FIRING: ac.firing %{{.*}} depths [2] latencies [1]
-// FIRING-SAME: stable_id "top/increment_0" domain "cycle" guard "true"
-// FIRING-SAME: checks [] handshake "ready_valid_1x1" schedule "independent"
-// FIRING-SAME: effects ["input.consume", "output.produce"]
 // FIRING: ac.firing.yield
 
 // LOWERED-NOT: ac.rule
 // LOWERED-NOT: ac.firing
 // LOWERED-NOT: ac.marker
+// LOWERED-NOT: ac.rule_guard =
+// LOWERED-NOT: ac.rule_checks =
+// LOWERED-NOT: ac.rule_handshake =
+// LOWERED-NOT: ac.rule_schedule =
+// LOWERED-NOT: ac.rule_effects =
 // LOWERED: ac.transform
 // LOWERED: ac.rule_definition = "increment"
 // LOWERED-SAME: ac.rule_stable_id = "top/increment_0"

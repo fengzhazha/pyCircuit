@@ -296,9 +296,6 @@ verifyTypedRuleSummary(Operation *operation, ValueRange inputs,
     if (!seenResources.insert(proposal.getTable()).second)
       continue;
     NamedAttrList record;
-    record.set("kind", RuleArbitrationKindAttr::get(
-                           operation->getContext(),
-                           RuleArbitrationKind::LexicalPriority));
     record.set("resource", proposal.getTableAttr());
     record.set("priority", priority);
     expectedArbitration.push_back(builder.getDictionaryAttr(record));
@@ -320,11 +317,6 @@ LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
       "ac.rule_definition",
       "ac.rule_stable_id",
       "ac.rule_time_domain",
-      "ac.rule_guard",
-      "ac.rule_checks",
-      "ac.rule_handshake",
-      "ac.rule_schedule",
-      "ac.rule_effects",
       "ac.rule_priority",
       "ac.rule_footprints",
       "ac.rule_effects_typed",
@@ -360,28 +352,17 @@ LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
   FailureOr<StringAttr> definition = requireString("ac.rule_definition");
   FailureOr<StringAttr> stableId = requireString("ac.rule_stable_id");
   FailureOr<StringAttr> domain = requireString("ac.rule_time_domain");
-  FailureOr<StringAttr> guard = requireString("ac.rule_guard");
-  FailureOr<StringAttr> handshake = requireString("ac.rule_handshake");
-  FailureOr<StringAttr> schedule = requireString("ac.rule_schedule");
-  auto checks = transform->getAttrOfType<ArrayAttr>("ac.rule_checks");
-  auto effects = transform->getAttrOfType<ArrayAttr>("ac.rule_effects");
   auto priority = transform->getAttrOfType<IntegerAttr>("ac.rule_priority");
   auto footprints = transform->getAttrOfType<ArrayAttr>("ac.rule_footprints");
   if (failed(definition) || failed(stableId) || failed(domain) ||
-      failed(guard) || failed(handshake) || failed(schedule) || !checks ||
-      !effects || !priority || priority.getInt() < 0 || !footprints)
+      !priority || priority.getInt() < 0 || !footprints)
     return failure();
   if (transform.getInputs().empty() || transform.getOutputs().size() != 1)
     return transform.emitOpError("lowered rule requires at least one input and "
                                  "exactly one output Queue");
-  const std::string expectedHandshake =
-      "ready_valid_" + std::to_string(transform.getInputs().size()) + "x1";
-  if ((*domain).getValue() != "cycle" || (*guard).getValue() != "true" ||
-      !checks.empty() || (*handshake).getValue() != expectedHandshake ||
-      (*schedule).getValue() != "independent" || !footprints.empty())
+  if ((*domain).getValue() != "cycle" || !footprints.empty())
     return transform.emitOpError(
-        "has invalid phase-one lowered-rule domain/guard/checks/handshake/"
-        "schedule proof");
+        "has invalid phase-one lowered-rule domain/footprint proof");
   auto model = transform->getParentOfType<mlir::ModuleOp>();
   auto graphDomain =
       model ? model->getAttrOfType<StringAttr>("ac.queue_graph_domain")
@@ -389,12 +370,7 @@ LogicalResult verifyLoweredRuleTransformContract(TransformOp transform) {
   if (!graphDomain || graphDomain.getValue() != (*domain).getValue())
     return transform.emitOpError(
         "lowered-rule domain must match the exact QueueGraph domain");
-  Builder builder(transform.getContext());
-  if (effects != builder.getStrArrayAttr({"input.consume", "output.produce"}))
-    return transform.emitOpError(
-        "has invalid phase-one lowered-rule effect proof");
-  if (transform->hasAttr("ac.rule_guard_kind") &&
-      failed(verifyTypedRuleSummary(transform.getOperation(),
+  if (failed(verifyTypedRuleSummary(transform.getOperation(),
                                     transform.getInputs(),
                                     transform.getOutputs(), transform.getBody(),
                                     footprints, priority, "ac.rule_")))
@@ -491,10 +467,12 @@ LogicalResult RuleOp::verify() {
   }
   if (getTypeState() != TypeConstraintState::Exact)
     return emitOpError("phase-one frontend rule requires an exact Queue type");
-  if (getInputFact() != ValueFactKind::CommittedInput)
-    return emitOpError(
-        "phase-one rule input must carry committed-input provenance");
-
+  for (StringRef name : {"ac.rule.effects", "ac.rule.checks",
+                         "ac.rule.handshake", "ac.rule.guard",
+                         "ac.rule.schedule"})
+    if ((*this)->hasAttr(name))
+      return emitOpError() << "legacy rule summary attribute '" << name
+                           << "' is not part of canonical ACIR";
   ArrayRef<int64_t> depths = getOutputDepthsAttr().asArrayRef();
   ArrayRef<int64_t> latencies = getOutputLatenciesAttr().asArrayRef();
   if (depths.size() != getOutputs().size() ||
@@ -1130,10 +1108,13 @@ LogicalResult FiringOp::verify() {
       llvm::any_of(getOutputLatenciesAttr().asArrayRef(),
                    [](int64_t value) { return value <= 0; }))
     return emitOpError("output depths and latencies must be positive");
-  if (getStableId().empty() || getFunctionalGuard().empty() ||
-      getHandshake().empty() || getSchedule().empty() || getEffects().empty())
-    return emitOpError(
-        "requires explicit identity, guard, handshake, schedule, and effects");
+  if (getStableId().empty())
+    return emitOpError("requires explicit stable identity");
+  for (StringRef name : {"functional_guard", "checks", "handshake",
+                         "schedule", "effects"})
+    if ((*this)->hasAttr(name))
+      return emitOpError() << "legacy firing summary attribute '" << name
+                           << "' is not part of canonical ACIR";
   if (getTimeDomain() != "cycle")
     return emitOpError("phase-one firing requires exact time domain 'cycle'");
   auto model = (*this)->getParentOfType<mlir::ModuleOp>();
@@ -1166,6 +1147,10 @@ LogicalResult FiringOp::verify() {
     return emitOpError("permits at most one functional condition");
   SmallVector<FiringOutputOp> outputPaths;
   getBody().walk([&](FiringOutputOp output) { outputPaths.push_back(output); });
+  for (FiringOutputOp output : outputPaths)
+    if (output.getOrdinal() < 0 ||
+        static_cast<size_t>(output.getOrdinal()) >= getOutputs().size())
+      return output.emitOpError("ordinal must name one firing output");
   const bool hasPathEvidence =
       !outputPaths.empty() || llvm::any_of(proposals, [](TableProposeOp op) {
         return static_cast<bool>(op.getWhen());
@@ -1291,57 +1276,14 @@ LogicalResult FiringOp::verify() {
             "inferred footprint must exactly match its state operation");
     }
   }
-  Builder builder(getContext());
-  ArrayAttr expectedEffects;
-  std::string expectedHandshakeStorage;
-  StringRef expectedHandshake;
-  StringRef expectedSchedule;
-  SmallVector<StringRef> effectNames;
-  if (!getInputs().empty())
-    effectNames.push_back("input.consume");
-  if (!getOutputs().empty())
-    effectNames.push_back("output.produce");
-  if (proposals.empty()) {
-    expectedEffects = builder.getStrArrayAttr(effectNames);
-    expectedHandshakeStorage = "ready_valid_" +
-                               std::to_string(getInputs().size()) + "x" +
-                               std::to_string(getOutputs().size());
-    expectedHandshake = expectedHandshakeStorage;
-    expectedSchedule = "independent";
-  } else {
-    SmallVector<std::string> tableEffects;
-    llvm::StringSet<> seenTables;
-    for (TableProposeOp proposal : proposals)
-      if (seenTables.insert(proposal.getTable()).second)
-        tableEffects.push_back("table.replace:" + proposal.getTable().str());
-    for (const std::string &effect : tableEffects)
-      effectNames.push_back(effect);
-    expectedEffects = builder.getStrArrayAttr(effectNames);
-    expectedHandshakeStorage = "ready_valid_" +
-                               std::to_string(getInputs().size()) + "x" +
-                               std::to_string(getOutputs().size()) + "_table";
-    expectedHandshake = expectedHandshakeStorage;
-    expectedSchedule = "table_lexical_priority";
-  }
   const bool validArity =
       getOutputs().size() <= 1 &&
       (!getInputs().empty() || !getOutputs().empty() || !proposals.empty());
-  StringRef expectedGuard = "true";
-  if (!conditions.empty()) {
-    auto constant =
-        conditions.front().getCondition().getDefiningOp<VarConstantOp>();
-    auto value =
-        constant ? dyn_cast<IntegerAttr>(constant.getValue()) : IntegerAttr();
-    expectedGuard = value && !value.getValue().isZero() ? "true" : "dynamic";
-  } else if (requiresInferredSchedule) {
+  if (conditions.empty() && requiresInferredSchedule) {
     return emitOpError("requires one typed functional condition");
   }
-  if (!validArity || getFunctionalGuard() != expectedGuard ||
-      !getChecks().empty() || getHandshake() != expectedHandshake ||
-      getSchedule() != expectedSchedule || getEffects() != expectedEffects)
-    return emitOpError(
-        "has invalid phase-one guard/checks/handshake/schedule/effects "
-        "contract");
+  if (!validArity)
+    return emitOpError("has invalid phase-one Queue/state arity");
 
   Block &block = getBody().front();
   if (block.getNumArguments() != getInputs().size())
@@ -1370,12 +1312,11 @@ LogicalResult FiringOp::verify() {
     if (value.getType() != expected)
       return emitOpError("yielded values must match output Queue payloads");
   }
-  if ((*this)->hasAttr("ac.guard_kind") &&
-      failed(verifyTypedRuleSummary(getOperation(), getInputs(), getOutputs(),
+  if (failed(verifyTypedRuleSummary(getOperation(), getInputs(), getOutputs(),
                                     getBody(), footprints, priority, "ac.")))
     return failure();
   return verifyActivationEvidence(getOperation(), getInputs(), getOutputs(),
-                                  getBody(), false);
+                                  getBody(), true);
 }
 
 namespace detail {
@@ -1413,9 +1354,6 @@ std::optional<NamedRef> namedRef(Type type) {
       })
       .Case<EnumType>([](auto type) {
         return NamedRef{type.getName(), EnumOp::getOperationName()};
-      })
-      .Case<UnionType>([](auto type) {
-        return NamedRef{type.getName(), UnionOp::getOperationName()};
       })
       .Default([](Type) { return std::nullopt; });
 }
@@ -1500,21 +1438,10 @@ Type fieldType(DictionaryAttr field) {
   return field.getAs<TypeAttr>("type").getValue();
 }
 
-bool containsList(Type type) {
-  return type.walk([](ListType) { return WalkResult::interrupt(); })
-      .wasInterrupted();
-}
-
 bool isNormativeValueType(Type type) {
   if (isa<IntegerType, FloatType, IndexType, StructType, PacketType,
-          TransactionType, EnumType, UnionType>(type))
+          TransactionType, EnumType>(type))
     return true;
-  if (auto optional = dyn_cast<OptionalType>(type))
-    return isNormativeValueType(optional.getElementType());
-  if (auto list = dyn_cast<ListType>(type))
-    return isNormativeValueType(list.getElementType());
-  if (auto vector = dyn_cast<VectorType>(type))
-    return isNormativeValueType(vector.getElementType());
   if (auto vector = dyn_cast<mlir::VectorType>(type))
     return isNormativeValueType(vector.getElementType());
   if (auto array = dyn_cast<ValueArrayType>(type))
@@ -1666,10 +1593,7 @@ bool isAllowedGuardExpression(Operation *operation) {
               "index.remu",
               "index.cmp",
               "index.casts",
-              "index.castu",
-              RecordCreateOp::getOperationName(),
-              RecordGetOp::getOperationName(),
-              RecordWithOp::getOperationName()},
+              "index.castu"},
              true)
       .Default(false);
 }
@@ -1689,16 +1613,9 @@ LogicalResult verifyFields(Operation *op, ArrayAttr fields) {
              << "field '" << name << "' has non-value type " << type;
     if (failed(verifyNamedTypes(op, type)))
       return failure();
-    Attribute boundAttribute = field->get("max_length");
-    auto bound = dyn_cast_or_null<IntegerAttr>(boundAttribute);
-    if (containsList(type)) {
-      if (!bound || !bound.getType().isSignlessInteger(64) ||
-          bound.getInt() <= 0)
-        return op->emitOpError() << "list field '" << name
-                                 << "' requires a finite positive max_length";
-    } else if (boundAttribute) {
+    if (field->get("max_length")) {
       return op->emitOpError()
-             << "non-list field '" << name << "' cannot declare max_length";
+             << "field '" << name << "' cannot declare removed max_length";
     }
   }
   return success();
@@ -1734,14 +1651,8 @@ Type fieldType(Operation *decl, unsigned index) {
 }
 
 SmallVector<NamedRef> directValueReferences(Type type) {
-  if (isa<ListType>(type))
-    return {};
   if (auto ref = namedRef(type))
     return {*ref};
-  if (auto optional = dyn_cast<OptionalType>(type))
-    return directValueReferences(optional.getElementType());
-  if (auto vector = dyn_cast<VectorType>(type))
-    return directValueReferences(vector.getElementType());
   if (auto vector = dyn_cast<mlir::VectorType>(type))
     return directValueReferences(vector.getElementType());
   if (auto array = dyn_cast<ValueArrayType>(type))
@@ -1808,9 +1719,6 @@ Type declarationType(Operation *declaration) {
       .Case<EnumOp>([&](auto) {
         return EnumType::get(declaration->getContext(), reference);
       })
-      .Case<UnionOp>([&](auto) {
-        return UnionType::get(declaration->getContext(), reference);
-      })
       .Default([](Operation *) { return Type(); });
 }
 
@@ -1833,22 +1741,6 @@ LogicalResult verifyDeclarationLayout(Operation *declaration) {
   if (succeeded(queryLayout(scope, type)))
     return success();
   return declaration->emitOpError() << "missing DLTI layout entry for " << type;
-}
-
-FailureOr<int64_t> packetSerializationWidth(Operation *from,
-                                            SymbolRefAttr name) {
-  auto packet = dyn_cast_or_null<PacketOp>(lookup(from, name));
-  if (!packet)
-    return failure();
-  FailureOr<DictionaryAttr> layout =
-      queryLayout(cast<TypeScopeOp>(packet->getParentOp()),
-                  PacketType::get(from->getContext(), name));
-  if (failed(layout))
-    return failure();
-  auto width = layout->getAs<IntegerAttr>("serialization_width");
-  if (!width || width.getInt() <= 0)
-    return failure();
-  return width.getInt();
 }
 
 LogicalResult verifyUniqueEnumerants(EnumOp op) {
@@ -1955,70 +1847,6 @@ LogicalResult EnumOp::verify() {
   if (failed(verifyPlacement(*this)) || failed(verifyUniqueEnumerants(*this)))
     return failure();
   return verifyDeclarationLayout(*this);
-}
-
-LogicalResult UnionOp::verify() {
-  if (failed(verifyRecordDeclaration(*this, getFields())))
-    return failure();
-  auto index = findField(*this, getDiscriminator());
-  if (!index)
-    return emitOpError() << "union discriminator '" << getDiscriminator()
-                         << "' does not name a field";
-  if (!isa<IntegerType, EnumType>(fieldType(*this, *index)))
-    return emitOpError() << "union discriminator '" << getDiscriminator()
-                         << "' must name an integer or enum field";
-  return verifyDeclarationLayout(*this);
-}
-
-LogicalResult RecordCreateOp::verify() {
-  Operation *decl = recordDecl(*this, getResult().getType());
-  if (!decl)
-    return emitOpError(
-        "record.create result must resolve to a record declaration");
-  ArrayAttr fields = declarationFields(decl);
-  if (getFieldNames().size() != fields.size() ||
-      getValues().size() != fields.size())
-    return emitOpError("record.create fields must exactly match declaration");
-  for (auto [index, value] : llvm::enumerate(getValues())) {
-    auto field = cast<DictionaryAttr>(fields[index]);
-    if (cast<StringAttr>(getFieldNames()[index]).getValue() != fieldName(field))
-      return emitOpError("record.create fields must exactly match declaration");
-    Type expected = fieldType(field);
-    if (expected != value.getType())
-      return emitOpError() << "field '" << fieldName(field) << "' expects "
-                           << expected << " but received " << value.getType();
-  }
-  return success();
-}
-
-LogicalResult RecordGetOp::verify() {
-  Operation *decl = recordDecl(*this, getRecord().getType());
-  if (!decl)
-    return emitOpError("record.get requires a record-like operand");
-  auto index = findField(decl, getField());
-  if (!index)
-    return emitOpError() << "unknown record field '" << getField() << "'";
-  Type type = fieldType(decl, *index);
-  if (type != getResult().getType())
-    return emitOpError() << "field '" << getField() << "' has type " << type
-                         << " but operation returns " << getResult().getType();
-  return success();
-}
-
-LogicalResult RecordWithOp::verify() {
-  if (getRecord().getType() != getResult().getType())
-    return emitOpError("record.with must preserve record identity");
-  Operation *decl = recordDecl(*this, getRecord().getType());
-  if (!decl)
-    return emitOpError("record.with requires a record-like operand");
-  auto index = findField(decl, getField());
-  if (!index)
-    return emitOpError() << "unknown record field '" << getField() << "'";
-  Type type = fieldType(decl, *index);
-  if (type != getValue().getType())
-    return emitOpError() << "field '" << getField() << "' expects " << type
-                         << " but received " << getValue().getType();
-  return success();
 }
 
 LogicalResult VarConstantOp::verify() {
@@ -3593,50 +3421,6 @@ LogicalResult SlotReleaseOp::verify() {
   return success();
 }
 
-LogicalResult PacketSerializeOp::verify() {
-  auto packetType = dyn_cast<PacketType>(getPacketValue().getType());
-  if (!packetType)
-    return emitOpError("packet.serialize requires a packet operand");
-  if (failed(requireQualified(*this, getPacketAttr())))
-    return failure();
-  if (packetType.getName() != getPacketAttr())
-    return emitOpError(
-        "packet.serialize identity does not match packet operand");
-  FailureOr<int64_t> width = packetSerializationWidth(*this, getPacketAttr());
-  if (failed(width))
-    return emitOpError("packet.serialize packet declaration is unresolved");
-  auto bytes = dyn_cast<VectorType>(getBytes().getType());
-  if (!bytes || !bytes.getElementType().isInteger(8))
-    return emitOpError("packet.serialize result must be an i8 byte vector");
-  if (bytes.getLength() != *width)
-    return emitOpError()
-           << "serialized byte vector width must equal packet serialization "
-              "width "
-           << *width;
-  return success();
-}
-
-LogicalResult PacketDeserializeOp::verify() {
-  if (failed(requireQualified(*this, getPacketAttr())))
-    return failure();
-  auto packetType = dyn_cast<PacketType>(getPacketValue().getType());
-  if (!packetType || packetType.getName() != getPacketAttr())
-    return emitOpError("packet.deserialize result identity does not match "
-                       "serialization contract");
-  FailureOr<int64_t> width = packetSerializationWidth(*this, getPacketAttr());
-  if (failed(width))
-    return emitOpError("packet.deserialize packet declaration is unresolved");
-  auto bytes = dyn_cast<VectorType>(getBytes().getType());
-  if (!bytes || !bytes.getElementType().isInteger(8))
-    return emitOpError("packet.deserialize operand must be an i8 byte vector");
-  if (bytes.getLength() != *width)
-    return emitOpError()
-           << "serialized byte vector width must equal packet serialization "
-              "width "
-           << *width;
-  return success();
-}
-
 LogicalResult InterfaceOp::verify() {
   if (getBody().empty())
     return emitOpError("interface declaration requires a body block");
@@ -4710,27 +4494,11 @@ LogicalResult ModuleExternOp::verify() {
   return success();
 }
 
-LogicalResult ModuleGeneratedOp::verify() {
-  if (failed(verifyOuterPlacement(*this)))
-    return failure();
-  if (failed(verifyConcreteDictionary(*this, getStaticParams(),
-                                      "static parameters")))
-    return failure();
-  if (failed(
-          verifyExactBinding(*this, getGenerator(), "generated module", "ac")))
-    return failure();
-  StringRef name = getGenerator().getAs<StringAttr>("name").getValue();
-  if (!getStructuralProviderRegistry(getContext()).hasGenerator(name))
-    return emitOpError() << "structural provider 'ac:" << name
-                         << "' is not registered";
-  return success();
-}
-
 LogicalResult InstanceOp::verify() {
   if (failed(verifyStructuralPlacement(*this)))
     return failure();
   Operation *definition = lookupGraphSymbol(*this, getDefinitionAttr());
-  if (!isa_and_nonnull<ModuleOp, ModuleExternOp, ModuleGeneratedOp>(definition))
+  if (!isa_and_nonnull<ModuleOp, ModuleExternOp>(definition))
     return emitOpError() << "unresolved module definition '"
                          << getDefinitionAttr() << "'";
   if (!isStableHierarchySegment(getSymName()) ||
@@ -4748,7 +4516,7 @@ LogicalResult ArrayOp::verify() {
   if (failed(verifyStructuralPlacement(*this)))
     return failure();
   Operation *definition = lookupGraphSymbol(*this, getDefinitionAttr());
-  if (!isa_and_nonnull<ModuleOp, ModuleExternOp, ModuleGeneratedOp>(definition))
+  if (!isa_and_nonnull<ModuleOp, ModuleExternOp>(definition))
     return emitOpError() << "unresolved array element definition '"
                          << getDefinitionAttr() << "'";
   if (!isStableHierarchySegment(getSymName()) ||
@@ -4827,7 +4595,7 @@ LogicalResult InstancesOp::verify() {
     if (!definition)
       return emitOpError("definitions must contain flat module symbols");
     Operation *target = lookupGraphSymbol(*this, definition);
-    if (!isa_and_nonnull<ModuleOp, ModuleExternOp, ModuleGeneratedOp>(target))
+    if (!isa_and_nonnull<ModuleOp, ModuleExternOp>(target))
       return emitOpError() << "unresolved collection definition '" << definition
                            << "'";
     if (graphSignature(target) != getInterface())
@@ -5358,9 +5126,8 @@ bool isAllowedProcessOperation(Operation *operation) {
       isa<scf::IfOp, scf::ForOp, scf::WhileOp, scf::ConditionOp, scf::YieldOp>(
           operation))
     return true;
-  return isa<RecordCreateOp, RecordGetOp, RecordWithOp, PacketSerializeOp,
-             PacketDeserializeOp, TrySendOp, TryRecvOp, ScheduleOp, WaitUntilOp,
-             WaitForOp, AwaitEventOp, YieldSimOp, TraceOpenOp, TraceNextOp,
+  return isa<TrySendOp, TryRecvOp, ScheduleOp, WaitUntilOp, WaitForOp,
+             AwaitEventOp, YieldSimOp, TraceOpenOp, TraceNextOp,
              TraceDecodeOp, TraceEofOp, TracePositionOp, RequireOp, EnsureOp,
              AssertOp, ProbeOp, StatAddOp, InstrumentationOp>(operation);
 }

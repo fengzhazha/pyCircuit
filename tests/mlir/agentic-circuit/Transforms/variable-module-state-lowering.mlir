@@ -22,7 +22,7 @@ builtin.module attributes {
           stable_id "var/body/total"
       %next = ac.rule %borrowed depths [1] latencies [1]
           name "accumulator" stable_id "accumulator_0" domain "cycle"
-          type exact input_fact committed_input {
+          type exact {
       ^body(%item: !ac.var<i8>):
         %old = ac.var.read @total : !ac.var<i8>
         %value = ac.var.add %old, %item : !ac.var<i8>

@@ -1702,12 +1702,8 @@ mlir::LogicalResult ACIRToACSimPass::plan(mlir::ModuleOp input) {
       externByName[external.getSymName()] = external;
       continue;
     }
-    if (isa<ac::ModuleGeneratedOp>(operation))
-      return lowerError(&operation, "ACLOWER-UNSUPPORTED-CONSTRUCT",
-                        "generator-based module declarations are outside the "
-                        "lowering stage");
     if (isa<ac::SystemOp, ac::TypeScopeOp, ac::TypeAliasOp, ac::StructOp,
-            ac::EnumOp, ac::UnionOp, ac::PacketOp, ac::TransactionOp,
+            ac::EnumOp, ac::PacketOp, ac::TransactionOp,
             ac::InterfaceOp, ac::ProtocolOp>(operation))
       continue; // Pure declarations are fully resolved before lowering.
     return lowerError(&operation, "ACLOWER-UNSUPPORTED-CONSTRUCT",

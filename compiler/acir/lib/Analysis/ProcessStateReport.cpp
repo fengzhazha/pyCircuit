@@ -184,12 +184,7 @@ llvm::StringRef spelling(ProcessStorageSignedness value) {
   llvm_unreachable("unknown signedness");
 }
 llvm::StringRef spelling(ProcessHelperRole value) {
-  static constexpr llvm::StringLiteral names[] = {"record_create",
-                                                  "record_get",
-                                                  "record_with",
-                                                  "packet_serialize",
-                                                  "packet_deserialize",
-                                                  "trace_decode",
+  static constexpr llvm::StringLiteral names[] = {"trace_decode",
                                                   "queue_try_send",
                                                   "queue_try_recv",
                                                   "event_schedule",
@@ -342,36 +337,6 @@ Value json(const ProcessGeneratedCalleePayload &payload) {
     object[b] = bv;
   };
   switch (payload.role()) {
-  case ProcessHelperRole::RecordCreate:
-    object["fields"] =
-        mapArray(payload.recordCreate().fields(), [](const auto &field) {
-          Object value;
-          value["name"] = field.name();
-          value["type_key"] = field.typeKey();
-          return Value(std::move(value));
-        });
-    object["record_type"] = payload.recordCreate().recordType();
-    break;
-  case ProcessHelperRole::RecordGet:
-    object["field"] = payload.recordGet().field();
-    object["record"] = payload.recordGet().record();
-    object["result"] = payload.recordGet().result();
-    break;
-  case ProcessHelperRole::RecordWith:
-    object["field"] = payload.recordWith().field();
-    object["record"] = payload.recordWith().record();
-    object["value"] = payload.recordWith().value();
-    break;
-  case ProcessHelperRole::PacketSerialize:
-    object["bytes"] = payload.packetSerialize().bytes();
-    two("packet", payload.packetSerialize().packet(), "packet_type",
-        payload.packetSerialize().packetType());
-    break;
-  case ProcessHelperRole::PacketDeserialize:
-    object["bytes"] = payload.packetDeserialize().bytes();
-    two("packet", payload.packetDeserialize().packet(), "packet_type",
-        payload.packetDeserialize().packetType());
-    break;
   case ProcessHelperRole::TraceDecode:
     object["entry"] = payload.traceDecode().entry();
     object["result"] = payload.traceDecode().result();

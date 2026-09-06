@@ -41,8 +41,6 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
     "ac.transition"() <{source = @active, target = @active, event = @response}> ({
       %zero = "arith.constant"() <{value = 0 : i16}> : () -> i16
       %idx = "index.constant"() <{value = 0 : index}> : () -> index
-      %message = "ac.record.create"(%zero) <{field_names = ["tag"]}> : (i16) -> !ac.transaction<@types::@Message>
-      %tag = "ac.record.get"(%message) <{field = "tag"}> : (!ac.transaction<@types::@Message>) -> i16
     }) : () -> ()
     "ac.guarantee"() <{kind = "backpressure", value = "credit"}> : () -> ()
     "ac.guarantee"() <{kind = "ordering", value = "per_key"}> : () -> ()

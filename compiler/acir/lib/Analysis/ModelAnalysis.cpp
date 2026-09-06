@@ -1053,8 +1053,7 @@ LogicalResult verifyFrozenFlatQueueGraph(ModuleOp model) {
         "frozen flat QueueGraph requires epoch 0.5, model kind queue_graph, "
         "a non-empty system identity, and exact cycle domain");
   for (Operation &operation : model.getBody()->getOperations()) {
-    if (isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp,
-            ac::ModuleGeneratedOp>(operation))
+    if (isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp>(operation))
       return operation.emitOpError(
           "is not legal at the top level of a flat QueueGraph model");
   }
@@ -1084,8 +1083,7 @@ LogicalResult verifyFrozenStructuredQueueGraph(ModuleOp model) {
       model.getOps<ac::ModuleOp>().empty())
     return model.emitError(
         "structured QueueGraph requires ac.system and ac.module definitions");
-  if (!model.getOps<ac::ModuleExternOp>().empty() ||
-      !model.getOps<ac::ModuleGeneratedOp>().empty())
+  if (!model.getOps<ac::ModuleExternOp>().empty())
     return model.emitError(
         "structured QueueGraph first slice requires materialized modules");
   if (failed(ac::verifyGraphStructure(model)))

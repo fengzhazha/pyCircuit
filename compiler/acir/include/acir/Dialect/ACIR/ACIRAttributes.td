@@ -45,29 +45,6 @@ def ACIR_TypeConstraintState
 def ACIR_TypeConstraintStateAttr
     : EnumAttr<ACIR_Dialect, ACIR_TypeConstraintState, "type_constraint_state">;
 
-def ACIR_TypeConstraintKind_QueuePayload
-    : I32EnumAttrCase<"QueuePayload", 0, "queue_payload">;
-def ACIR_TypeConstraintKind
-    : I32EnumAttr<
-          "TypeConstraintKind",
-          "rule type-constraint kind", [ACIR_TypeConstraintKind_QueuePayload]> {
-  let genSpecializedAttr = 0;
-  let cppNamespace = "::acir::ac";
-}
-def ACIR_TypeConstraintKindAttr
-    : EnumAttr<ACIR_Dialect, ACIR_TypeConstraintKind, "type_constraint_kind">;
-
-def ACIR_ValueFactKind_CommittedInput
-    : I32EnumAttrCase<"CommittedInput", 0, "committed_input">;
-def ACIR_ValueFactKind
-    : I32EnumAttr<"ValueFactKind",
-                  "rule value-fact kind", [ACIR_ValueFactKind_CommittedInput]> {
-  let genSpecializedAttr = 0;
-  let cppNamespace = "::acir::ac";
-}
-def ACIR_ValueFactKindAttr
-    : EnumAttr<ACIR_Dialect, ACIR_ValueFactKind, "value_fact_kind">;
-
 def ACIR_ObligationState_Pending : I32EnumAttrCase<"Pending", 0, "pending">;
 def ACIR_ObligationState_Materialized
     : I32EnumAttrCase<"Materialized", 1, "materialized">;
@@ -227,17 +204,5 @@ def ACIR_RuleIndexKind
 }
 def ACIR_RuleIndexKindAttr
     : EnumAttr<ACIR_Dialect, ACIR_RuleIndexKind, "rule_index_kind">;
-
-def ACIR_RuleArbitrationKind_LexicalPriority
-    : I32EnumAttrCase<"LexicalPriority", 0, "lexical_priority">;
-def ACIR_RuleArbitrationKind
-    : I32EnumAttr<"RuleArbitrationKind", "typed rule arbitration kind",
-                  [ACIR_RuleArbitrationKind_LexicalPriority]> {
-  let genSpecializedAttr = 0;
-  let cppNamespace = "::acir::ac";
-}
-def ACIR_RuleArbitrationKindAttr
-    : EnumAttr<ACIR_Dialect, ACIR_RuleArbitrationKind,
-               "rule_arbitration_kind">;
 
 #endif // ACIR_DIALECT_ACIR_ACIRATTRIBUTES_TD

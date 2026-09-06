@@ -1,0 +1,7 @@
+jit-cache: miss
+OK
+- /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/regfile/tb/tb_regfile.sv:586: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.044 2026-01-01
+- Verilator: $finish at 27ns; walltime 0.000 s; speed 113.924 us/s
+- Verilator: cpu 0.000 s on 1 threads; alloced 2 MB
+/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/regfile/project_manifest.json

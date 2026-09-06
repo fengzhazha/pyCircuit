@@ -130,12 +130,11 @@ pyCircuit/
 | `pyc.add / sub / mul` | 加减乘（截断） |
 | `pyc.udiv / urem / sdiv / srem` | 除法 / 取余 |
 | `pyc.and / or / xor / not` | 位逻辑 |
-| `pyc.mux` | 2:1 选择 |
-| `pyc.eq / ult / slt` | 比较（向量逐元素） |
+| `pyc.select` | 2:1 选择 |
+| `pyc.cmp` | 带 `eq / ult / slt` predicate 的比较（向量逐元素） |
 | `pyc.trunc / zext / sext` | 宽度变换 |
 | `pyc.extract` | 位切片（attr `lsb`；仅标量） |
-| `pyc.shli / lshri / ashri` | 立即数移位 |
-| `pyc.shl / lshr / ashr` | 动态移位 |
+| `pyc.shl / lshr / ashr` | SSA amount 移位；常量 amount 由 `pyc.constant` 产生 |
 | `pyc.concat` | MSB-first 拼接 |
 | `pyc.alias` | 命名别名（调试名传播） |
 | `pyc.reset_active` | 复位有效高视图（`!pyc.reset` → i1） |

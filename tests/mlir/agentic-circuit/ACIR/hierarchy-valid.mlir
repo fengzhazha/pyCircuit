@@ -37,7 +37,6 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
   }) : () -> ()
 
   "ac.module.extern"() <{sym_name = "Ext", function_type = (i32) -> i32, static_params = {}, implementation = {registry = "cpp", name = "Ext"}}> : () -> ()
-  "ac.module.generated"() <{sym_name = "Gen", function_type = (i32) -> i32, static_params = {}, generator = {registry = "ac", name = "Gen"}}> : () -> ()
 
   // One reusable definition may be instantiated by multiple parents. Its
   // relative child segment expands independently below each ownership path.
@@ -68,4 +67,3 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 // CHECK: ac.instance
 // CHECK: ac.return
 // CHECK: ac.module.extern
-// CHECK: ac.module.generated

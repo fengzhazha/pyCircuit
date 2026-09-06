@@ -633,12 +633,11 @@ pycircuit sidecar verify FILE
 | `+ - *` | `pyc.add / sub / mul` |
 | `// %`（按符号） | `pyc.udiv / urem / sdiv / srem` |
 | `& \| ^ ~` | `pyc.and / or / xor / not` |
-| `mux / select` | `pyc.mux` |
-| `== < （按符号）` | `pyc.eq / ult / slt` |
+| `mux / select` | `pyc.select` |
+| `== < （按符号）` | `pyc.cmp`，predicate 为 `eq / ult / slt` |
 | `trunc / zext / sext` | `pyc.trunc / zext / sext` |
 | `[lo:hi]`（标量） | `pyc.extract`（attr `lsb`） |
-| `<< >>`（常量位移） | `pyc.shli / lshri / ashri` |
-| `<< >>`（动态位移） | `pyc.shl / lshr / ashr` |
+| `<< >>`（常量或动态位移） | `pyc.constant` amount + `pyc.shl / lshr / ashr` |
 | `cat(...)` | `pyc.concat`（MSB-first） |
 | `.named()` | `pyc.alias`（attr `pyc.name`） |
 

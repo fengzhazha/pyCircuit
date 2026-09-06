@@ -23,7 +23,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 2 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "replace" stable_id "replace_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i2>
     %old = ac.var.read_element @entries[%index] : !ac.var<i2> -> !ac.var<!ac.struct<@types::@Entry>>

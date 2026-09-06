@@ -14,7 +14,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 2 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "allocate" stable_id "allocate_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %zero = ac.var.constant 0 : i1 as !ac.var<i1>
     %tail = ac.table.get @tail[%zero] : !ac.var<i1> -> !ac.var<i2>
@@ -32,7 +32,6 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 }
 
 // LOWERED: ac.firing
-// LOWERED-SAME: effects ["input.consume", "output.produce", "table.replace:tail", "table.replace:entries"]
 // LOWERED: ac.table.propose @tail
 // LOWERED: ac.table.propose @entries
 // LOWERED: ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}

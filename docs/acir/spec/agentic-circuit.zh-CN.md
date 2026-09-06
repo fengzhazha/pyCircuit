@@ -318,7 +318,7 @@ is_compute = ac.matches(opcode, "1xx0")
 验证输入/结果类型、位宽边界以及 `value` 不得在 `mask` 之外置位。QueueGraph 以
 `masked_match` 保留该语义，并把两个常量序列化为 exact-width lowercase hex string，
 保证 bit 63 不丢失。gfsim 计算 `(input & mask) == value`；PYC 只降低为 vendor-neutral
-`pyc.constant`、`pyc.and` 和 `pyc.eq`。
+`pyc.constant`、`pyc.and` 和带 `eq` predicate 的 `pyc.cmp`。
 
 parser 实现在 semantic-core 中共享，但 Agentic 公共面刻意只开放上述 basic grammar；
 pyCircuit 已有的扩展语法仍是独立 frontend policy。Agentic 不增加 pattern object、
@@ -360,12 +360,11 @@ predicate 可以读取另一个 persistent list。该 owner 是 activation sourc
 storage，prepare/publish/commit 只覆盖 writable owner。因此 ISQ 的 readiness Table 更新只需
 唤醒一次 oldest-ready query，不需要批量改写全部 resident entry。
 
-当前 single-condition rule 子集还携带 verifier 推导的 typed summary attributes，覆盖 guard
-kind、Queue availability/capacity check、effect、output-presence kind、state access、schedule
-kind 和 lexical arbitration membership。closed enum 是当前 0/1-output 子集的分析词汇；旧
-字符串只保留为派生的可读摘要。`predicate` summary 不是 path identity：general CFG 与
-selected multi-output 仍必须让每个 output/state proposal 使用 SSA `!ac.var<i1>` presence，
-该语义仍属于后续契约。
+Rule 与 firing 只携带 verifier 推导的 typed summary attributes，覆盖 guard kind、Queue
+availability/capacity check、effect、output presence、state access、schedule kind 和 lexical
+arbitration membership。SSA condition 与每个 effect 的 presence value 标识真实选择路径。
+旧 guard/check/handshake/schedule/effect 字符串不再作为可读 alias 保留，出现在 canonical
+ACIR 中会直接被拒绝。
 
 `ac.priority_encode(value, order="low")` 是语义级组合积木；`.index` 和
 `.valid` 在 ACIR 中共享同一个 `ac.var.priority_encode`。`low` 选择最低置位，
@@ -829,7 +828,7 @@ Rule、Firing 和 QueueGraph verifier 会分别要求它们属于同一个 predi
 互补的 pair。生成的 gfsim 只计算一个 Work candidate，并只 prepare 被选择的 owner；input 与
 该 state 仍在同一个 atomic group 中 publish。若两个 arm 都赋值同一个 scalar owner，编译器
 生成一个 `ac.var.select` value join，再生成一个 unconditional state proposal；QueueGraph/gfsim
-使用 ternary，PYC 使用 `pyc.mux`，因此该 owner 仍只有一个 write slot 和一次 commit。若两个
+使用 ternary，PYC 使用 `pyc.select`，因此该 owner 仍只有一个 write slot 和一次 commit。若两个
 arm 都赋值同一个 persistent list，编译器会分别用 typed
 `ac.var.select` join value 与 index，再生成一个 unconditional `ac.var.assign_element`。每个
 源码 index 仍必须满足已有的精确位宽/full-domain 安全证明。一个 branch value 依赖另一个

@@ -307,7 +307,7 @@ y = x.assert_fits(width=4)                # 等价别名
 
 # 宽度收窄发射的 MLIR（i8 -> i4）：高位切片校验 + 断言 + 截断
 #   %hi = pyc.extract %x {lsb = 4, msb = 7} : i8 -> i4
-#   %ok = pyc.eq %hi, 0 -> i1
+#   %ok = pyc.cmp %hi, %zero {predicate = "eq"} -> i1
 #   pyc.assert %ok {msg = "as_: value does not fit in 4 bits"}
 #   %y  = pyc.trunc %x : i8 -> i4         # ← 综合仅保留这一步
 ```
@@ -346,7 +346,7 @@ y = x.assert_fits(width=4)                # 等价别名
 
 ## T6. 文档级约定（零实现成本）—— ★ ✅ 已完成
 
-- [x] **T6.0（前置补齐）**：Wire 显式比较此前只有 `ult/slt/ugt/ule/uge`（有符号只有 `slt`），现补齐 **`sgt/sle/sge`**（`hw.py`，镜像无符号集：`sgt`≡翻转 `slt`、`sle`≡`~sgt`、`sge`≡`~slt`，结果 i1）。`CycleAwareSignal` 同步补齐**全套**显式比较 `ult/ugt/ule/uge/slt/sgt/sle/sge`（`v6.py`，对齐 cycle 后委托底层 Wire、保留 cycle 标签），使"显式签名比较"约定在 cycle-aware 主建模 API 上也可用。**纯前端语法糖**，最终落到 `pyc.slt`/`pyc.ult`，后端零改动。门禁 `tests/test_signed_compare.py`（17 项，全通过）：`sgt/sle/sge` 与手写等价、恒发 `pyc.slt`（不误用 `pyc.ult`）、结果 i1、接受 int 操作数、有/无符号 `gt` MLIR 有别、CAS 全套暴露 + 与 Wire 等价 + 保留 cycle。
+- [x] **T6.0（前置补齐）**：Wire 显式比较此前只有 `ult/slt/ugt/ule/uge`（有符号只有 `slt`），现补齐 **`sgt/sle/sge`**（`hw.py`，镜像无符号集：`sgt`≡翻转 `slt`、`sle`≡`~sgt`、`sge`≡`~slt`，结果 i1）。`CycleAwareSignal` 同步补齐**全套**显式比较 `ult/ugt/ule/uge/slt/sgt/sle/sge`（`v6.py`，对齐 cycle 后委托底层 Wire、保留 cycle 标签），使"显式签名比较"约定在 cycle-aware 主建模 API 上也可用。**纯前端语法糖**，最终统一落到带 `slt`/`ult` predicate 的 `pyc.cmp`，后端零改动。门禁 `tests/test_signed_compare.py`（17 项，全通过）：`sgt/sle/sge` 与手写等价、保留正确 signed/unsigned predicate、结果 i1、接受 int 操作数、CAS 全套暴露 + 与 Wire 等价 + 保留 cycle。
 - [x] **T6.1**：编程规范——签名不能从上下文一眼看出的比较,一律用显式 `.ult()/.ugt()/.ule()/.uge()` 或 `.slt()/.sgt()/.sle()/.sge()`,不要依赖 `<`/`>`（其签名取决于操作数 `signed` 标志,易误判）。对应 ASL 强制 `UInt/SInt` 包装。
 - [x] **T6.2**：编程规范——`reduce_sum`/累加/移位左扩等易溢出处显式写 `width=`,或用 T4 的 `x.as_(width=w)` 加装得下断言。对应 ASL"截断必须显式"。
 - [x] **T6.3**：编程规范——架构常量集中命名分层（`constant` 派生量 vs `config` 参数量,集中一处定义、按意图分组）。对应 ASL `constant`/`config` 意图分层。

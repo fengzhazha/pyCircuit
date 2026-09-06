@@ -1274,7 +1274,7 @@ TEST(ACDataFlowAnalyzerTest, InfersOrderedStateAccessFootprints) {
       %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
       %output = ac.rule %input depths [1] latencies [1]
           name "replace" stable_id "replace" domain "cycle"
-          type exact input_fact committed_input {
+          type exact {
       ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
         %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
         %old = ac.table.get @entries[%index] : !ac.var<i1> -> !ac.var<!ac.struct<@types::@Entry>>
@@ -1318,7 +1318,7 @@ TEST(ACDataFlowAnalyzerTest, InfersConditionalEffectSnapshotReadSet) {
       ac.table @entries entry i8 entries 2 init 0 owner "/" stable_id "table/entries"
       %input = ac.source depth 1 latency 1 : !ac.queue<i8>
       ac.rule %input depths [] latencies [] name "complete" stable_id "complete"
-          domain "cycle" type exact input_fact committed_input {
+          domain "cycle" type exact {
       ^body(%item: !ac.var<i8>):
         %zero = ac.var.constant false as !ac.var<i1>
         %index = ac.var.constant false as !ac.var<i1>
@@ -1369,8 +1369,7 @@ TEST(ACDataFlowAnalyzerTest, InfersMatchAndChooseSnapshotSets) {
       ac.table @ready entry i1 entries 4 init 0 owner "/" stable_id "table/ready"
       ac.table @priority entry i2 entries 4 init 0 owner "/" stable_id "table/priority"
       %output = ac.rule depths [1] latencies [1] name "issue"
-          stable_id "issue" domain "cycle" type exact
-          input_fact committed_input {
+          stable_id "issue" domain "cycle" type exact {
       ^body:
         %mask = ac.table.match @entries predicate {
         ^bb0(%entry: !ac.var<i2>):

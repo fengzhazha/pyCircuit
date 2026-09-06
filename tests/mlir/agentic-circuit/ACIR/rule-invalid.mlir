@@ -12,7 +12,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %a, %b = ac.rule %input depths [1, 1] latencies [1, 1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     ac.rule.return %item, %item : !ac.var<i32>, !ac.var<i32>
   } : (!ac.queue<i32>) -> (!ac.queue<i32>, !ac.queue<i32>)
@@ -30,9 +30,9 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
-    %typed = ac.marker.type %item state exact constraint queue_payload
+    %typed = ac.marker.type %item state exact
         : !ac.var<i32>
     %ready = ac.marker.obligation %typed state pending resolver handshake
         origin "bad:return" path "true" : !ac.var<i32>
@@ -46,9 +46,9 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
-    %fact = ac.marker.value %item fact committed_input identity "" path "true"
+    %fact = ac.marker.value %item identity "" path "true"
         : !ac.var<i32>
     %ready = ac.marker.obligation %fact state pending resolver handshake
         origin "bad:return" path "true" : !ac.var<i32>
@@ -62,7 +62,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "" path "true" : !ac.var<i32>
@@ -76,7 +76,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "bogus"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "bad:return" path "true" : !ac.var<i32>
@@ -90,7 +90,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %true = ac.var.constant true as !ac.var<i1>
     ac.rule.condition %true : !ac.var<i1>
