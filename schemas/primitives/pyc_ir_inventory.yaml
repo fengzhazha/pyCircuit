@@ -1,0 +1,54 @@
+schema: pyc-ir-inventory-v1
+dialect: pyc
+operations:
+  - {name: pyc.constant, status: normative}
+  - {name: pyc.add, status: normative}
+  - {name: pyc.sub, status: normative}
+  - {name: pyc.mul, status: normative}
+  - {name: pyc.udiv, status: normative}
+  - {name: pyc.urem, status: normative}
+  - {name: pyc.sdiv, status: normative}
+  - {name: pyc.srem, status: normative}
+  - {name: pyc.select, status: normative}
+  - {name: pyc.and, status: normative}
+  - {name: pyc.or, status: normative}
+  - {name: pyc.xor, status: normative}
+  - {name: pyc.not, status: normative}
+  - {name: pyc.cmp, status: normative}
+  - {name: pyc.trunc, status: normative}
+  - {name: pyc.zext, status: normative}
+  - {name: pyc.sext, status: normative}
+  - {name: pyc.extract, status: normative}
+  - {name: pyc.shl, status: normative}
+  - {name: pyc.lshr, status: normative}
+  - {name: pyc.ashr, status: normative}
+  - {name: pyc.concat, status: normative}
+  - {name: pyc.priority_encode, status: normative}
+  - {name: pyc.popcount, status: normative}
+  - {name: pyc.count_zeros, status: normative}
+  - {name: pyc.rtl.comb, status: normative}
+  - {name: pyc.alias, status: normative}
+  - {name: pyc.reset_active, status: normative}
+  - {name: pyc.wire, status: normative}
+  - {name: pyc.assign, status: normative}
+  - {name: pyc.reg, status: normative}
+  - {name: pyc.fifo, status: normative}
+  - {name: pyc.byte_mem, status: normative}
+  - {name: pyc.sync_mem, status: normative}
+  - {name: pyc.sync_mem_dp, status: normative}
+  - {name: pyc.async_fifo, status: normative}
+  - {name: pyc.cdc_sync, status: normative}
+  - {name: pyc.instance, status: normative}
+  - {name: pyc.assert, status: normative}
+  - {name: pyc.v_get, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_create, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_broadcast, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_broadcast_dim, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_or_reduce, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_and_reduce, status: pending-removal, owner: issue-42}
+  - {name: pyc.v_add_reduce, status: pending-removal, owner: issue-42}
+  - {name: pyc.comb, status: normative}
+  - {name: pyc.yield, status: normative}
+types:
+  - {name: "!pyc.clock", status: normative}
+  - {name: "!pyc.reset", status: normative}

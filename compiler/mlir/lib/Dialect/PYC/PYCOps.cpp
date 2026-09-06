@@ -394,7 +394,7 @@ OpFoldResult NotOp::fold(FoldAdaptor adaptor) {
   return {};
 }
 
-OpFoldResult MuxOp::fold(FoldAdaptor adaptor) {
+OpFoldResult SelectOp::fold(FoldAdaptor adaptor) {
   auto sel = asIntAttr(adaptor.getSel());
   if (sel) {
     if (sel->isZero())
@@ -406,44 +406,21 @@ OpFoldResult MuxOp::fold(FoldAdaptor adaptor) {
   return {};
 }
 
-OpFoldResult EqOp::fold(FoldAdaptor adaptor) {
+OpFoldResult CmpOp::fold(FoldAdaptor adaptor) {
   if (!isa<IntegerType>(getResult().getType()))
     return {};
-  if (getLhs() == getRhs())
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), 1);
-  auto a = asIntAttr(adaptor.getLhs());
-  auto b = asIntAttr(adaptor.getRhs());
-  if (a && b) {
-    bool eq = (*a == *b);
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), eq ? 1 : 0);
+  StringRef predicate = getPredicate();
+  if (getLhs() == getRhs()) {
+    bool value = predicate == "eq";
+    return IntegerAttr::get(IntegerType::get(getContext(), 1), value ? 1 : 0);
   }
-  return {};
-}
-
-OpFoldResult UltOp::fold(FoldAdaptor adaptor) {
-  if (!isa<IntegerType>(getResult().getType()))
-    return {};
-  if (getLhs() == getRhs())
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), 0);
   auto a = asIntAttr(adaptor.getLhs());
   auto b = asIntAttr(adaptor.getRhs());
   if (a && b) {
-    bool lt = a->ult(*b);
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), lt ? 1 : 0);
-  }
-  return {};
-}
-
-OpFoldResult SltOp::fold(FoldAdaptor adaptor) {
-  if (!isa<IntegerType>(getResult().getType()))
-    return {};
-  if (getLhs() == getRhs())
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), 0);
-  auto a = asIntAttr(adaptor.getLhs());
-  auto b = asIntAttr(adaptor.getRhs());
-  if (a && b) {
-    bool lt = a->slt(*b);
-    return IntegerAttr::get(IntegerType::get(getContext(), 1), lt ? 1 : 0);
+    bool value = predicate == "eq" ? (*a == *b)
+                : predicate == "ult" ? a->ult(*b)
+                                     : a->slt(*b);
+    return IntegerAttr::get(IntegerType::get(getContext(), 1), value ? 1 : 0);
   }
   return {};
 }
@@ -519,58 +496,52 @@ OpFoldResult ExtractOp::fold(FoldAdaptor adaptor) {
   return {};
 }
 
-OpFoldResult ShliOp::fold(FoldAdaptor adaptor) {
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt == 0)
-    return getIn();
-  auto outTy = dyn_cast<IntegerType>(getResult().getType());
-  if (!outTy) return {};
-  if (static_cast<std::uint64_t>(amt) >= outTy.getWidth())
-    return intAttrFor(getResult().getType(), llvm::APInt(outTy.getWidth(), 0));
-  auto a = asIntAttr(adaptor.getIn());
-  if (a) {
-    llvm::APInt shifted = (*a << static_cast<unsigned>(amt)).trunc(outTy.getWidth());
-    return intAttrFor(getResult().getType(), shifted);
+static OpFoldResult foldShift(Value input, Attribute inputAttr,
+                              Attribute amountAttr, Type resultType,
+                              StringRef kind) {
+  auto amount = asIntAttr(amountAttr);
+  if (!amount)
+    return {};
+  uint64_t shift = amount->getLimitedValue();
+  if (shift == 0)
+    return input;
+  auto outTy = dyn_cast<IntegerType>(resultType);
+  if (!outTy)
+    return {};
+  auto value = asIntAttr(inputAttr);
+  if (shift >= outTy.getWidth()) {
+    if (kind != "ashr")
+      return intAttrFor(resultType, llvm::APInt(outTy.getWidth(), 0));
+    if (!value)
+      return {};
+    return intAttrFor(resultType,
+                      value->isNegative()
+                          ? llvm::APInt::getAllOnes(outTy.getWidth())
+                          : llvm::APInt(outTy.getWidth(), 0));
   }
-  return {};
+  if (!value)
+    return {};
+  llvm::APInt result = kind == "shl"    ? (*value << shift)
+                       : kind == "lshr" ? value->lshr(shift)
+                                         : value->ashr(shift);
+  return intAttrFor(resultType, result.trunc(outTy.getWidth()));
 }
 
-OpFoldResult LshriOp::fold(FoldAdaptor adaptor) {
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt == 0)
-    return getIn();
-  auto outTy = dyn_cast<IntegerType>(getResult().getType());
-  if (!outTy) return {};
-  if (static_cast<std::uint64_t>(amt) >= outTy.getWidth())
-    return intAttrFor(getResult().getType(), llvm::APInt(outTy.getWidth(), 0));
-  auto a = asIntAttr(adaptor.getIn());
-  if (a) {
-    llvm::APInt shifted = a->lshr(static_cast<unsigned>(amt)).trunc(outTy.getWidth());
-    return intAttrFor(getResult().getType(), shifted);
-  }
-  return {};
+OpFoldResult ShlOp::fold(FoldAdaptor adaptor) {
+  return foldShift(getIn(), adaptor.getIn(),
+                   adaptor.getAmount(), getResult().getType(), "shl");
 }
 
-OpFoldResult AshriOp::fold(FoldAdaptor adaptor) {
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt == 0)
-    return getIn();
-  auto outTy = dyn_cast<IntegerType>(getResult().getType());
-  if (!outTy) return {};
-  auto a = asIntAttr(adaptor.getIn());
-  if (static_cast<std::uint64_t>(amt) >= outTy.getWidth()) {
-    if (a) {
-      bool neg = a->isNegative();
-      return intAttrFor(getResult().getType(), neg ? llvm::APInt::getAllOnes(outTy.getWidth())
-                                                   : llvm::APInt(outTy.getWidth(), 0));
-    }
-  }
-  if (a) {
-    llvm::APInt shifted = a->ashr(static_cast<unsigned>(amt)).trunc(outTy.getWidth());
-    return intAttrFor(getResult().getType(), shifted);
-  }
-  return {};
+OpFoldResult LshrOp::fold(FoldAdaptor adaptor) {
+  return foldShift(getIn(), adaptor.getIn(),
+                   adaptor.getAmount(), getResult().getType(), "lshr");
 }
+
+OpFoldResult AshrOp::fold(FoldAdaptor adaptor) {
+  return foldShift(getIn(), adaptor.getIn(),
+                   adaptor.getAmount(), getResult().getType(), "ashr");
+}
+
 
 OpFoldResult ConcatOp::fold(FoldAdaptor adaptor) {
   if (getInputs().size() == 1)
@@ -795,7 +766,7 @@ OpFoldResult VBroadcastDimOp::fold(FoldAdaptor) {
   return {};
 }
 
-LogicalResult MuxOp::verify() {
+LogicalResult SelectOp::verify() {
   auto selTy = getSel().getType();
   auto aTy = getA().getType();
   auto bTy = getB().getType();
@@ -821,7 +792,7 @@ LogicalResult MuxOp::verify() {
     auto aElem = leafInteger(aTy);
     auto bInt = dyn_cast<IntegerType>(bTy);
     if (!aElem || !bInt || aElem.getWidth() != bInt.getWidth())
-      return emitOpError("scalar arm width must match vector element width for mixed mux");
+      return emitOpError("scalar arm width must match vector element width for mixed select");
   } else if (bVT && !aVT) {
     // b is vector, a is scalar.
     valueTy = bTy;
@@ -830,10 +801,12 @@ LogicalResult MuxOp::verify() {
     auto bElem = leafInteger(bTy);
     auto aInt = dyn_cast<IntegerType>(aTy);
     if (!bElem || !aInt || bElem.getWidth() != aInt.getWidth())
-      return emitOpError("scalar arm width must match vector element width for mixed mux");
+      return emitOpError("scalar arm width must match vector element width for mixed select");
   } else {
     return emitOpError("requires a and b to have the same type, or one vector + one scalar");
   }
+  if (rTy != valueTy)
+    return emitOpError("result type must match the selected value type");
 
   // Select type check.
   if (auto selI1 = dyn_cast<IntegerType>(selTy)) {
@@ -922,33 +895,6 @@ LogicalResult ExtractOp::verify() {
       return emitOpError("msb must equal lsb + result_width - 1 (expected ")
              << expected << ", got " << msb << ")";
   }
-  return success();
-}
-
-LogicalResult ShliOp::verify() {
-  if (!isa<IntegerType, VectorType>(getIn().getType()))
-    return emitOpError("only supports integer or vector-of-integer types");
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt < 0)
-    return emitOpError("amount must be >= 0");
-  return success();
-}
-
-LogicalResult LshriOp::verify() {
-  if (!isa<IntegerType, VectorType>(getIn().getType()))
-    return emitOpError("only supports integer or vector-of-integer types");
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt < 0)
-    return emitOpError("amount must be >= 0");
-  return success();
-}
-
-LogicalResult AshriOp::verify() {
-  if (!isa<IntegerType, VectorType>(getIn().getType()))
-    return emitOpError("only supports integer or vector-of-integer types");
-  std::int64_t amt = getAmountAttr().getInt();
-  if (amt < 0)
-    return emitOpError("amount must be >= 0");
   return success();
 }
 
@@ -1507,17 +1453,14 @@ DEFINE_VALUE_BINARY_VERIFY(XorOp)
 
 #undef DEFINE_VALUE_BINARY_VERIFY
 
-#define DEFINE_COMPARE_BINARY_VERIFY(OP)                                                 \
-  LogicalResult OP::verify() {                                                           \
-    return verifyElementwiseBinary(getOperation(), getLhs().getType(), getRhs().getType(), \
-                                   getResult().getType(), /*compareResult=*/true);        \
-  }
-
-DEFINE_COMPARE_BINARY_VERIFY(EqOp)
-DEFINE_COMPARE_BINARY_VERIFY(UltOp)
-DEFINE_COMPARE_BINARY_VERIFY(SltOp)
-
-#undef DEFINE_COMPARE_BINARY_VERIFY
+LogicalResult CmpOp::verify() {
+  StringRef predicate = getPredicate();
+  if (predicate != "eq" && predicate != "ult" && predicate != "slt")
+    return emitOpError("predicate must be eq, ult, or slt");
+  return verifyElementwiseBinary(getOperation(), getLhs().getType(),
+                                 getRhs().getType(), getResult().getType(),
+                                 /*compareResult=*/true);
+}
 
 //===----------------------------------------------------------------------===//
 // Vector op verifiers

@@ -14,7 +14,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 2 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Entry>>
   ac.rule %input depths [] latencies []
       name "complete" stable_id "complete_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %candidate = ac.var.constant true as !ac.var<i1>
     ac.rule.condition %candidate : !ac.var<i1>
@@ -34,8 +34,6 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 }
 
 // LOWERED: ac.firing %{{.*}} depths [] latencies []
-// LOWERED-SAME: handshake "ready_valid_1x0_table"
-// LOWERED-SAME: effects ["input.consume", "table.replace:entries"]
 // LOWERED: ac.firing.condition %[[CANDIDATE:[0-9]+]] : !ac.var<i1>
 // LOWERED: ac.table.propose @entries[%[[INDEX:[0-9]+]]] = %{{.*}} when %[[PRESENT:[0-9]+]] : !ac.var<i1>
 // LOWERED: ac.state.snapshot @entries[%[[INDEX]] : !ac.var<i1>] for %[[PRESENT]] : !ac.var<i1> kind dynamic read_fields ["value"]

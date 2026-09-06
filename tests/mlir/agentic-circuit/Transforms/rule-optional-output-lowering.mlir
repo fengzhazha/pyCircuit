@@ -12,8 +12,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @count entry i8 entries 1 init 0 owner "/" stable_id "table/count"
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Event>>
   %output = ac.rule %input depths [1] latencies [1] name "filter"
-      stable_id "filter_0" domain "cycle" type exact
-      input_fact committed_input {
+      stable_id "filter_0" domain "cycle" type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Event>>):
     %index = ac.var.constant false as !ac.var<i1>
     %old = ac.table.get @count[%index] : !ac.var<i1> -> !ac.var<i8>

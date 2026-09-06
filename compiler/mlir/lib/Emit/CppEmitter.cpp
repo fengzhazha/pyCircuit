@@ -459,10 +459,10 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
        << nt.get(r.getRhs()) << ");\n";
     return success();
   }
-  if (auto m = dyn_cast<pyc::MuxOp>(op)) {
+  if (auto m = dyn_cast<pyc::SelectOp>(op)) {
     unsigned w = bitWidth(m.getResult().getType());
     if (w == 0)
-      return m.emitError("invalid mux width");
+      return m.emitError("invalid select width");
     bool selIsVec = isa<VectorType>(m.getSel().getType());
     assignExpr(m.getResult(), m.getType(), os, nt,
                [&](llvm::raw_ostream &e) {
@@ -498,33 +498,14 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
     os << "    " << nt.get(n.getResult()) << " = (~" << nt.get(n.getIn()) << ");\n";
     return success();
   }
-  if (auto e = dyn_cast<pyc::EqOp>(op)) {
+  if (auto e = dyn_cast<pyc::CmpOp>(op)) {
     unsigned w = bitWidth(e.getLhs().getType());
     if (w == 0)
-      return e.emitError("invalid eq width");
+      return e.emitError("invalid cmp width");
     assignExpr(e.getResult(), e.getType(), os, nt,
                [&](llvm::raw_ostream &eout) {
-                 eout << "pyc::cpp::eq<" << w << ">(" << nt.get(e.getLhs()) << ", " << nt.get(e.getRhs()) << ")";
-               });
-    return success();
-  }
-  if (auto u = dyn_cast<pyc::UltOp>(op)) {
-    unsigned w = bitWidth(u.getLhs().getType());
-    if (w == 0)
-      return u.emitError("invalid ult width");
-    assignExpr(u.getResult(), u.getType(), os, nt,
-               [&](llvm::raw_ostream &eout) {
-                 eout << "pyc::cpp::ult<" << w << ">(" << nt.get(u.getLhs()) << ", " << nt.get(u.getRhs()) << ")";
-               });
-    return success();
-  }
-  if (auto s = dyn_cast<pyc::SltOp>(op)) {
-    unsigned w = bitWidth(s.getLhs().getType());
-    if (w == 0)
-      return s.emitError("invalid slt width");
-    assignExpr(s.getResult(), s.getType(), os, nt,
-               [&](llvm::raw_ostream &eout) {
-                 eout << "pyc::cpp::slt<" << w << ">(" << nt.get(s.getLhs()) << ", " << nt.get(s.getRhs()) << ")";
+                 eout << "pyc::cpp::" << e.getPredicate() << "<" << w << ">(" << nt.get(e.getLhs()) << ", "
+                      << nt.get(e.getRhs()) << ")";
                });
     return success();
   }
@@ -579,30 +560,6 @@ static LogicalResult emitCombAssign(Operation &op, llvm::raw_ostream &os, NameTa
                    << ow << ", " << iw << ">(" << nt.get(ex.getIn()) << ", "
                    << ex.getLsbAttr().getInt() << "u)";
                });
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::ShliOp>(op)) {
-    unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0)
-      return sh.emitError("invalid shli width");
-    os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::shl<" << w << ">(" << nt.get(sh.getIn()) << ", "
-       << sh.getAmountAttr().getInt() << "u);\n";
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::LshriOp>(op)) {
-    unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0)
-      return sh.emitError("invalid lshri width");
-    os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::lshr<" << w << ">(" << nt.get(sh.getIn()) << ", "
-       << sh.getAmountAttr().getInt() << "u);\n";
-    return success();
-  }
-  if (auto sh = dyn_cast<pyc::AshriOp>(op)) {
-    unsigned w = bitWidth(sh.getResult().getType());
-    if (w == 0)
-      return sh.emitError("invalid ashri width");
-    os << "    " << nt.get(sh.getResult()) << " = pyc::cpp::ashr<" << w << ">(" << nt.get(sh.getIn()) << ", "
-       << sh.getAmountAttr().getInt() << "u);\n";
     return success();
   }
   if (auto sh = dyn_cast<pyc::ShlOp>(op)) {
@@ -1856,12 +1813,12 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
       continue;
     }
     if (isa<pyc::ConstantOp, pyc::AddOp, pyc::SubOp, pyc::MulOp, pyc::UdivOp,
-            pyc::UremOp, pyc::SdivOp, pyc::SremOp, pyc::MuxOp, pyc::AndOp,
+            pyc::UremOp, pyc::SdivOp, pyc::SremOp, pyc::SelectOp, pyc::AndOp,
             pyc::OrOp, pyc::XorOp, pyc::NotOp, pyc::ConcatOp,
             pyc::PriorityEncodeOp, pyc::PopcountOp, pyc::CountZerosOp,
-            pyc::AliasOp, pyc::ResetActiveOp, pyc::EqOp, pyc::UltOp, pyc::SltOp,
-            pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp, pyc::ShliOp,
-            pyc::LshriOp, pyc::AshriOp, pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
+            pyc::AliasOp, pyc::ResetActiveOp, pyc::CmpOp,
+            pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
+            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
             pyc::VGetOp, pyc::VCreateOp, pyc::VBroadcastOp,
             pyc::VBroadcastDimOp, pyc::VOrReduceOp, pyc::VAndReduceOp,
             pyc::VAddReduceOp, arith::SelectOp>(*op)) {
@@ -2251,12 +2208,12 @@ static LogicalResult emitFunc(func::FuncOp f, llvm::raw_ostream &os, const CppEm
       return success();
     }
     if (isa<pyc::ConstantOp, pyc::AddOp, pyc::SubOp, pyc::MulOp, pyc::UdivOp,
-            pyc::UremOp, pyc::SdivOp, pyc::SremOp, pyc::MuxOp, pyc::AndOp,
+            pyc::UremOp, pyc::SdivOp, pyc::SremOp, pyc::SelectOp, pyc::AndOp,
             pyc::OrOp, pyc::XorOp, pyc::NotOp, pyc::ConcatOp,
             pyc::PriorityEncodeOp, pyc::PopcountOp, pyc::CountZerosOp,
-            pyc::AliasOp, pyc::ResetActiveOp, pyc::EqOp, pyc::UltOp, pyc::SltOp,
-            pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp, pyc::ShliOp,
-            pyc::LshriOp, pyc::AshriOp, pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
+            pyc::AliasOp, pyc::ResetActiveOp, pyc::CmpOp,
+            pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
+            pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
             pyc::VGetOp, pyc::VCreateOp, pyc::VBroadcastOp,
             pyc::VBroadcastDimOp, pyc::VOrReduceOp, pyc::VAndReduceOp,
             pyc::VAddReduceOp, arith::SelectOp>(*op)) {

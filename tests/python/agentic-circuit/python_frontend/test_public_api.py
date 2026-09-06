@@ -8,7 +8,6 @@ PUBLIC = {
     "system",
     "module",
     "extern_module",
-    "generated_module",
     "struct",
     "packet",
     "transaction",
@@ -190,11 +189,16 @@ class PublicApiTest(unittest.TestCase):
     def test_decorator_options_are_canonicalized(self) -> None:
         api = importlib.import_module("agentic_circuit")
 
-        @api.generated_module(zeta=2, alpha=1)
-        def generated() -> None:
+        @api.module(zeta=2, alpha=1)
+        def configured() -> None:
             pass
 
-        self.assertEqual((("alpha", 1), ("zeta", 2)), generated.explicit_options)
+        self.assertEqual((("alpha", 1), ("zeta", 2)), configured.explicit_options)
+
+    def test_generated_module_is_not_a_public_compatibility_alias(self) -> None:
+        api = importlib.import_module("agentic_circuit")
+
+        self.assertFalse(hasattr(api, "generated_module"))
 
     def test_rule_decorator_captures_without_executing(self) -> None:
         api = importlib.import_module("agentic_circuit")

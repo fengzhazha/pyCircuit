@@ -45,7 +45,7 @@ module attributes {ac.contract_epoch = "0.5"} {
   ac.var.decl @state type i8 init 0 : i8 owner "/" stable_id "var/state"
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i8>
   ac.rule %input depths [] latencies [] name "bad" stable_id "bad"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body(%item: !ac.var<i8>):
     %bad = ac.var.constant 0 : i2 as !ac.var<i2>
     ac.var.assign @state = %item when %bad : !ac.var<i2> : !ac.var<i8>

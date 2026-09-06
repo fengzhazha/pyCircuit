@@ -46,7 +46,7 @@ builtin.module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_gra
   %requests = ac.source depth 1 latency 1 : !ac.queue<i3>
   %responses = ac.rule %requests depths [1] latencies [1]
       name "bounded_table" stable_id "bounded_table" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%raw_index: !ac.var<i3>):
     %four = ac.var.constant 4 : i3 as !ac.var<i3>
     %index = ac.var.and %raw_index, %four : !ac.var<i3>

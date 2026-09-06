@@ -59,12 +59,7 @@ concept CompleteProcessStatePlanApi = requires(
     const ProcessForwardingBindingPlan &binding,
     const ProcessControlFramePlan &frame, const ProcessControlEdgePlan &edge,
     const ProcessBlockPlan &block, const ProcessPcPlan &pc,
-    const ProcessStatePlan &plan, const ProcessRecordFieldDescriptor &field,
-    const ProcessRecordCreatePayload &recordCreate,
-    const ProcessRecordGetPayload &recordGet,
-    const ProcessRecordWithPayload &recordWith,
-    const ProcessPacketSerializePayload &packetSerialize,
-    const ProcessPacketDeserializePayload &packetDeserialize,
+    const ProcessStatePlan &plan,
     const ProcessTraceDecodePayload &traceDecode,
     const ProcessQueueTrySendPayload &queueSend,
     const ProcessQueueTryRecvPayload &queueRecv,
@@ -234,22 +229,6 @@ concept CompleteProcessStatePlanApi = requires(
   plan.transitions();
   plan.pcBitWidth();
   plan.fairnessWork();
-  field.name();
-  field.typeKey();
-  recordCreate.fields();
-  recordCreate.recordType();
-  recordGet.field();
-  recordGet.record();
-  recordGet.result();
-  recordWith.field();
-  recordWith.record();
-  recordWith.value();
-  packetSerialize.bytes();
-  packetSerialize.packet();
-  packetSerialize.packetType();
-  packetDeserialize.bytes();
-  packetDeserialize.packet();
-  packetDeserialize.packetType();
   traceDecode.entry();
   traceDecode.result();
   traceDecode.source();
@@ -288,11 +267,6 @@ concept CompleteProcessStatePlanApi = requires(
   unwrap.scalar();
   unwrap.valueType();
   calleePayload.role();
-  calleePayload.recordCreate();
-  calleePayload.recordGet();
-  calleePayload.recordWith();
-  calleePayload.packetSerialize();
-  calleePayload.packetDeserialize();
   calleePayload.traceDecode();
   calleePayload.queueTrySend();
   calleePayload.queueTryRecv();
@@ -550,23 +524,6 @@ CHECK_U32(ProcessStatePlan, pcBitWidth);
 CHECK_U64(ProcessStatePlan, fairnessWork);
 
 #define CHECK_PAYLOAD_STRING(Class, Method) CHECK_STRING(Class, Method)
-CHECK_STRING(ProcessRecordFieldDescriptor, name);
-CHECK_STRING(ProcessRecordFieldDescriptor, typeKey);
-CHECK_GETTER(ProcessRecordCreatePayload, fields,
-             llvm::ArrayRef<ProcessRecordFieldDescriptor>);
-CHECK_STRING(ProcessRecordCreatePayload, recordType);
-CHECK_PAYLOAD_STRING(ProcessRecordGetPayload, field);
-CHECK_PAYLOAD_STRING(ProcessRecordGetPayload, record);
-CHECK_PAYLOAD_STRING(ProcessRecordGetPayload, result);
-CHECK_PAYLOAD_STRING(ProcessRecordWithPayload, field);
-CHECK_PAYLOAD_STRING(ProcessRecordWithPayload, record);
-CHECK_PAYLOAD_STRING(ProcessRecordWithPayload, value);
-#define CHECK_PACKET(Class)                                                    \
-  CHECK_U64(Class, bytes);                                                     \
-  CHECK_STRING(Class, packet);                                                 \
-  CHECK_STRING(Class, packetType)
-CHECK_PACKET(ProcessPacketSerializePayload);
-CHECK_PACKET(ProcessPacketDeserializePayload);
 #define CHECK_TWO_STRINGS(Class, First, Second)                                \
   CHECK_STRING(Class, First);                                                  \
   CHECK_STRING(Class, Second)
@@ -603,11 +560,6 @@ CHECK_SCALAR_PAYLOAD(ProcessScalarUnwrapPayload);
 CHECK_GETTER(ProcessGeneratedCalleePayload, role, ProcessHelperRole);
 #define CHECK_PAYLOAD_ARM(Method, Type)                                        \
   CHECK_GETTER(ProcessGeneratedCalleePayload, Method, const Type &)
-CHECK_PAYLOAD_ARM(recordCreate, ProcessRecordCreatePayload);
-CHECK_PAYLOAD_ARM(recordGet, ProcessRecordGetPayload);
-CHECK_PAYLOAD_ARM(recordWith, ProcessRecordWithPayload);
-CHECK_PAYLOAD_ARM(packetSerialize, ProcessPacketSerializePayload);
-CHECK_PAYLOAD_ARM(packetDeserialize, ProcessPacketDeserializePayload);
 CHECK_PAYLOAD_ARM(traceDecode, ProcessTraceDecodePayload);
 CHECK_PAYLOAD_ARM(queueTrySend, ProcessQueueTrySendPayload);
 CHECK_PAYLOAD_ARM(queueTryRecv, ProcessQueueTryRecvPayload);

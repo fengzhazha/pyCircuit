@@ -172,4 +172,4 @@ def test_cas_in_and_not_in_usable_as_output() -> None:
 
     mlir = compile_cycle_aware(top, name="c", eager=True).emit_mlir()
     assert "pyc.and" in mlir  # (sig & mask)
-    assert "pyc.eq" in mlir
+    assert "pyc.cmp" in mlir and 'predicate = "eq"' in mlir

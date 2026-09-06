@@ -12,7 +12,6 @@ DefinitionKind: TypeAlias = Literal[
     "system",
     "module",
     "extern_module",
-    "generated_module",
     "struct",
     "packet",
     "transaction",
@@ -112,10 +111,6 @@ def module(function: F | None = None, **options: object):
 
 def extern_module(function: F | None = None, **options: object):
     return _decorate("extern_module", function, **options)
-
-
-def generated_module(function: F | None = None, **options: object):
-    return _decorate("generated_module", function, **options)
 
 
 def struct(function: F | None = None, **options: object):

@@ -7609,7 +7609,7 @@ def lower_queue_program(
                 )
                 + f"name {json.dumps(queue.rule_name)} "
                 f"stable_id {json.dumps('/'.join((*queue.scope, queue.name)))} "
-                f'domain "cycle" type exact input_fact committed_input {{'
+                f'domain "cycle" type exact {{'
             )
             block_arguments = ", ".join(
                 f"%{root_name}: !ac.var<{_render_type(payload)}>"
@@ -9474,7 +9474,7 @@ def _lower_simple_module_source(
                 [
                     "      %next = ac.rule %borrowed depths [1] latencies [1] ",
                     f'          name "{name}" stable_id "{name}_0" domain "cycle" ',
-                    "          type exact input_fact committed_input {",
+                    "          type exact {",
                     f"      ^body(%item: !ac.var<{_render_type(input_type)}>):",
                 ]
             )

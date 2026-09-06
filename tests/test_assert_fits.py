@@ -138,7 +138,7 @@ def test_as_range_lower_zero_skips_lo_check() -> None:
     mlir = m.emit_mlir()
     # lo == 0 is trivially satisfied -> only the upper bound is checked
     assert mlir.count("pyc.assert") == 1
-    assert "pyc.ule" in mlir or "pyc.ugt" in mlir or "pyc.ult" in mlir
+    assert "pyc.cmp" in mlir and 'predicate = "ult"' in mlir
 
 
 def test_as_range_full_cover_emits_no_assert() -> None:
@@ -276,4 +276,4 @@ def test_cas_as_values_in_compile() -> None:
 
     mlir = compile_cycle_aware(top, name="c", eager=True).emit_mlir()
     assert "pyc.assert" in mlir
-    assert "pyc.eq" in mlir
+    assert "pyc.cmp" in mlir and 'predicate = "eq"' in mlir

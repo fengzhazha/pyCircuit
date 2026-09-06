@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 from pathlib import Path
 
 import pycircuit
@@ -134,3 +135,17 @@ def test_runtime_and_trace_identifiers_are_pyc6_only() -> None:
     assert "pyc4_runtime" not in text
     assert "PYC4TRC2" not in text
     assert "PYC4TRC3" not in text
+
+
+def test_repository_flow_pythonpath_includes_the_shared_semantic_core() -> None:
+    root = Path(__file__).resolve().parents[2]
+    completed = subprocess.run(
+        ["bash", "-c", "source flows/scripts/lib.sh; pyc_pythonpath"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    entries = completed.stdout.strip().split(":")
+    assert str(root / "python/semantic-core/src") in entries
+    assert str(root / "python/pycircuit/src") in entries

@@ -212,7 +212,7 @@ static LogicalResult lowerIf(IRRewriter &rewriter, scf::IfOp op) {
   SmallVector<Value> muxed;
   muxed.reserve(op.getNumResults());
   for (auto [ty, tv, ev] : llvm::zip(op.getResultTypes(), thenVals, elseVals)) {
-    muxed.push_back(rewriter.create<pyc::MuxOp>(op.getLoc(), ty, op.getCondition(), tv, ev));
+    muxed.push_back(rewriter.create<pyc::SelectOp>(op.getLoc(), ty, op.getCondition(), tv, ev));
   }
 
   for (auto [res, v] : llvm::zip(op.getResults(), muxed))

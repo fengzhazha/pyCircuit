@@ -26,7 +26,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "install" stable_id "install" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i2>
     ac.table.propose @table [%index] = %item mode "replace"
@@ -48,7 +48,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "patch" stable_id "patch" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
     ac.table.propose @table [%index] = %item mode "field"
@@ -70,7 +70,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "install" stable_id "install" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %index = ac.var.get %item field "index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
     ac.table.propose @table [%index] = %item mode "replace"
@@ -95,10 +95,11 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.sink %output : !ac.queue<!ac.struct<@types::@Entry>>
 }
 // SHARED-SCHEDULE: ac.rule
+// SHARED-SCHEDULE: ac.rule.arbitration_membership = [{priority = 0 : i64, resource = @table}]
 // SHARED-SCHEDULE: ac.rule.footprints = [{access = "replace"
 // SHARED-SCHEDULE-SAME: resource = @table
 // SHARED-SCHEDULE: ac.rule.priority = 0 : i64
-// SHARED-SCHEDULE: ac.rule.schedule = "table_lexical_priority"
+// SHARED-SCHEDULE-SAME: ac.rule.schedule_kind = #ac<rule_schedule_kind lexical_priority>
 
 //--- type-mismatch.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "type_mismatch"} {
@@ -106,7 +107,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 : !ac.queue<i16>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad" stable_id "bad" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i16>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     %value = ac.var.constant 0 : i8 as !ac.var<i8>
@@ -130,7 +131,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = ac.source depth 1 latency 1 : !ac.queue<!ac.struct<@types::@Entry>>
   %output = ac.rule %input depths [1] latencies [1]
       name "bad_read" stable_id "bad_read" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Entry>>):
     %write_index = ac.var.get %item field "write_index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i1>
     %read_index = ac.var.get %item field "read_index" : !ac.var<!ac.struct<@types::@Entry>> -> !ac.var<i2>
@@ -150,9 +151,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @table entry i8 entries 1 init 0 owner "/" stable_id "table/table"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
   %output = ac.firing %input depths [1] latencies [1]
-      stable_id "forged" domain "cycle" guard "true" checks []
-      handshake "ready_valid_1x1" schedule "independent"
-      effects ["input.consume", "output.produce"] {
+      stable_id "forged" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     %enabled = ac.var.constant true as !ac.var<i1>
@@ -160,7 +159,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
     ac.table.propose @table [%index] = %item mode "replace"
         write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
     ac.firing.yield %item : !ac.var<i8>
-  } {ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64} : (!ac.queue<i8>) -> !ac.queue<i8>
+  } {ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @table}], ac.arbitration_membership = [{priority = 0 : i64, resource = @table}], ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}], ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind output_produce>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_write>, resource = @table}], ac.guard_kind = #ac<rule_guard_kind always>, ac.initially_active = false, ac.output_presence = [{ordinal = 0 : i64, presence_kind = #ac<rule_output_presence_kind always>}], ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64, ac.schedule_kind = #ac<rule_schedule_kind independent>, ac.state_accesses = [{fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind replace>, resource = @table}], ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @table}]} : (!ac.queue<i8>) -> !ac.queue<i8>
   ac.sink %output : !ac.queue<i8>
 }
-// FORGED: 'ac.firing' op has invalid phase-one guard/checks/handshake/schedule/effects contract
+// FORGED: typed guard/schedule evidence does not match the body

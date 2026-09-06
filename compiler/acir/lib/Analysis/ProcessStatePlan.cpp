@@ -42,12 +42,7 @@ bool validDefinitionKey(llvm::StringRef key) {
 }
 
 llvm::StringRef helperRoleSpelling(ProcessHelperRole role) {
-  static constexpr llvm::StringLiteral names[] = {"record_create",
-                                                  "record_get",
-                                                  "record_with",
-                                                  "packet_serialize",
-                                                  "packet_deserialize",
-                                                  "trace_decode",
+  static constexpr llvm::StringLiteral names[] = {"trace_decode",
                                                   "queue_try_send",
                                                   "queue_try_recv",
                                                   "event_schedule",
@@ -96,35 +91,6 @@ bool validCalleeSemantics(const ProcessGeneratedCalleePlan &callee) {
   auto results = callee.resultTypeKeys();
   const ProcessGeneratedCalleePayload &payload = callee.payload();
   switch (callee.role()) {
-  case ProcessHelperRole::RecordCreate: {
-    auto fields = payload.recordCreate().fields();
-    if (inputs.size() != fields.size() || results.size() != 1 ||
-        results[0] != payload.recordCreate().recordType())
-      return false;
-    llvm::SmallVector<llvm::StringRef> names;
-    for (auto [input, field] : llvm::zip_equal(inputs, fields)) {
-      if (input != field.typeKey() || field.name().empty() ||
-          llvm::is_contained(names, field.name()))
-        return false;
-      names.push_back(field.name());
-    }
-    return true;
-  }
-  case ProcessHelperRole::RecordGet:
-    return inputs.size() == 1 && results.size() == 1 &&
-           inputs[0] == payload.recordGet().record() &&
-           results[0] == payload.recordGet().result();
-  case ProcessHelperRole::RecordWith:
-    return inputs.size() == 2 && results.size() == 1 &&
-           inputs[0] == payload.recordWith().record() &&
-           inputs[1] == payload.recordWith().value() &&
-           results[0] == payload.recordWith().record();
-  case ProcessHelperRole::PacketSerialize:
-    return inputs.size() == 1 && results.size() == 1 &&
-           inputs[0] == payload.packetSerialize().packetType();
-  case ProcessHelperRole::PacketDeserialize:
-    return inputs.size() == 1 && results.size() == 1 &&
-           results[0] == payload.packetDeserialize().packetType();
   case ProcessHelperRole::TraceDecode:
     return inputs.size() == 1 && results.size() == 1 &&
            inputs[0] == payload.traceDecode().entry() &&
@@ -1930,53 +1896,6 @@ bool detail::PlanSetBuilder::exerciseCompleteApiFixture(
   expect(state.pcBitWidth() == 3);
   expect(state.fairnessWork() == 4);
 
-  auto fieldImpl = std::make_shared<ProcessRecordFieldDescriptor::Impl>();
-  fieldImpl->name = "field";
-  fieldImpl->typeKey = "mlir:i32";
-  ProcessRecordFieldDescriptor field(fieldImpl);
-  auto recordCreateImpl = std::make_shared<ProcessRecordCreatePayload::Impl>();
-  recordCreateImpl->fields = {field};
-  recordCreateImpl->recordType = "mlir:!ac.record";
-  ProcessRecordCreatePayload recordCreate(recordCreateImpl);
-  auto recordGetImpl = std::make_shared<ProcessRecordGetPayload::Impl>();
-  recordGetImpl->field = "field";
-  recordGetImpl->record = "mlir:!ac.record";
-  recordGetImpl->result = "mlir:i32";
-  ProcessRecordGetPayload recordGet(recordGetImpl);
-  auto recordWithImpl = std::make_shared<ProcessRecordWithPayload::Impl>();
-  recordWithImpl->field = "field";
-  recordWithImpl->record = "mlir:!ac.record";
-  recordWithImpl->value = "mlir:i32";
-  ProcessRecordWithPayload recordWith(recordWithImpl);
-  expect(field.name() == "field");
-  expect(field.typeKey() == "mlir:i32");
-  expect(recordCreate.fields().size() == 1);
-  expect(recordCreate.recordType() == "mlir:!ac.record");
-  expect(recordGet.field() == "field");
-  expect(recordGet.record() == "mlir:!ac.record");
-  expect(recordGet.result() == "mlir:i32");
-  expect(recordWith.field() == "field");
-  expect(recordWith.record() == "mlir:!ac.record");
-  expect(recordWith.value() == "mlir:i32");
-
-  auto packetSerializeImpl =
-      std::make_shared<ProcessPacketSerializePayload::Impl>();
-  packetSerializeImpl->bytes = 4;
-  packetSerializeImpl->packet = "@packet";
-  packetSerializeImpl->packetType = "mlir:!ac.packet";
-  ProcessPacketSerializePayload packetSerialize(packetSerializeImpl);
-  auto packetDeserializeImpl =
-      std::make_shared<ProcessPacketDeserializePayload::Impl>(
-          ProcessPacketDeserializePayload::Impl{4, "@packet",
-                                                "mlir:!ac.packet"});
-  ProcessPacketDeserializePayload packetDeserialize(packetDeserializeImpl);
-  expect(packetSerialize.bytes() == 4);
-  expect(packetSerialize.packet() == "@packet");
-  expect(packetSerialize.packetType() == "mlir:!ac.packet");
-  expect(packetDeserialize.bytes() == 4);
-  expect(packetDeserialize.packet() == "@packet");
-  expect(packetDeserialize.packetType() == "mlir:!ac.packet");
-
   auto traceDecodeImpl = std::make_shared<ProcessTraceDecodePayload::Impl>();
   traceDecodeImpl->entry = "mlir:i32";
   traceDecodeImpl->result = "mlir:i64";
@@ -2104,16 +2023,6 @@ bool detail::PlanSetBuilder::exerciseCompleteApiFixture(
     impl.get()->*member = value;
     payloads.push_back(ProcessGeneratedCalleePayload(impl));
   };
-  addPayload(ProcessHelperRole::RecordCreate, recordCreate,
-             &ProcessGeneratedCalleePayload::Impl::recordCreate);
-  addPayload(ProcessHelperRole::RecordGet, recordGet,
-             &ProcessGeneratedCalleePayload::Impl::recordGet);
-  addPayload(ProcessHelperRole::RecordWith, recordWith,
-             &ProcessGeneratedCalleePayload::Impl::recordWith);
-  addPayload(ProcessHelperRole::PacketSerialize, packetSerialize,
-             &ProcessGeneratedCalleePayload::Impl::packetSerialize);
-  addPayload(ProcessHelperRole::PacketDeserialize, packetDeserialize,
-             &ProcessGeneratedCalleePayload::Impl::packetDeserialize);
   addPayload(ProcessHelperRole::TraceDecode, traceDecode,
              &ProcessGeneratedCalleePayload::Impl::traceDecode);
   addPayload(ProcessHelperRole::QueueTrySend, queueSend,
@@ -2152,35 +2061,9 @@ bool detail::PlanSetBuilder::exerciseCompleteApiFixture(
              &ProcessGeneratedCalleePayload::Impl::scalarWrap);
   addPayload(ProcessHelperRole::ScalarUnwrap, scalarUnwrap,
              &ProcessGeneratedCalleePayload::Impl::scalarUnwrap);
-  expect(payloads.size() == 24);
+  expect(payloads.size() == 19);
   for (auto [index, payload] : llvm::enumerate(payloads))
     expect(static_cast<unsigned>(payload.role()) == index);
-  expect(payloads[0].recordCreate().recordType() == "mlir:!ac.record");
-  expect(payloads[1].recordGet().field() == "field");
-  expect(payloads[2].recordWith().value() == "mlir:i32");
-  expect(payloads[3].packetSerialize().bytes() == 4);
-  expect(payloads[4].packetDeserialize().bytes() == 4);
-  expect(payloads[5].traceDecode().source() == "trace");
-  expect(payloads[6].queueTrySend().queue() == "@queue");
-  expect(payloads[7].queueTryRecv().queue() == "@queue");
-  expect(payloads[8].eventSchedule().target() == "@event");
-  expect(payloads[9].traceOpen().source() == "trace");
-  expect(payloads[10].traceNext().entry() == "mlir:i32");
-  expect(payloads[11].traceEof().source() == "trace");
-  expect(payloads[12].tracePosition().source() == "trace");
-  expect(payloads[13].contractRequire().message() == "require");
-  expect(payloads[14].contractEnsure().message() == "ensure");
-  expect(payloads[15].contractAssert().message() == "assert");
-  expect(payloads[16].probe().target() == "@probe");
-  expect(payloads[17].statAdd().stat() == "@stat");
-  expect(payloads[18].wakeCondition().wakeType() == "@acir_wake_condition");
-  expect(payloads[19].wakeResource().wakeType() == "@acir_wake_resource");
-  expect(payloads[20].wakeEventQueue().wakeType() == "@acir_wake_event_queue");
-  expect(payloads[21].wakeNextDelta().wakeType() == "@acir_wake_next_delta");
-  expect(payloads[22].scalarWrap().direction() ==
-         ProcessWrapperDirection::Wrap);
-  expect(payloads[23].scalarUnwrap().direction() ==
-         ProcessWrapperDirection::Unwrap);
 
   auto fieldMemberImpl = std::make_shared<ProcessValueTypeMemberPlan::Impl>();
   fieldMemberImpl->kind = ProcessValueTypeMemberKind::Field;
@@ -2256,7 +2139,7 @@ bool detail::PlanSetBuilder::exerciseCompleteApiFixture(
   calleeImpl->resultTypeKeyStorage = {"mlir:i64"};
   calleeImpl->resultTypeKeys = {calleeImpl->resultTypeKeyStorage[0]};
   calleeImpl->role = ProcessHelperRole::Probe;
-  calleeImpl->payload = payloads[16];
+  calleeImpl->payload = payloads[11];
   // NOLINTBEGIN(performance-no-int-to-ptr) sentinel test identities
   calleeImpl->sourceOperations = {
       reinterpret_cast<mlir::Operation *>(uintptr_t{1})};
@@ -2755,12 +2638,7 @@ detail::PlanSetBuilder::structuralError(const ProcessStatePlanSet &plans) {
     if (!payload.impl_)
       return false;
     auto &p = *payload.impl_;
-    unsigned active = static_cast<unsigned>(p.recordCreate.has_value()) +
-                      static_cast<unsigned>(p.recordGet.has_value()) +
-                      static_cast<unsigned>(p.recordWith.has_value()) +
-                      static_cast<unsigned>(p.packetSerialize.has_value()) +
-                      static_cast<unsigned>(p.packetDeserialize.has_value()) +
-                      static_cast<unsigned>(p.traceDecode.has_value()) +
+    unsigned active = static_cast<unsigned>(p.traceDecode.has_value()) +
                       static_cast<unsigned>(p.queueTrySend.has_value()) +
                       static_cast<unsigned>(p.queueTryRecv.has_value()) +
                       static_cast<unsigned>(p.eventSchedule.has_value()) +
@@ -2783,20 +2661,6 @@ detail::PlanSetBuilder::structuralError(const ProcessStatePlanSet &plans) {
       return false;
     auto present = [](const auto &arm) { return arm && arm->impl_; };
     switch (p.role) {
-    case ProcessHelperRole::RecordCreate:
-      return present(p.recordCreate) &&
-             llvm::all_of(p.recordCreate->impl_->fields,
-                          [](const ProcessRecordFieldDescriptor &field) {
-                            return static_cast<bool>(field.impl_);
-                          });
-    case ProcessHelperRole::RecordGet:
-      return present(p.recordGet);
-    case ProcessHelperRole::RecordWith:
-      return present(p.recordWith);
-    case ProcessHelperRole::PacketSerialize:
-      return present(p.packetSerialize);
-    case ProcessHelperRole::PacketDeserialize:
-      return present(p.packetDeserialize);
     case ProcessHelperRole::TraceDecode:
       return present(p.traceDecode);
     case ProcessHelperRole::QueueTrySend:
@@ -3710,21 +3574,26 @@ mlir::LogicalResult verifyProcessStatePlan(const ProcessStatePlanSet &plans,
     if (callee.effect() != expectedEffect)
       return reject(plans,
                     "process-state plan invariant violated: effect mismatch");
-    if (callee.kind() != "implementation" || !validCalleeSemantics(callee) ||
-        llvm::any_of(callee.inputTypeKeys(),
+    if (callee.kind() != "implementation")
+      return reject(plans,
+                    "process-state plan invariant violated: callee kind");
+    if (!validCalleeSemantics(callee))
+      return reject(plans,
+                    "process-state plan invariant violated: callee semantics");
+    if (llvm::any_of(callee.inputTypeKeys(),
                      [](llvm::StringRef key) { return !validTypeKey(key); }) ||
         llvm::any_of(callee.resultTypeKeys(),
-                     [](llvm::StringRef key) { return !validTypeKey(key); }) ||
-        !llvm::is_sorted(callee.sourcePaths()) ||
+                     [](llvm::StringRef key) { return !validTypeKey(key); }))
+      return reject(plans,
+                    "process-state plan invariant violated: callee type key");
+    if (!llvm::is_sorted(callee.sourcePaths()) ||
         std::adjacent_find(callee.sourcePaths().begin(),
                            callee.sourcePaths().end()) !=
             callee.sourcePaths().end() ||
         callee.sourceOperations().size() != callee.sourcePaths().size())
-      return reject(plans, "process-state plan invariant violated: callee "
-                           "specialization mismatch");
-    bool ownsDeclaration =
-        callee.role() <= ProcessHelperRole::PacketDeserialize ||
-        callee.role() == ProcessHelperRole::QueueTrySend ||
+      return reject(plans,
+                    "process-state plan invariant violated: callee sources");
+    bool ownsDeclaration = callee.role() == ProcessHelperRole::QueueTrySend ||
         callee.role() == ProcessHelperRole::QueueTryRecv ||
         callee.role() == ProcessHelperRole::EventSchedule ||
         callee.role() == ProcessHelperRole::Probe ||
@@ -3737,13 +3606,13 @@ mlir::LogicalResult verifyProcessStatePlan(const ProcessStatePlanSet &plans,
         llvm::any_of(callee.declarations(), [&](mlir::Operation *op) {
           return op == nullptr || !uniqueDeclarations.insert(op).second;
         }))
-      return reject(plans, "process-state plan invariant violated: callee "
-                           "specialization mismatch");
+      return reject(plans,
+                    "process-state plan invariant violated: callee declarations");
     auto canonical = detail::canonicalGeneratedCalleeSpecialization(callee);
     if (!canonical) {
       llvm::consumeError(canonical.takeError());
-      return reject(plans, "process-state plan invariant violated: callee "
-                           "specialization mismatch");
+      return reject(plans,
+                    "process-state plan invariant violated: callee canonicalization");
     }
     std::string fingerprint = bindings::sha256Fingerprint(*canonical);
     llvm::StringRef digest = llvm::StringRef(fingerprint).drop_front(7);
@@ -3753,11 +3622,15 @@ mlir::LogicalResult verifyProcessStatePlan(const ProcessStatePlanSet &plans,
     std::string expectedCpp = ("acir::generated::impl_" +
                                helperRoleSpelling(callee.role()) + "_" + digest)
                                   .str();
-    if (*canonical != detail::generatedCalleeSpecializationBytes(callee) ||
-        fingerprint != callee.fingerprint() ||
-        callee.symbol() != expectedSymbol || callee.cpp() != expectedCpp)
+    if (*canonical != detail::generatedCalleeSpecializationBytes(callee))
       return reject(plans, "process-state plan invariant violated: callee "
                            "specialization mismatch");
+    if (fingerprint != callee.fingerprint())
+      return reject(plans, "process-state plan invariant violated: callee "
+                           "specialization mismatch");
+    if (callee.symbol() != expectedSymbol || callee.cpp() != expectedCpp)
+      return reject(plans,
+                    "process-state plan invariant violated: callee symbol");
   }
   previousSpecialization = {};
   llvm::StringSet<> generatedTypeKeys;

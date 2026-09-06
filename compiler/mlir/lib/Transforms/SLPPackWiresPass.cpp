@@ -73,8 +73,38 @@ static LogicalResult packNot(pyc::VCreateOp op, PatternRewriter &rewriter) {
   return success();
 }
 
+static LogicalResult packCmp(pyc::VCreateOp op, PatternRewriter &rewriter) {
+  if (!allDefinedBy<pyc::CmpOp>(op.getElements()))
+    return failure();
+  auto resultVT = dyn_cast<VectorType>(op.getResult().getType());
+  if (!resultVT)
+    return failure();
+
+  SmallVector<Value> lhs;
+  SmallVector<Value> rhs;
+  StringAttr predicate;
+  for (Value elem : op.getElements()) {
+    auto lane = elem.getDefiningOp<pyc::CmpOp>();
+    if (!lane.getResult().hasOneUse())
+      return failure();
+    if (!predicate)
+      predicate = lane.getPredicateAttr();
+    else if (predicate != lane.getPredicateAttr())
+      return failure();
+    lhs.push_back(lane.getLhs());
+    rhs.push_back(lane.getRhs());
+  }
+  Value lhsV = createVectorFromLanes(op.getLoc(), resultVT,
+                                     lhs.front().getType(), lhs, rewriter);
+  Value rhsV = createVectorFromLanes(op.getLoc(), resultVT,
+                                     rhs.front().getType(), rhs, rewriter);
+  rewriter.replaceOpWithNewOp<pyc::CmpOp>(op, resultVT, lhsV, rhsV,
+                                           predicate);
+  return success();
+}
+
 static LogicalResult packMux(pyc::VCreateOp op, PatternRewriter &rewriter) {
-  if (!allDefinedBy<pyc::MuxOp>(op.getElements()))
+  if (!allDefinedBy<pyc::SelectOp>(op.getElements()))
     return failure();
   auto resultVT = dyn_cast<VectorType>(op.getResult().getType());
   if (!resultVT)
@@ -84,7 +114,7 @@ static LogicalResult packMux(pyc::VCreateOp op, PatternRewriter &rewriter) {
   SmallVector<Value> as;
   SmallVector<Value> bs;
   for (Value elem : op.getElements()) {
-    auto lane = elem.getDefiningOp<pyc::MuxOp>();
+    auto lane = elem.getDefiningOp<pyc::SelectOp>();
     if (!lane.getResult().hasOneUse())
       return failure();
     sels.push_back(lane.getSel());
@@ -94,7 +124,7 @@ static LogicalResult packMux(pyc::VCreateOp op, PatternRewriter &rewriter) {
   Value selV = createVectorFromLanes(op.getLoc(), resultVT, sels.front().getType(), sels, rewriter);
   Value aV = createVectorFromLanes(op.getLoc(), resultVT, as.front().getType(), as, rewriter);
   Value bV = createVectorFromLanes(op.getLoc(), resultVT, bs.front().getType(), bs, rewriter);
-  rewriter.replaceOpWithNewOp<pyc::MuxOp>(op, resultVT, selV, aV, bV);
+  rewriter.replaceOpWithNewOp<pyc::SelectOp>(op, resultVT, selV, aV, bV);
   return success();
 }
 
@@ -108,7 +138,7 @@ struct PackVCreateElementwise : public OpRewritePattern<pyc::VCreateOp> {
     if (succeeded(packBinary<pyc::AndOp>(op, rewriter)) ||
         succeeded(packBinary<pyc::OrOp>(op, rewriter)) ||
         succeeded(packBinary<pyc::XorOp>(op, rewriter)) ||
-        succeeded(packBinary<pyc::EqOp>(op, rewriter)) ||
+        succeeded(packCmp(op, rewriter)) ||
         succeeded(packNot(op, rewriter)) ||
         succeeded(packMux(op, rewriter)))
       return success();

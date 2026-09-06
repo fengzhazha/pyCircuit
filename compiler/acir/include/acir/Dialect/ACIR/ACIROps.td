@@ -57,11 +57,6 @@ def ACIR_EnumOp : ACIR_Op<"enum", [Symbol]> {
   let assemblyFormat = "$sym_name `enumerants` $enumerants attr-dict";
 }
 
-def ACIR_UnionOp : ACIR_Op<"union", [Symbol]> {
-  let arguments = (ins SymbolNameAttr:$sym_name, ArrayAttr:$fields,
-                       StrAttr:$discriminator);
-  let hasVerifier = 1;
-}
 
 def ACIR_PacketOp : ACIR_Op<"packet", [Symbol, ACIR_RecordLike]> {
   let arguments = (ins SymbolNameAttr:$sym_name, ArrayAttr:$fields);
@@ -70,23 +65,6 @@ def ACIR_PacketOp : ACIR_Op<"packet", [Symbol, ACIR_RecordLike]> {
 
 def ACIR_TransactionOp : ACIR_RecordDeclarationOp<"transaction">;
 
-def ACIR_RecordCreateOp : ACIR_Op<"record.create", [Pure]> {
-  let arguments = (ins Variadic<AnyType>:$values, StrArrayAttr:$field_names);
-  let results = (outs AnyType:$result);
-  let hasVerifier = 1;
-}
-
-def ACIR_RecordGetOp : ACIR_Op<"record.get", [Pure]> {
-  let arguments = (ins AnyType:$record, StrAttr:$field);
-  let results = (outs AnyType:$result);
-  let hasVerifier = 1;
-}
-
-def ACIR_RecordWithOp : ACIR_Op<"record.with", [Pure]> {
-  let arguments = (ins AnyType:$record, AnyType:$value, StrAttr:$field);
-  let results = (outs AnyType:$result);
-  let hasVerifier = 1;
-}
 
 def ACIR_VarConstantOp : ACIR_Op<"var.constant", [Pure]> {
   let arguments = (ins AnyAttr:$value);
@@ -361,17 +339,6 @@ def ACIR_VarChooseYieldOp : ACIR_Op<"var.choose.yield", [
   let assemblyFormat = "$value attr-dict `:` qualified(type($value))";
 }
 
-def ACIR_PacketSerializeOp : ACIR_Op<"packet.serialize", [Pure]> {
-  let arguments = (ins AnyType:$packet_value, SymbolRefAttr:$packet);
-  let results = (outs AnyType:$bytes);
-  let hasVerifier = 1;
-}
-
-def ACIR_PacketDeserializeOp : ACIR_Op<"packet.deserialize", [Pure]> {
-  let arguments = (ins AnyType:$bytes, SymbolRefAttr:$packet);
-  let results = (outs AnyType:$packet_value);
-  let hasVerifier = 1;
-}
 
 def ACIR_TransformOp : ACIR_Op<"transform", [SingleBlock]> {
   let arguments = (ins Variadic<ACIR_QueueType>:$inputs,
@@ -401,15 +368,14 @@ def ACIR_RuleOp : ACIR_Op<"rule", [SingleBlock, RecursiveMemoryEffects]> {
                        DenseI64ArrayAttr:$output_latencies,
                        StrAttr:$name, StrAttr:$stable_id,
                        StrAttr:$time_domain,
-                       ACIR_TypeConstraintStateAttr:$type_state,
-                       ACIR_ValueFactKindAttr:$input_fact);
+                       ACIR_TypeConstraintStateAttr:$type_state);
   let results = (outs Variadic<ACIR_QueueType>:$outputs);
   let regions = (region SizedRegion<1>:$body);
   let hasVerifier = 1;
   let assemblyFormat = [{
     $inputs `depths` $output_depths `latencies` $output_latencies
     `name` $name `stable_id` $stable_id `domain` $time_domain
-    `type` $type_state `input_fact` $input_fact $body attr-dict `:`
+    `type` $type_state $body attr-dict `:`
     functional-type($inputs, $outputs)
   }];
 }
@@ -476,21 +442,20 @@ class ACIR_PureRuleMarkerOp<string mnemonic> : ACIR_Op<mnemonic, [
 
 def ACIR_TypeConstraintMarkerOp : ACIR_PureRuleMarkerOp<"marker.type"> {
   let arguments = (ins ACIR_VarType:$input,
-                       ACIR_TypeConstraintStateAttr:$state,
-                       ACIR_TypeConstraintKindAttr:$constraint);
+                       ACIR_TypeConstraintStateAttr:$state);
   let hasVerifier = 1;
   let assemblyFormat = [{
-    $input `state` $state `constraint` $constraint attr-dict `:`
+    $input `state` $state attr-dict `:`
     qualified(type($result))
   }];
 }
 
 def ACIR_ValueFactMarkerOp : ACIR_PureRuleMarkerOp<"marker.value"> {
-  let arguments = (ins ACIR_VarType:$input, ACIR_ValueFactKindAttr:$fact,
-                       StrAttr:$identity, StrAttr:$path_predicate);
+  let arguments = (ins ACIR_VarType:$input, StrAttr:$identity,
+                       StrAttr:$path_predicate);
   let hasVerifier = 1;
   let assemblyFormat = [{
-    $input `fact` $fact `identity` $identity `path` $path_predicate
+    $input `identity` $identity `path` $path_predicate
     attr-dict `:` qualified(type($result))
   }];
 }
@@ -953,18 +918,14 @@ def ACIR_FiringOp : ACIR_Op<"firing", [
   let arguments = (ins Variadic<ACIR_QueueType>:$inputs,
                        DenseI64ArrayAttr:$output_depths,
                        DenseI64ArrayAttr:$output_latencies,
-                       StrAttr:$stable_id, StrAttr:$time_domain,
-                       StrAttr:$functional_guard, ArrayAttr:$checks,
-                       StrAttr:$handshake, StrAttr:$schedule,
-                       StrArrayAttr:$effects);
+                       StrAttr:$stable_id, StrAttr:$time_domain);
   let results = (outs Variadic<ACIR_QueueType>:$outputs);
   let regions = (region SizedRegion<1>:$body);
   let hasVerifier = 1;
   let assemblyFormat = [{
     $inputs `depths` $output_depths `latencies` $output_latencies
-    `stable_id` $stable_id `domain` $time_domain `guard` $functional_guard
-    `checks` $checks `handshake` $handshake `schedule` $schedule
-    `effects` $effects $body attr-dict `:` functional-type($inputs, $outputs)
+    `stable_id` $stable_id `domain` $time_domain
+    $body attr-dict `:` functional-type($inputs, $outputs)
   }];
 }
 
@@ -1156,17 +1117,6 @@ def ACIR_ModuleExternOp : ACIR_ModuleDeclarationOp<"module.extern"> {
   }];
 }
 
-def ACIR_ModuleGeneratedOp : ACIR_ModuleDeclarationOp<"module.generated"> {
-  let arguments = (ins SymbolNameAttr:$sym_name,
-                       TypeAttrOf<FunctionType>:$function_type,
-                       OptionalAttr<StrAttr>:$sym_visibility,
-                       DictionaryAttr:$static_params,
-                       DictionaryAttr:$generator);
-  let assemblyFormat = [{
-    $sym_name `:` $function_type `parameters` $static_params
-    `generator` $generator attr-dict
-  }];
-}
 
 def ACIR_InstanceOp : ACIR_Op<"instance", [Pure]> {
   let arguments = (ins Variadic<AnyType>:$inputs,

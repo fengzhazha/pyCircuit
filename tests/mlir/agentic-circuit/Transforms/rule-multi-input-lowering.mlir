@@ -10,7 +10,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %right = ac.source depth 2 latency 1 {ac.name = "right"} : !ac.queue<i64>
   %sum = ac.rule %left, %right depths [2] latencies [1]
       name "add" stable_id "sum" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%lhs: !ac.var<i64>, %rhs: !ac.var<i64>):
     %value = ac.var.add %lhs, %rhs : !ac.var<i64>
     %ready = ac.marker.obligation %value state pending resolver handshake
@@ -21,13 +21,10 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 }
 
 // MATERIALIZED: ac.rule %{{.*}}, %{{.*}}
-// MATERIALIZED: ac.rule.handshake = "ready_valid_2x1"
 
 // LOWERED-NOT: ac.rule
 // LOWERED-NOT: ac.marker
 // LOWERED: ac.transform %{{.*}}, %{{.*}}
-// LOWERED: ac.rule_effects = ["input.consume", "output.produce"]
-// LOWERED-SAME: ac.rule_handshake = "ready_valid_2x1"
 
 // GFSIM: std::tuple<gfsim::UInt<64>> operator()(const gfsim::UInt<64> &item, const gfsim::UInt<64> &item1)
 // GFSIM: gfsim::QueueAtomicTransform<block_0_policy, std::tuple<gfsim::UInt<64>, gfsim::UInt<64>>, std::tuple<gfsim::UInt<64>>> block_0_;

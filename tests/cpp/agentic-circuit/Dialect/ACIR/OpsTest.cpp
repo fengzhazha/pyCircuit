@@ -30,68 +30,6 @@
 namespace acir::ac {
 namespace {
 
-TEST(ACIROpsTest, PublicBuildersConstructEveryTaskFourOperation) {
-  mlir::MLIRContext context;
-  context.loadDialect<ACIRDialect>();
-  mlir::OpBuilder builder(&context);
-  auto loc = builder.getUnknownLoc();
-  auto module = mlir::ModuleOp::create(loc);
-  builder.setInsertionPointToStart(module.getBody());
-
-  auto scope = TypeScopeOp::create(builder, loc, "types");
-  builder.setInsertionPointToStart(&scope.getBody().emplaceBlock());
-  auto names = builder.getStrArrayAttr({"x"});
-  auto field = builder.getDictionaryAttr({
-      builder.getNamedAttr("name", builder.getStringAttr("x")),
-      builder.getNamedAttr("type", mlir::TypeAttr::get(builder.getI8Type())),
-  });
-  auto fields = builder.getArrayAttr({field});
-
-  EXPECT_TRUE(TypeAliasOp::create(builder, loc, "Byte", builder.getI8Type()));
-  EXPECT_TRUE(StructOp::create(builder, loc, "S", fields));
-  EXPECT_TRUE(
-      EnumOp::create(builder, loc, "E", builder.getStrArrayAttr({"a"})));
-  EXPECT_TRUE(UnionOp::create(builder, loc, "U", fields, "x"));
-  EXPECT_TRUE(PacketOp::create(builder, loc, "P", fields));
-  EXPECT_TRUE(TransactionOp::create(builder, loc, "T", fields));
-
-  auto input = mlir::UnrealizedConversionCastOp::create(
-                   builder, loc, mlir::TypeRange{builder.getI8Type()},
-                   mlir::ValueRange{})
-                   .getResult(0);
-  auto structRef = mlir::SymbolRefAttr::get(
-      &context, "types", {mlir::FlatSymbolRefAttr::get(&context, "S")});
-  auto packetRef = mlir::SymbolRefAttr::get(
-      &context, "types", {mlir::FlatSymbolRefAttr::get(&context, "P")});
-  auto structType = StructType::get(&context, structRef);
-  auto packetType = PacketType::get(&context, packetRef);
-  auto bytesType = VectorType::get(&context, 1, builder.getI8Type());
-  auto record = RecordCreateOp::create(builder, loc, structType,
-                                       mlir::ValueRange{input}, names);
-  EXPECT_TRUE(record);
-  auto get = RecordGetOp::create(builder, loc, builder.getI8Type(),
-                                 record.getResult(), "x");
-  auto with = RecordWithOp::create(builder, loc, structType, record.getResult(),
-                                   input, "x");
-  EXPECT_TRUE(get);
-  EXPECT_TRUE(with);
-  auto packet =
-      mlir::UnrealizedConversionCastOp::create(
-          builder, loc, mlir::TypeRange{packetType}, mlir::ValueRange{})
-          .getResult(0);
-  auto bytes =
-      PacketSerializeOp::create(builder, loc, bytesType, packet, packetRef);
-  EXPECT_TRUE(bytes);
-  auto deserialize = PacketDeserializeOp::create(builder, loc, packetType,
-                                                 bytes.getResult(), packetRef);
-  EXPECT_TRUE(deserialize);
-  EXPECT_TRUE(mlir::isMemoryEffectFree(record.getOperation()));
-  EXPECT_TRUE(mlir::isMemoryEffectFree(get.getOperation()));
-  EXPECT_TRUE(mlir::isMemoryEffectFree(with.getOperation()));
-  EXPECT_TRUE(mlir::isMemoryEffectFree(bytes.getOperation()));
-  EXPECT_TRUE(mlir::isMemoryEffectFree(deserialize.getOperation()));
-}
-
 TEST(ACIROpsTest, QueueBoundariesOwnEffectsAndFiringBodyIsPure) {
   mlir::MLIRContext context;
   context.loadDialect<ACIRDialect>();
@@ -99,12 +37,10 @@ TEST(ACIROpsTest, QueueBoundariesOwnEffectsAndFiringBodyIsPure) {
     module attributes {ac.contract_epoch = "0.5"} {
       %input = ac.source depth 4 latency 1 : !ac.queue<i32>
       %output = ac.firing %input depths [4] latencies [1]
-          stable_id "identity" domain "cycle" guard "true" checks []
-          handshake "ready_valid_1x1" schedule "independent"
-          effects ["input.consume", "output.produce"] {
+          stable_id "identity" domain "cycle" {
       ^body(%value: !ac.var<i32>):
         ac.firing.yield %value : !ac.var<i32>
-      } : (!ac.queue<i32>) -> !ac.queue<i32>
+      } {ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}], ac.arbitration_membership = [], ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}], ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind output_produce>, ordinal = 0 : i64}], ac.guard_kind = #ac<rule_guard_kind always>, ac.initially_active = false, ac.output_presence = [{ordinal = 0 : i64, presence_kind = #ac<rule_output_presence_kind always>}], ac.rule_footprints = [], ac.rule_priority = 0 : i64, ac.schedule_kind = #ac<rule_schedule_kind independent>, ac.state_accesses = [], ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}]} : (!ac.queue<i32>) -> !ac.queue<i32>
       ac.sink %output : !ac.queue<i32>
     }
   )mlir",
@@ -147,24 +83,6 @@ TEST(ACIROpsTest, LayoutAndEffectsAreDeclaredThroughMLIRInterfaces) {
   EXPECT_EQ(layout.getTypeSize(builder.getI32Type()).getFixedValue(), 4u);
 
   builder.setInsertionPointToStart(&scope.getBody().emplaceBlock());
-  auto input = mlir::UnrealizedConversionCastOp::create(
-      builder, loc, mlir::TypeRange{builder.getI8Type()}, mlir::ValueRange{});
-  auto structRef = mlir::SymbolRefAttr::get(
-      &context, "types", {mlir::FlatSymbolRefAttr::get(&context, "S")});
-  auto packetRef = mlir::SymbolRefAttr::get(
-      &context, "types", {mlir::FlatSymbolRefAttr::get(&context, "P")});
-  auto structType = StructType::get(&context, structRef);
-  auto record = RecordCreateOp::create(builder, loc, structType,
-                                       mlir::ValueRange{input.getResult(0)},
-                                       builder.getStrArrayAttr({"x"}));
-  auto packetType = PacketType::get(&context, packetRef);
-  auto packet = mlir::UnrealizedConversionCastOp::create(
-      builder, loc, mlir::TypeRange{packetType}, mlir::ValueRange{});
-  auto serialized = PacketSerializeOp::create(
-      builder, loc, VectorType::get(&context, 1, builder.getI8Type()),
-      packet.getResult(0), packetRef);
-  EXPECT_TRUE(mlir::isMemoryEffectFree(record.getOperation()));
-  EXPECT_TRUE(mlir::isMemoryEffectFree(serialized.getOperation()));
 }
 
 TEST(ACIROpsTest, ClosedRegistryDoesNotLoadUnrelatedDialects) {
@@ -333,7 +251,6 @@ TEST(ACIROpsTest, RegistryContainsExactQueueVarOperations) {
       "ac.instrumentation",
       "ac.module",
       "ac.module.extern",
-      "ac.module.generated",
       "ac.merge",
       "ac.memory.instance",
       "ac.memory.request",
@@ -360,16 +277,11 @@ TEST(ACIROpsTest, RegistryContainsExactQueueVarOperations) {
       "ac.reorder.yield",
       "ac.observe",
       "ac.packet",
-      "ac.packet.deserialize",
-      "ac.packet.serialize",
       "ac.port",
       "ac.probe",
       "ac.process",
       "ac.protocol",
       "ac.queue",
-      "ac.record.create",
-      "ac.record.get",
-      "ac.record.with",
       "ac.var.add",
       "ac.var.and",
       "ac.var.array",
@@ -441,7 +353,6 @@ TEST(ACIROpsTest, RegistryContainsExactQueueVarOperations) {
       "ac.try_send",
       "ac.type_alias",
       "ac.type_scope",
-      "ac.union",
       "ac.view",
       "ac.await_event",
       "ac.schedule",
@@ -457,7 +368,6 @@ TEST(ACIROpsTest, PublicBuildersConstructEveryTaskSixOperation) {
   mlir::MLIRContext context;
   context.loadDialect<ACIRDialect>();
   getStructuralProviderRegistry(&context).registerExternal("Leaf");
-  getStructuralProviderRegistry(&context).registerGenerator("Generated");
   mlir::OpBuilder builder(&context);
   auto loc = builder.getUnknownLoc();
   auto file = mlir::ModuleOp::create(loc);
@@ -470,18 +380,10 @@ TEST(ACIROpsTest, PublicBuildersConstructEveryTaskSixOperation) {
       builder.getNamedAttr("registry", builder.getStringAttr("cpp")),
       builder.getNamedAttr("name", builder.getStringAttr("Leaf")),
   });
-  auto generator = builder.getDictionaryAttr({
-      builder.getNamedAttr("registry", builder.getStringAttr("ac")),
-      builder.getNamedAttr("name", builder.getStringAttr("Generated")),
-  });
   auto leaf =
       ModuleExternOp::create(builder, loc, "Leaf", emptyType,
                              mlir::StringAttr(), emptyDictionary, binding);
-  auto generated =
-      ModuleGeneratedOp::create(builder, loc, "Generated", emptyType,
-                                mlir::StringAttr(), emptyDictionary, generator);
   EXPECT_TRUE(leaf);
-  EXPECT_TRUE(generated);
 
   auto top = ModuleOp::create(builder, loc, "Top", emptyType, emptyDictionary);
   builder.setInsertionPointToStart(top.addEntryBlock());
@@ -494,7 +396,7 @@ TEST(ACIROpsTest, PublicBuildersConstructEveryTaskSixOperation) {
       builder.getArrayAttr({emptyDictionary, emptyDictionary}));
   auto definitions = builder.getArrayAttr({
       mlir::FlatSymbolRefAttr::get(&context, "Leaf"),
-      mlir::FlatSymbolRefAttr::get(&context, "Generated"),
+      mlir::FlatSymbolRefAttr::get(&context, "Leaf"),
   });
   auto instances = InstancesOp::create(
       builder, loc, mlir::TypeRange{}, mlir::ValueRange{}, "mixed", "mixed",
@@ -535,13 +437,12 @@ TEST(ACIROpsTest, PublicBuildersConstructEveryTaskSixOperation) {
   EXPECT_TRUE(mlir::succeeded(verifyGraphStructure(file)));
 }
 
-TEST(ACIROpsTest, TaskSixRegistryDeltaIsExactlyNineGraphOperations) {
+TEST(ACIROpsTest, TaskSixRegistryDeltaIsExactlyEightGraphOperations) {
   mlir::MLIRContext context;
   context.loadDialect<ACIRDialect>();
-  const std::array<llvm::StringLiteral, 9> names = {
-      "ac.system",           "ac.module",   "ac.module.extern",
-      "ac.module.generated", "ac.instance", "ac.array",
-      "ac.instances",        "ac.view",     "ac.return",
+  const std::array<llvm::StringLiteral, 8> names = {
+      "ac.system",    "ac.module",    "ac.module.extern", "ac.instance",
+      "ac.array",     "ac.instances", "ac.view",          "ac.return",
   };
   for (llvm::StringLiteral name : names)
     EXPECT_TRUE(mlir::OperationName(name, &context).isRegistered())
@@ -904,7 +805,7 @@ TEST(ACIROpsTest, RuntimeAndQueueVarRegistryIsExact) {
   for (llvm::StringLiteral name : queueVarNames)
     EXPECT_TRUE(mlir::OperationName(name, &context).isRegistered())
         << name.str();
-  EXPECT_EQ(context.getRegisteredOperationsByDialect("ac").size(), 146u);
+  EXPECT_EQ(context.getRegisteredOperationsByDialect("ac").size(), 139u);
 }
 
 TEST(ACIROpsTest, ProcessLinearLivenessDoesNotRescanBlockPerValue) {
@@ -1722,7 +1623,7 @@ TEST(ACIROpsTest, TopologyVerifierWalksTypeAttributesAndLocations) {
   mlir::OpBuilder builder(&context);
   auto protocol = mlir::FlatSymbolRefAttr::get(&context, "missing");
   auto flow = FlowType::get(&context, builder.getI8Type(), protocol);
-  auto nested = OptionalType::get(&context, flow);
+  auto nested = mlir::TupleType::get(&context, {flow});
 
   auto attributeModule = mlir::ModuleOp::create(builder.getUnknownLoc());
   attributeModule->setAttr("metadata", mlir::TypeAttr::get(nested));

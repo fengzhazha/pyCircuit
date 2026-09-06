@@ -215,7 +215,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "eq",
-        ("vector<", "pyc.eq"),
+        ("vector<", "pyc.cmp", 'predicate = "eq"'),
         _samples(
             {"a": BASE_A, "b": [1, 0, 7, 3]},
             {"a": BASE_A, "scalar": 7},
@@ -225,7 +225,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "ne",
-        ("vector<", "pyc.eq", "pyc.not"),
+        ("vector<", "pyc.cmp", 'predicate = "eq"', "pyc.not"),
         _samples(
             {"a": BASE_A, "b": [1, 0, 7, 3]},
             {"a": BASE_A, "scalar": 7},
@@ -235,7 +235,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "lt",
-        ("vector<", "pyc.ult"),
+        ("vector<", "pyc.cmp", 'predicate = "ult"'),
         _samples(
             {"a": BASE_A, "b": BASE_B},
             {"a": BASE_A, "scalar": 7},
@@ -245,7 +245,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "gt",
-        ("vector<", "pyc.ult"),
+        ("vector<", "pyc.cmp", 'predicate = "ult"'),
         _samples(
             {"a": BASE_A, "b": BASE_B},
             {"a": BASE_A, "scalar": 7},
@@ -255,7 +255,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "le",
-        ("vector<", "pyc.ult", "pyc.not"),
+        ("vector<", "pyc.cmp", 'predicate = "ult"', "pyc.not"),
         _samples(
             {"a": BASE_A, "b": BASE_B},
             {"a": BASE_A, "scalar": 7},
@@ -265,7 +265,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "ge",
-        ("vector<", "pyc.ult", "pyc.not"),
+        ("vector<", "pyc.cmp", 'predicate = "ult"', "pyc.not"),
         _samples(
             {"a": BASE_A, "b": BASE_B},
             {"a": BASE_A, "scalar": 7},
@@ -275,7 +275,7 @@ BINARY_SPECS: tuple[BinarySpec, ...] = (
     ),
     BinarySpec(
         "slt",
-        ("vector<", "pyc.slt"),
+        ("vector<", "pyc.cmp", 'predicate = "slt"'),
         _samples(
             {"a": SIGNED_A, "b": SIGNED_B},
             {"a": SIGNED_A, "scalar": 0b1110},
@@ -363,21 +363,21 @@ VEC_CASES: tuple[VecCase, ...] = (
         "select_vv",
         samples=({"cond": [1, 0, 1, 0], "a": BASE_A, "b": BASE_B},),
         expected=_select,
-        ir_tokens=("vector<", "pyc.mux"),
+        ir_tokens=("vector<", "pyc.select"),
     ),
     VecCase(
         "select_vs",
         "select_vs",
         samples=({"cond": [1, 0, 1, 0], "a": BASE_A, "scalar": 9},),
         expected=_select_vs,
-        ir_tokens=("vector<", "pyc.mux"),
+        ir_tokens=("vector<", "pyc.select"),
     ),
     VecCase(
         "select_sv",
         "select_sv",
         samples=({"cond": [1, 0, 1, 0], "a": BASE_A, "scalar": 9},),
         expected=_select_sv,
-        ir_tokens=("vector<", "pyc.mux"),
+        ir_tokens=("vector<", "pyc.select"),
     ),
     VecCase(
         "zext",
@@ -417,14 +417,14 @@ VEC_CASES: tuple[VecCase, ...] = (
         "shl_imm",
         samples=({"a": BASE_A},),
         expected=_shl,
-        ir_tokens=("vector<", "pyc.shli"),
+        ir_tokens=("vector<", "pyc.constant", "pyc.shl"),
     ),
     VecCase(
         "lshr_imm",
         "lshr_imm",
         samples=({"a": BASE_A},),
         expected=_lshr,
-        ir_tokens=("vector<", "pyc.lshri"),
+        ir_tokens=("vector<", "pyc.constant", "pyc.lshr"),
     ),
     VecCase(
         "ashr_imm",
@@ -432,7 +432,7 @@ VEC_CASES: tuple[VecCase, ...] = (
         signed=True,
         samples=({"a": SIGNED_A},),
         expected=_ashr,
-        ir_tokens=("vector<", "pyc.ashri"),
+        ir_tokens=("vector<", "pyc.constant", "pyc.ashr"),
     ),
     VecCase(
         "or_reduce",

@@ -1119,8 +1119,7 @@ public:
     if (!module.getOps<ac::SystemOp>().empty())
       return runStructured();
     for (mlir::Operation &operation : module.getBody()->getOperations()) {
-      if (mlir::isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp,
-                    ac::ModuleGeneratedOp>(operation))
+      if (mlir::isa<ac::SystemOp, ac::ModuleOp, ac::ModuleExternOp>(operation))
         return planError(
             "structured system/module declaration is not legal in QueueGraph");
     }

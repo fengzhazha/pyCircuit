@@ -47,7 +47,7 @@ gfsim commits the input plus only the selected owner in one transaction.
 `branch_join_state.py` assigns the same scalar lexical owner in both arms.
 Compiler-owned `ac.var.select` joins the values before storage selection, so
 the frozen plan contains one owner write; gfsim uses a ternary and PYC uses the
-same `pyc.mux` semantics.
+same `pyc.select` semantics.
 
 `indexed_branch_join.py` extends the same rule to one persistent list. The
 compiler joins both branch indices and both values, preserving one dynamic

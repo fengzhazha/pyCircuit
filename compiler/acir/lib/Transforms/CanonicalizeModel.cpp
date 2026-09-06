@@ -25,11 +25,11 @@ unsigned topLevelRank(Operation *operation) {
   return llvm::StringSwitch<unsigned>(name)
       .Case("ac.system", 0)
       .Cases({"ac.type_scope", "ac.type_alias", "ac.struct", "ac.enum",
-              "ac.union", "ac.packet", "ac.transaction"},
+              "ac.packet", "ac.transaction"},
              1)
       .Cases({"ac.interface", "ac.protocol"}, 2)
       .Case("func.func", 3)
-      .Cases({"ac.module", "ac.module.extern", "ac.module.generated"}, 4)
+      .Cases({"ac.module", "ac.module.extern"}, 4)
       .Default(5);
 }
 

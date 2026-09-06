@@ -140,7 +140,7 @@ def test_enumeration_usable_as_input_enum() -> None:
     assert isinstance(c, EnumSignal)
     assert c.width == 2
     m.output("is_blue", c.is_(Color.BLUE))
-    assert "pyc.eq" in m.emit_mlir()
+    assert "pyc.cmp" in m.emit_mlir() and 'predicate = "eq"' in m.emit_mlir()
 
 
 def test_enumeration_single_member() -> None:
@@ -297,7 +297,7 @@ def test_input_enum_port_emits() -> None:
     m.output("is_ror", op.is_(SRType.ROR))
     mlir = m.emit_mlir()
     assert "pyc.and" not in mlir  # plain eq, no masking
-    assert "pyc.eq" in mlir
+    assert "pyc.cmp" in mlir and 'predicate = "eq"' in mlir
 
 
 # --- domain.signal(enum=E) register -----------------------------------------
@@ -311,7 +311,7 @@ def test_domain_signal_enum_register_assign_member() -> None:
 
     mlir = compile_cycle_aware(top, name="c", eager=True).emit_mlir()
     assert "pyc.constant 1 : i2" in mlir  # LSR code loaded into reg
-    assert "pyc.eq" in mlir
+    assert "pyc.cmp" in mlir and 'predicate = "eq"' in mlir
 
 
 def test_domain_signal_enum_cross_enum_assign_raises() -> None:
@@ -341,7 +341,7 @@ def test_bind_tags_existing_signal() -> None:
     assert isinstance(op, EnumSignal)
     assert op.raw is raw
     m.output("y", op.is_(SRType.ASR))
-    assert "pyc.eq" in m.emit_mlir()
+    assert "pyc.cmp" in m.emit_mlir() and 'predicate = "eq"' in m.emit_mlir()
 
 
 def test_bind_on_cas_preserves_cycle() -> None:

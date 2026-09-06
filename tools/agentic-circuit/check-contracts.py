@@ -110,8 +110,7 @@ def check_epochs(errors):
     match = re.search(r'^contract-epoch\s*=\s*"([^"]+)"\s*$', pyproject, re.MULTILINE)
     if match is None or match.group(1) != EPOCH:
         errors.append(
-            "python/agentic-circuit/pyproject.toml must declare "
-            'contract-epoch = "0.5"'
+            'python/agentic-circuit/pyproject.toml must declare contract-epoch = "0.5"'
         )
 
 
@@ -411,6 +410,18 @@ def check_release_layout(errors):
             errors.append(completed.stderr.strip() or f"{script} failed")
 
 
+def check_pyc_inventory(errors):
+    completed = subprocess.run(
+        [sys.executable, ROOT / "tools/check-pyc-inventory.py"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if completed.returncode:
+        errors.append(completed.stderr.strip() or "PYC IR inventory check failed")
+
+
 def main():
     errors = []
     check_governance(errors)
@@ -421,6 +432,7 @@ def main():
     check_placeholders(errors)
     check_llvm_lock(errors)
     check_release_layout(errors)
+    check_pyc_inventory(errors)
     if errors:
         for error in errors:
             print(f"error: {error}", file=sys.stderr)

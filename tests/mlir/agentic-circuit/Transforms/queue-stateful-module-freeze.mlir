@@ -29,10 +29,7 @@ builtin.module attributes {
       ac.table @sum entry i8 entries 1 init 0 owner "/logic"
           stable_id "table/logic/sum"
       %next = ac.firing %borrowed depths [2] latencies [1]
-          stable_id "accumulate" domain "cycle" guard "true" checks []
-          handshake "ready_valid_1x1_table"
-          schedule "table_lexical_priority"
-          effects ["input.consume", "output.produce", "table.replace:sum"] {
+          stable_id "accumulate" domain "cycle" {
       ^bb0(%item: !ac.var<i8>):
         %index = ac.var.constant 0 : i1 as !ac.var<i1>
         %old = ac.table.get @sum[%index] : !ac.var<i1> -> !ac.var<i8>
@@ -44,13 +41,23 @@ builtin.module attributes {
         ac.firing.output %value when %enabled ordinal 0 : !ac.var<i8>, !ac.var<i1>
         ac.firing.yield %value : !ac.var<i8>
       } {
+        ac.activation_sources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @sum}],
+        ac.arbitration_membership = [{priority = 0 : i64, resource = @sum}],
+        ac.checks_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}],
+        ac.effects_typed = [{guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind output_produce>, ordinal = 0 : i64}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_read>, resource = @sum}, {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind state_write>, resource = @sum}],
+        ac.guard_kind = #ac<rule_guard_kind always>,
+        ac.initially_active = false,
         ac.name = "module_output",
+        ac.output_presence = [{ordinal = 0 : i64, presence_kind = #ac<rule_output_presence_kind always>}],
         ac.rule_definition = "accumulate",
         ac.rule_footprints = [
           {access = "read", guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @sum},
           {access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @sum}
         ],
-        ac.rule_priority = 0 : i64
+        ac.rule_priority = 0 : i64,
+        ac.schedule_kind = #ac<rule_schedule_kind lexical_priority>,
+        ac.state_accesses = [{guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind read>, resource = @sum}, {fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = #ac<rule_index_kind static>, kind = #ac<rule_state_access_kind replace>, resource = @sum}],
+        ac.transaction_resources = [{kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}, {kind = #ac<activation_resource_kind state>, resource = @sum}]
       } : (!ac.queue<i8>) -> !ac.queue<i8>
       ac.scope.yield %next : !ac.queue<i8>
     } : (!ac.queue<i8>) -> !ac.queue<i8>

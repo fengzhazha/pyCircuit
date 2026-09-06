@@ -1,0 +1,13 @@
+jit-cache: miss
+[tb] cyc=0 bypass i2_srcL_hit=0 i2_srcR_hit=0
+[tb] cyc=32 bypass i2_srcL_hit=4 i2_srcR_hit=0
+[tb] cyc=64 bypass i2_srcL_hit=0 i2_srcR_hit=10
+[tb] cyc=96 bypass i2_srcL_hit=80 i2_srcR_hit=0
+[tb] cyc=128 bypass i2_srcL_hit=40 i2_srcR_hit=0
+[tb] cyc=160 bypass i2_srcL_hit=ff i2_srcR_hit=c7
+OK
+- /Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/bypass_unit/tb/tb_bypass_unit.sv:6003: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.044 2026-01-01
+- Verilator: $finish at 185ns; walltime 0.001 s; speed 155.987 us/s
+- Verilator: cpu 0.001 s on 1 threads; alloced 2 MB
+/Users/zhoubot/linx-isa/tools/pyCircuit/.pycircuit_out/sim/bypass_unit/project_manifest.json

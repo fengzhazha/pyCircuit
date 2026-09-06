@@ -210,28 +210,6 @@ struct ProcessStatePlan::Impl {
   uint32_t pcBitWidth = 1;
   uint64_t fairnessWork = 1;
 };
-struct ProcessRecordFieldDescriptor::Impl {
-  std::string name;
-  std::string typeKey;
-};
-struct ProcessRecordCreatePayload::Impl {
-  std::vector<ProcessRecordFieldDescriptor> fields;
-  std::string recordType;
-};
-struct ProcessRecordGetPayload::Impl {
-  std::string field, record, result;
-};
-struct ProcessRecordWithPayload::Impl {
-  std::string field, record, value;
-};
-struct ProcessPacketSerializePayload::Impl {
-  uint64_t bytes = 0;
-  std::string packet, packetType;
-};
-struct ProcessPacketDeserializePayload::Impl {
-  uint64_t bytes = 0;
-  std::string packet, packetType;
-};
 struct ProcessTraceDecodePayload::Impl {
   std::string entry, result, source;
 };
@@ -297,11 +275,6 @@ struct ProcessScalarUnwrapPayload::Impl {
 };
 struct ProcessGeneratedCalleePayload::Impl {
   ProcessHelperRole role = ProcessHelperRole::WakeNextDelta;
-  std::optional<ProcessRecordCreatePayload> recordCreate;
-  std::optional<ProcessRecordGetPayload> recordGet;
-  std::optional<ProcessRecordWithPayload> recordWith;
-  std::optional<ProcessPacketSerializePayload> packetSerialize;
-  std::optional<ProcessPacketDeserializePayload> packetDeserialize;
   std::optional<ProcessTraceDecodePayload> traceDecode;
   std::optional<ProcessQueueTrySendPayload> queueTrySend;
   std::optional<ProcessQueueTryRecvPayload> queueTryRecv;

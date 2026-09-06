@@ -12,7 +12,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @entries entry i8 entries 4 init 0 owner "/" stable_id "table/entries"
   %input = ac.source depth 1 latency 1 {ac.name = "input"} : !ac.queue<!ac.struct<@types::@Command>>
   ac.rule %input depths [] latencies [] name "update" stable_id "update_0"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body(%item: !ac.var<!ac.struct<@types::@Command>>):
     %candidate = ac.var.constant true as !ac.var<i1>
     %direct = ac.var.get %item field "direct" : !ac.var<!ac.struct<@types::@Command>> -> !ac.var<i1>

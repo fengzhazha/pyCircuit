@@ -160,7 +160,11 @@ struct FoldVectorConstantLanes : public OpRewritePattern<OpT> {
     for (size_t i = 0; i < count; ++i) {
       Value lhs = lhsLanes ? (*lhsLanes)[i] : op.getLhs();
       Value rhs = rhsLanes ? (*rhsLanes)[i] : op.getRhs();
-      lanes.push_back(rewriter.create<OpT>(op.getLoc(), laneTy, lhs, rhs));
+      if constexpr (std::is_same_v<OpT, pyc::CmpOp>)
+        lanes.push_back(rewriter.create<OpT>(op.getLoc(), laneTy, lhs, rhs,
+                                             op.getPredicateAttr()));
+      else
+        lanes.push_back(rewriter.create<OpT>(op.getLoc(), laneTy, lhs, rhs));
     }
     rewriter.replaceOpWithNewOp<pyc::VCreateOp>(op, op.getResult().getType(), lanes);
     return success();
@@ -233,31 +237,31 @@ struct FoldRank2ReduceLanes : public OpRewritePattern<ReduceOp> {
   }
 };
 
-struct MuxSameSelSimplify : public OpRewritePattern<pyc::MuxOp> {
+struct MuxSameSelSimplify : public OpRewritePattern<pyc::SelectOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(pyc::MuxOp op, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(pyc::SelectOp op, PatternRewriter &rewriter) const override {
     Value sel = op.getSel();
 
     // sel ? (sel ? x : y) : z  ==>  sel ? x : z
-    if (auto aMux = op.getA().getDefiningOp<pyc::MuxOp>()) {
+    if (auto aMux = op.getA().getDefiningOp<pyc::SelectOp>()) {
       if (aMux.getSel() == sel) {
-        rewriter.replaceOpWithNewOp<pyc::MuxOp>(op, op.getType(), sel, aMux.getA(), op.getB());
+        rewriter.replaceOpWithNewOp<pyc::SelectOp>(op, op.getType(), sel, aMux.getA(), op.getB());
         return success();
       }
     }
 
     // sel ? x : (sel ? y : z)  ==>  sel ? x : z
-    if (auto bMux = op.getB().getDefiningOp<pyc::MuxOp>()) {
+    if (auto bMux = op.getB().getDefiningOp<pyc::SelectOp>()) {
       if (bMux.getSel() == sel) {
-        rewriter.replaceOpWithNewOp<pyc::MuxOp>(op, op.getType(), sel, op.getA(), bMux.getB());
+        rewriter.replaceOpWithNewOp<pyc::SelectOp>(op, op.getType(), sel, op.getA(), bMux.getB());
         return success();
       }
     }
 
     // (~sel) ? a : b  ==>  sel ? b : a
     if (auto n = sel.getDefiningOp<pyc::NotOp>()) {
-      rewriter.replaceOpWithNewOp<pyc::MuxOp>(op, op.getType(), n.getIn(), op.getB(), op.getA());
+      rewriter.replaceOpWithNewOp<pyc::SelectOp>(op, op.getType(), n.getIn(), op.getB(), op.getA());
       return success();
     }
 
@@ -265,10 +269,10 @@ struct MuxSameSelSimplify : public OpRewritePattern<pyc::MuxOp> {
   }
 };
 
-struct MuxI1ToLogic : public OpRewritePattern<pyc::MuxOp> {
+struct MuxI1ToLogic : public OpRewritePattern<pyc::SelectOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(pyc::MuxOp op, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(pyc::SelectOp op, PatternRewriter &rewriter) const override {
     if (!isI1OrI1Vector(op.getType()))
       return failure();
 
@@ -456,7 +460,7 @@ struct VGetOfVectorMux : public OpRewritePattern<pyc::VGetOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(pyc::VGetOp op, PatternRewriter &rewriter) const override {
-    auto mux = op.getVec().getDefiningOp<pyc::MuxOp>();
+    auto mux = op.getVec().getDefiningOp<pyc::SelectOp>();
     if (!mux || !mux.getResult().hasOneUse())
       return failure();
     auto muxVT = dyn_cast<VectorType>(mux.getResult().getType());
@@ -481,7 +485,7 @@ struct VGetOfVectorMux : public OpRewritePattern<pyc::VGetOp> {
     Type laneTy = op.getResult().getType();
     Value a = rewriter.create<pyc::VGetOp>(op.getLoc(), laneTy, mux.getA(), idx);
     Value b = rewriter.create<pyc::VGetOp>(op.getLoc(), laneTy, mux.getB(), idx);
-    rewriter.replaceOpWithNewOp<pyc::MuxOp>(op, laneTy, sel, a, b);
+    rewriter.replaceOpWithNewOp<pyc::SelectOp>(op, laneTy, sel, a, b);
     return success();
   }
 };
@@ -610,9 +614,7 @@ struct CombCanonicalizePass : public PassWrapper<CombCanonicalizePass, Operation
                  FoldVectorConstantLanes<pyc::AndOp>,
                  FoldVectorConstantLanes<pyc::OrOp>,
                  FoldVectorConstantLanes<pyc::XorOp>,
-                 FoldVectorConstantLanes<pyc::EqOp>,
-                 FoldVectorConstantLanes<pyc::UltOp>,
-                 FoldVectorConstantLanes<pyc::SltOp>,
+                 FoldVectorConstantLanes<pyc::CmpOp>,
                  FoldRank2ReduceLanes<pyc::VOrReduceOp>,
                  FoldRank2ReduceLanes<pyc::VAndReduceOp>,
                  FoldRank2ReduceLanes<pyc::VAddReduceOp>,

@@ -5832,7 +5832,7 @@ same committed-projection comparison used by the circular ROB.
 
 ## Decision 0199: typed rule summaries bridge the current single-condition subset
 
-**Status:** Accepted and implemented as a phase-0 bridge, not final path IR
+**Status:** Accepted and implemented; legacy string summaries retired by Decision 0219
 
 **Context / Goal**
 The existing rule pipeline carried guard, schedule, handshake, and effect
@@ -5859,9 +5859,9 @@ categories as final CFG semantics.
 - Firing and proof-carrying Transform IR preserve the typed summaries. The
   verifier reconstructs them independently from endpoints, condition, typed
   footprints, proposals, and lexical priority and rejects any mismatch.
-- Legacy guard/check/handshake/schedule/effect strings remain derived readable
-  summaries during this bridge. They are not removed until all current
-  hand-written fixtures and QueueGraph consumers carry the typed contract.
+- Legacy guard/check/handshake/schedule/effect strings were derived readable
+  summaries during the phase-0 bridge. Decision 0219 removes them after all
+  fixtures, verifiers, and QueueGraph consumers move to the typed contract.
 - This decision does not complete typed paths. A `predicate` guard or presence
   enum does not identify a particular SSA condition or prove path disjointness.
   The next slice must add SSA `!ac.var<i1>` presence to output and state effects.
@@ -5869,8 +5869,9 @@ categories as final CFG semantics.
   reservation, or commit syntax is exposed.
 
 **Verification**
-- Guarded state-driven lowering prints the typed summary beside the legacy
-  readable summary.
+- The phase-0 gate originally printed the typed summary beside its derived
+  readable summary. Decision 0219 closure now proves the typed form is
+  sufficient and rejects the retired string attributes.
 - Replacing the derived predicate guard kind with always is rejected directly
   by the Firing verifier.
 - ACIR lit passes 160/160 tests.
@@ -6461,14 +6462,14 @@ branch values should join before storage and transaction selection.
   true-value, and false-value SSA operands. Its verifier checks arity, i1
   condition, and exact value/result types.
 - gfsim C++ emits one ternary expression. ACIR-to-PYC QueueGraph lowering emits
-  one `pyc.mux`, preserving the same vendor-neutral combinational semantics.
+  one `pyc.select`, preserving the same vendor-neutral combinational semantics.
 - Python remains ordinary `if/else` assignment and gains no `select`, mux,
   state, Queue, or atomic constructor.
 
 **Verification**
 - ACIR parser/verifier tests accept scalar and struct `ac.var.select` and reject
   a non-i1 condition. QueueGraph lit verifies `value_select`, generated C++20
-  ternary code, and PYC `pyc.mux` lowering.
+  ternary code, and PYC `pyc.select` lowering.
 - Frontend coverage proves two same-owner arms generate one `ac.var.select`, one
   `ac.var.assign`, and no second owner proposal.
 - `branch_join_state.py` selects direct value 9 on the true arm and incremented
@@ -7070,7 +7071,8 @@ decode requirement.
   loss for bit 63. Its independent verifier repeats arity, type, canonical
   spelling, width, and `value`-within-mask checks.
 - Generated gfsim evaluates `(input & mask) == value`. QueueGraph-to-PYC emits
-  only existing vendor-neutral `pyc.constant`, `pyc.and`, and `pyc.eq`; no new
+  only existing vendor-neutral `pyc.constant`, `pyc.and`, and
+  `pyc.cmp {predicate = "eq"}`; no new
   backend-only PYC or RTL semantic primitive is introduced.
 - Contract epoch remains `0.5`: this is an additive pure-value capability for
   syntax and ACIR operations that were previously rejected.
@@ -7095,3 +7097,86 @@ decode requirement.
 - PTO-ISA/pyCircuit issue #39.
 - User objective (2026-09-06): keep decode authoring compact and Pythonic while
   MLIR owns semantic verification and every admitted backend remains aligned.
+
+## Decision 0219: hard-break ACIR/PYC primitive cleanup precedes vector removal
+
+**Status:** Accepted and implemented
+
+**Context / Goal**
+The merged Agentic value/rule flow exposed dormant ACIR surface, phase-0 string
+proofs, duplicated PYC semantic spellings, immediate-only shift operations, and
+the absence of an exact PYC inventory. These increase compiler paths without
+adding expressive power and make the later DavinciOO consumer depend on
+ambiguous or unverified primitives. Issue #42 separately owns removal of the
+misinterpreted first-class PYC vector IR; this decision must not implement that
+work early.
+
+**Decision (strong constraint)**
+- Remove `ac.module.generated` and its Python decorator/export. Preserve only
+  ordinary and external module declarations.
+- Remove raw `ac.record.create/get/with` and
+  `ac.packet.serialize/deserialize`, including ProcessStatePlan roles and
+  payload machinery. Canonical aggregate values remain `ac.var.tuple/array/
+  element/get/with/extract/concat/insert` over struct, enum, builtin tuple, and
+  `!ac.value_array`.
+- Remove dormant ACIR `!ac.address`, `!ac.duration`, `!ac.rate`, `!ac.map`,
+  `!ac.set`, `!ac.union`, `!ac.optional`, `!ac.list`, and `!ac.vector`, plus
+  `ac.union`. `!ac.value_array` and topology `!ac.array` remain distinct.
+  Generic verifier/layout branches do not count as a production consumer.
+- Complete Decision 0199: typed/SSA summaries, state footprints, activation
+  resources, transaction resources, and structural firing operations become
+  the sole rule contract. Delete `guard`/`functional_guard`, `checks`,
+  `handshake`, `schedule`, `effects`, and their `ac.rule.*` string attributes;
+  do not preserve compatibility aliases or dual writing.
+- Remove single-value type/value-fact marker enums when their transient marker
+  role has no remaining state space. Arbitration retains resource and lexical
+  priority records, but a single-value arbitration-kind wrapper is removed
+  unless implementation proves an additional real policy.
+- Rename canonical `pyc.mux` to `pyc.select`. Consolidate `pyc.eq`, `pyc.ult`,
+  and `pyc.slt` into one `pyc.cmp` operation with a closed predicate attribute.
+  Producers, folders, passes, C++/Verilog emitters, Agentic lowering, tests, and
+  docs switch atomically; old spellings are unregistered and unparsed.
+- Delete `pyc.shli`, `pyc.lshri`, and `pyc.ashri`. Constant amounts are ordinary
+  SSA constants feeding `pyc.shl`, `pyc.lshr`, or `pyc.ashr`. ACIR
+  `ac.var.shr` is unsigned logical and lowers to `pyc.lshr`; signed arithmetic
+  right shift remains the distinct `pyc.ashr` operation.
+- Add a machine-readable normative PYC inventory covering every registered op
+  and type, its stage/status, producers, verifier/folder/canonicalization,
+  ACIR-to-PYC mapping, emitters, RTL selection, positive/negative MLIR, and E2E
+  consumers. A read-only gate derives an exact ledger and rejects ODS,
+  registration, inventory, or coverage drift.
+- The seven existing PYC vector-specific operations remain unchanged in this
+  issue but are inventoried as pending removal under issue #42. #41 does not
+  remove `AnyVectorOfAnyRank`, vector emitters/runtime, `pyc.v_*`, or vector
+  tests. #42 must hard-break and scalarize them before canonical PYC.
+- Contract epoch remains `0.5` for Agentic ACIR. PYC is hard-break-only and
+  intentionally provides no parser aliases for deleted or renamed operations.
+
+**Required ordering**
+1. Remove dormant ACIR surface and synchronize its exact inventory.
+2. Delete legacy rule strings after typed verifier consumers are complete.
+3. Rename/consolidate scalar PYC operations and shifts verifier-first.
+4. Land the exact PYC inventory gate and update normative documentation.
+5. Run closure and merge issue #41 before beginning issue #42.
+
+**Verification**
+- ODS and parser hard-break tests reject every removed ACIR declaration/type,
+  legacy rule/firing string attribute, and removed PYC spelling.
+- Canonical PYC uses `pyc.select`, closed-predicate `pyc.cmp`, and SSA-only
+  shifts in the Python DSL, Agentic lowering, transforms, C++ emitter, and
+  Verilog emitter. A mismatched select result and unknown compare predicate
+  both fail in the dialect verifier.
+- The generated PYC inventory matches exactly 48 registered operations and two
+  types, records the qualified RTL-selection boundary, and assigns only the
+  seven unchanged `pyc.v_*` operations to issue #42.
+- Current-checkout validation passes 151 Python/PYC/vector tests with two
+  optional skips, 32 Queue/gfsim integration tests with one optional skip, and
+  all 18 ACIR-to-PYC C++/Verilog integration cases.
+- Closure evidence is archived under
+  `docs/gates/logs/20260907-issue41-primitive-cleanup/`.
+
+**Source**
+- PTO-ISA/pyCircuit issue #41 and its 2026-09-06 vector-scope clarification.
+- User direction (2026-09-07): maintain the repository with administrator
+  merges, keep `enforce_admins=true` outside the minimal merge window, and
+  finish #39, #41, #42, and #44 serially before DavinciOO implementation.

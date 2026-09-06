@@ -496,7 +496,7 @@ LogicalResult ResourceOp::verify() {
     auto reference = latency.getAs<SymbolRefAttr>("ref");
     Operation *target = reference ? lookupOuter(*this, reference) : nullptr;
     if (!hasExactKeys(latency, {"kind", "ref"}) || !reference ||
-        !isa_and_nonnull<ModuleOp, ModuleExternOp, ModuleGeneratedOp>(target))
+        !isa_and_nonnull<ModuleOp, ModuleExternOp>(target))
       return emitOpError("symbol latency model reference is unresolved");
   } else {
     return emitOpError("latency model kind must be 'fixed' or 'symbol'");

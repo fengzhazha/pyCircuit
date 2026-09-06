@@ -1197,10 +1197,25 @@ class _Compiler:
                 if isinstance(lhs, (Wire, Reg)):
                     w = _expect_wire(lhs, ctx="<<")
                     amt = rhs.value if isinstance(rhs, LiteralValue) else rhs
-                    if not isinstance(amt, int):
-                        raise JitError("<< only supports constant shift amounts")
-                    return w.shl(amount=int(amt))
-                if isinstance(rhs, (Wire, Reg)):
+                    if isinstance(amt, int):
+                        return w.shl(amount=int(amt))
+                    if isinstance(amt, (Wire, Reg)):
+                        amount_wire = _expect_wire(amt, ctx="<< shift amount")
+                        if not isinstance(amount_wire.ty, Bits):
+                            raise JitError(
+                                f"<< shift amount must be a scalar integer, got {amount_wire.ty}"
+                            )
+                        return w.shl(amount=amount_wire)
+                    if isinstance(amt, Signal):
+                        if not isinstance(amt.ty, Bits):
+                            raise JitError(
+                                f"<< shift amount must be a scalar integer, got {amt.ty}"
+                            )
+                        return w.shl(amount=amt)
+                    raise JitError(
+                        f"<< shift amount must be an integer or typed scalar signal, got {type(amt).__name__}"
+                    )
+                if isinstance(rhs, (Wire, Reg, Signal)):
                     raise JitError(
                         "<< requires a wire on the left side when using hardware values"
                     )
@@ -1209,10 +1224,25 @@ class _Compiler:
                 if isinstance(lhs, (Wire, Reg)):
                     w = _expect_wire(lhs, ctx=">>")
                     amt = rhs.value if isinstance(rhs, LiteralValue) else rhs
-                    if not isinstance(amt, int):
-                        raise JitError(">> only supports constant shift amounts")
-                    return w >> int(amt)
-                if isinstance(rhs, (Wire, Reg)):
+                    if isinstance(amt, int):
+                        return w >> int(amt)
+                    if isinstance(amt, (Wire, Reg)):
+                        amount_wire = _expect_wire(amt, ctx=">> shift amount")
+                        if not isinstance(amount_wire.ty, Bits):
+                            raise JitError(
+                                f">> shift amount must be a scalar integer, got {amount_wire.ty}"
+                            )
+                        return w >> amount_wire
+                    if isinstance(amt, Signal):
+                        if not isinstance(amt.ty, Bits):
+                            raise JitError(
+                                f">> shift amount must be a scalar integer, got {amt.ty}"
+                            )
+                        return w >> amt
+                    raise JitError(
+                        f">> shift amount must be an integer or typed scalar signal, got {type(amt).__name__}"
+                    )
+                if isinstance(rhs, (Wire, Reg, Signal)):
                     raise JitError(
                         ">> requires a wire on the left side when using hardware values"
                     )

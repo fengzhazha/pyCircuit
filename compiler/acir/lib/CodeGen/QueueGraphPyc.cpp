@@ -203,8 +203,8 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
              << "\n";
         body << "    " << expected << " = pyc.constant " << expression.value
              << " : " << *type << "\n";
-        body << "    " << result << " = pyc.eq " << masked << ", "
-             << expected << " : " << *type << ", " << *type
+        body << "    " << result << " = pyc.cmp " << masked << ", "
+             << expected << " {predicate = \"eq\"} : " << *type << ", " << *type
              << " -> i1\n";
       } else if (expression.kind == "priority_index" ||
           expression.kind == "priority_valid") {
@@ -381,7 +381,7 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
         if (!type)
           return type.takeError();
         result = newValue();
-        body << "    " << result << " = pyc.mux " << *first << ", "
+        body << "    " << result << " = pyc.select " << *first << ", "
              << *trueValue << ", " << *falseValue << " : i1, " << *type << ", "
              << *type << " -> " << *type << "\n";
       } else if (expression.kind == "not") {
@@ -463,8 +463,9 @@ emitTransform(const QueueGraphPlan &plan, const QueueBlockPlan &block,
           return pycError("unsupported comparison predicate");
         }
         std::string compared = newValue();
-        body << "    " << compared << " = pyc." << opcode.str() << ' ' << lhs
-             << ", " << rhs << " : " << *type << ", " << *type << " -> i1\n";
+        body << "    " << compared << " = pyc.cmp " << lhs << ", " << rhs
+             << " {predicate = \"" << opcode.str() << "\"} : " << *type
+             << ", " << *type << " -> i1\n";
         if (negate) {
           result = newValue();
           body << "    " << result << " = pyc.not " << compared << " : i1\n";
@@ -880,13 +881,15 @@ llvm::Expected<std::string> generateQueueGraphPyc(const QueueGraphPlan &plan) {
   auto emitBinary = [&](llvm::StringRef operation, llvm::StringRef lhs,
                         llvm::StringRef rhs, llvm::StringRef type) {
     std::string result = newValue();
-    body << "    " << result << " = pyc." << operation.str() << ' ' << lhs.str()
-         << ", " << rhs.str() << " : " << type.str() << ", " << type.str()
-         << " -> "
-         << (operation == "eq" || operation == "ult" || operation == "slt"
-                 ? "i1"
-                 : type.str())
-         << "\n";
+    bool isCompare = operation == "eq" || operation == "ult" ||
+                     operation == "slt";
+    body << "    " << result << " = pyc."
+         << (isCompare ? "cmp" : operation.str()) << ' ' << lhs.str() << ", "
+         << rhs.str();
+    if (isCompare)
+      body << " {predicate = \"" << operation.str() << "\"}";
+    body << " : " << type.str() << ", " << type.str() << " -> "
+         << (isCompare ? "i1" : type.str()) << "\n";
     return result;
   };
   auto emitNot = [&](llvm::StringRef value) {
@@ -897,7 +900,7 @@ llvm::Expected<std::string> generateQueueGraphPyc(const QueueGraphPlan &plan) {
   auto emitMux = [&](llvm::StringRef select, llvm::StringRef trueValue,
                      llvm::StringRef falseValue, llvm::StringRef type) {
     std::string result = newValue();
-    body << "    " << result << " = pyc.mux " << select.str() << ", "
+    body << "    " << result << " = pyc.select " << select.str() << ", "
          << trueValue.str() << ", " << falseValue.str() << " : i1, "
          << type.str() << ", " << type.str() << " -> " << type.str() << "\n";
     return result;

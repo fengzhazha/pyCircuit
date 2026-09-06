@@ -559,7 +559,8 @@ int main() {
             self.assertIn("%in_data: i26", pyc)
             self.assertIn("pyc.constant 1 : i2", pyc)
             self.assertIn("pyc.constant 2 : i2", pyc)
-            self.assertIn("pyc.eq", pyc)
+            self.assertIn("pyc.cmp", pyc)
+            self.assertIn('predicate = "eq"', pyc)
 
             cpp_harness = root / "cpp_harness.cpp"
             cpp_executable = root / "cpp_model"
@@ -1136,7 +1137,7 @@ int main() {
             self.assertEqual(0, completed.returncode, completed.stderr)
             pyc = (output / "model.pyc").read_text(encoding="utf-8")
             self.assertEqual(1, pyc.count("pyc.and"))
-            self.assertEqual(1, pyc.count("pyc.eq"))
+            self.assertEqual(1, pyc.count("pyc.cmp"))
 
             cpp_harness = root / "cpp_harness.cpp"
             cpp_executable = root / "cpp_model"
@@ -1352,7 +1353,8 @@ int main() {
             self.assertEqual(0, completed.returncode, completed.stderr)
             pyc = (output / "model.pyc").read_text(encoding="utf-8")
             self.assertEqual(3, pyc.count("pyc.reg"))
-            self.assertIn("pyc.ult", pyc)
+            self.assertIn("pyc.cmp", pyc)
+            self.assertIn('predicate = "ult"', pyc)
             self.assertIn("feedback_iteration_limit", pyc)
 
             cpp_harness = root / "cpp_harness.cpp"
@@ -1602,7 +1604,8 @@ int main() {{
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             pyc = (output / "model.pyc").read_text(encoding="utf-8")
-            self.assertIn("pyc.eq", pyc)
+            self.assertIn("pyc.cmp", pyc)
+            self.assertIn('predicate = "eq"', pyc)
             self.assertIn("pyc.fifo", pyc)
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual("0.5", manifest["contract_epoch"])
@@ -2318,7 +2321,8 @@ int main() {
             self.assertEqual(0, completed.returncode, completed.stderr)
             pyc = (output / "model.pyc").read_text(encoding="utf-8")
             self.assertEqual(5, pyc.count("pyc.reg"))
-            self.assertIn("pyc.ult", pyc)
+            self.assertIn("pyc.cmp", pyc)
+            self.assertIn('predicate = "ult"', pyc)
             manifest = json.loads((output / "manifest.json").read_text())
             self.assertEqual(
                 ["ac.reorder", "ac.sink", "ac.source"],
@@ -2798,8 +2802,9 @@ int main() {{
             )
             self.assertEqual(0, completed.returncode, completed.stderr)
             pyc = (output / "model.pyc").read_text(encoding="utf-8")
-            self.assertIn("pyc.eq", pyc)
-            self.assertIn("pyc.mux", pyc)
+            self.assertIn("pyc.cmp", pyc)
+            self.assertIn('predicate = "eq"', pyc)
+            self.assertIn("pyc.select", pyc)
             self.assertIn("pyc.not", pyc)
             self.assertIn("pyc.or", pyc)
             self.assertIn("pyc.and", pyc)

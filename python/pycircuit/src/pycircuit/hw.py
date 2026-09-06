@@ -411,7 +411,8 @@ class Wire(Generic[DT]):
             amt = int(amount) if isinstance(amount, int) else int(amount.value)
             if amt < 0:
                 raise ValueError("lshr amount must be >= 0")
-            return Wire(self.m, self.m.lshri(self.sig, amount=amt), signed=False)
+            amount_signal = self.m.const(amt, width=max(1, amt.bit_length()))
+            return Wire(self.m, self.m.lshr(self.sig, amount_signal), signed=False)
         amt = self._as_wire(amount, width=None)
         return Wire(self.m, self.m.lshr(self.sig, amt.sig), signed=False)
 
@@ -423,7 +424,8 @@ class Wire(Generic[DT]):
             amt = int(amount) if isinstance(amount, int) else int(amount.value)
             if amt < 0:
                 raise ValueError("ashr amount must be >= 0")
-            return Wire(self.m, self.m.ashri(self.sig, amount=amt), signed=True)
+            amount_signal = self.m.const(amt, width=max(1, amt.bit_length()))
+            return Wire(self.m, self.m.ashr(self.sig, amount_signal), signed=True)
         amt = self._as_wire(amount, width=None)
         return Wire(self.m, self.m.ashr(self.sig, amt.sig), signed=True)
 
@@ -602,9 +604,10 @@ class Wire(Generic[DT]):
     def shl(self, *, amount: Union[int, "Wire", "Reg", Signal, LiteralValue]) -> "Wire":
         """Shift left by an immediate or dynamic amount."""
         if isinstance(amount, int):
-            return Wire(
-                self.m, self.m.shli(self.sig, amount=int(amount)), signed=self.signed
-            )
+            if amount < 0:
+                raise ValueError("shl amount must be >= 0")
+            amount_signal = self.m.const(amount, width=max(1, int(amount).bit_length()))
+            return Wire(self.m, self.m.shl(self.sig, amount_signal), signed=self.signed)
         amt = self._as_wire(amount, width=None)
         return Wire(self.m, self.m.shl(self.sig, amt.sig), signed=self.signed)
 

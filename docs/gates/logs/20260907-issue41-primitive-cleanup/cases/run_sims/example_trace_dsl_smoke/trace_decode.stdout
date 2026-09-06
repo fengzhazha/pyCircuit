@@ -1,0 +1,5 @@
+cycle 1: 2 value-change events, 1 write events
+  - (tick) WRITE[reg] dut.u0:out_y data=0x34
+  - (tick) dut.u0:probe.pv.q = 0x12 known=0xff z=0x0
+  ... (1 more)
+  - (tick) RESET_DEASSERT domain=global kind=warm

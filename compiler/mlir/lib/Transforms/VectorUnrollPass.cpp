@@ -88,7 +88,7 @@ static Value unrollElementwiseOp(Operation &op, OpBuilder &builder) {
     OperationState state(loc, op.getName());
     state.addOperands(scalarOperands);
     Type scalarResultTy = vt.getElementType();
-    if (isa<pyc::EqOp, pyc::UltOp, pyc::SltOp>(op))
+    if (isa<pyc::CmpOp>(op))
       scalarResultTy = builder.getI1Type();
     if (isa<pyc::TruncOp, pyc::ZextOp, pyc::SextOp>(op))
       scalarResultTy = leafIntType(op.getResult(0).getType());
@@ -302,11 +302,10 @@ static bool isElementWiseVectorOp(Operation &op) {
   return isa<pyc::AddOp, pyc::SubOp, pyc::MulOp,
              pyc::UdivOp, pyc::UremOp, pyc::SdivOp, pyc::SremOp,
              pyc::AndOp, pyc::OrOp, pyc::XorOp, pyc::NotOp,
-             pyc::EqOp, pyc::UltOp, pyc::SltOp,
+             pyc::CmpOp,
              pyc::TruncOp, pyc::ZextOp, pyc::SextOp, pyc::ExtractOp,
              pyc::ShlOp, pyc::LshrOp, pyc::AshrOp,
-             pyc::ShliOp, pyc::LshriOp, pyc::AshriOp,
-             pyc::MuxOp>(op);
+             pyc::SelectOp>(op);
 }
 
 static bool isVectorReduceOp(Operation &op) {

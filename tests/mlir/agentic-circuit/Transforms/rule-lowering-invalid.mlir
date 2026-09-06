@@ -12,7 +12,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "identity" stable_id "identity_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "identity:return" path "true" : !ac.var<i32>
@@ -20,14 +20,14 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<i32>) -> !ac.queue<i32>
   ac.sink %output : !ac.queue<i32>
 }
-// ORDER: requires 'ac.rule.checks' before handshake materialization
+// ORDER: requires 'ac.rule.checks_typed' before handshake materialization
 
 //--- dead-handshake.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "dead_handshake"} {
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "identity" stable_id "identity_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %unused = ac.marker.obligation %item state pending resolver handshake
         origin "identity:return" path "true" : !ac.var<i32>
@@ -42,7 +42,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "identity" stable_id "identity_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "identity:return" path "true" : !ac.var<i32>
@@ -58,7 +58,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %right = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %left_out = ac.rule %left depths [1] latencies [1]
       name "left" stable_id "same" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "left:return" path "true" : !ac.var<i32>
@@ -66,7 +66,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<i32>) -> !ac.queue<i32>
   %right_out = ac.rule %right depths [1] latencies [1]
       name "right" stable_id "same" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %ready = ac.marker.obligation %item state pending resolver handshake
         origin "right:return" path "true" : !ac.var<i32>
@@ -82,10 +82,10 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "identity" stable_id "identity_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
     %zero = ac.var.constant 0 : i32 as !ac.var<i32>
-    %typed = ac.marker.type %zero state unknown constraint queue_payload
+    %typed = ac.marker.type %zero state unknown
         : !ac.var<i32>
     %ready = ac.marker.obligation %typed state pending resolver handshake
         origin "identity:return" path "true" : !ac.var<i32>
@@ -100,9 +100,9 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
   %output = ac.rule %input depths [1] latencies [1]
       name "identity" stable_id "identity_0" domain "cycle"
-      type exact input_fact committed_input {
+      type exact {
   ^body(%item: !ac.var<i32>):
-    %fact = ac.marker.value %item fact committed_input identity "other"
+    %fact = ac.marker.value %item identity "other"
         path "true" : !ac.var<i32>
     %ready = ac.marker.obligation %fact state pending resolver handshake
         origin "identity:return" path "true" : !ac.var<i32>

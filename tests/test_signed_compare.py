@@ -79,9 +79,9 @@ def test_signed_compares_emit_slt_op() -> None:
     m.output("le", a.sle(b))
     m.output("ge", a.sge(b))
     mlir = m.emit_mlir()
-    # every signed compare lowers to pyc.slt (never pyc.ult)
-    assert "pyc.slt" in mlir
-    assert "pyc.ult" not in mlir
+    # every signed compare lowers to the closed signed predicate.
+    assert "pyc.cmp" in mlir and 'predicate = "slt"' in mlir
+    assert 'predicate = "ult"' not in mlir
 
 
 def test_signed_result_is_i1() -> None:
@@ -97,7 +97,7 @@ def test_sgt_accepts_int_operand() -> None:
     m = Circuit("t")
     a = m.input("a", width=8, signed=True)
     m.output("y", a.sgt(3))
-    assert "pyc.slt" in m.emit_mlir()
+    assert "pyc.cmp" in m.emit_mlir() and 'predicate = "slt"' in m.emit_mlir()
 
 
 # --- signed vs unsigned actually differ ------------------------------------
@@ -119,7 +119,7 @@ def test_signed_and_unsigned_gt_differ_in_mlir() -> None:
         return m.emit_mlir()
 
     s, u = signed(), unsigned()
-    assert "pyc.slt" in s and "pyc.ult" in u
+    assert 'predicate = "slt"' in s and 'predicate = "ult"' in u
     assert s != u
 
 

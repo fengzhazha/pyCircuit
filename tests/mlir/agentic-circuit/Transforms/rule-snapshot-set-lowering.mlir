@@ -13,7 +13,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   ac.table @ready entry i1 entries 4 init 0 owner "/" stable_id "table/ready"
   ac.table @priority entry i2 entries 4 init 0 owner "/" stable_id "table/priority"
   %output = ac.rule depths [1] latencies [1] name "issue" stable_id "issue_0"
-      domain "cycle" type exact input_fact committed_input {
+      domain "cycle" type exact {
   ^body:
     %mask = ac.table.match @entries predicate {
     ^bb0(%entry: !ac.var<!ac.struct<@types::@Entry>>):

@@ -111,11 +111,6 @@ enum class ProcessTerminateStatus { Success, Failure };
 enum class ProcessEffectKind { Pure, Stateful };
 enum class ProcessValueTypeKind { Value, Packet };
 enum class ProcessHelperRole {
-  RecordCreate,
-  RecordGet,
-  RecordWith,
-  PacketSerialize,
-  PacketDeserialize,
   TraceDecode,
   QueueTrySend,
   QueueTryRecv,
@@ -469,53 +464,11 @@ private:
   ACIR_PROCESS_PIMPL(ProcessStatePlan);
 };
 
-class ProcessRecordFieldDescriptor {
-public:
-  llvm::StringRef name() const;
-  llvm::StringRef typeKey() const;
-
-private:
-  ACIR_PROCESS_PIMPL(ProcessRecordFieldDescriptor);
-};
 #define ACIR_DECLARE_STRING_PAYLOAD(Name, ...)                                 \
   class Name {                                                                 \
   public:                                                                      \
   __VA_ARGS__ private : ACIR_PROCESS_PIMPL(Name);                              \
   }
-class ProcessRecordCreatePayload {
-public:
-  llvm::ArrayRef<ProcessRecordFieldDescriptor> fields() const;
-  llvm::StringRef recordType() const;
-
-private:
-  ACIR_PROCESS_PIMPL(ProcessRecordCreatePayload);
-};
-ACIR_DECLARE_STRING_PAYLOAD(ProcessRecordGetPayload,
-                            llvm::StringRef field() const;
-                            llvm::StringRef record() const;
-                            llvm::StringRef result() const;);
-ACIR_DECLARE_STRING_PAYLOAD(ProcessRecordWithPayload,
-                            llvm::StringRef field() const;
-                            llvm::StringRef record() const;
-                            llvm::StringRef value() const;);
-class ProcessPacketSerializePayload {
-public:
-  uint64_t bytes() const;
-  llvm::StringRef packet() const;
-  llvm::StringRef packetType() const;
-
-private:
-  ACIR_PROCESS_PIMPL(ProcessPacketSerializePayload);
-};
-class ProcessPacketDeserializePayload {
-public:
-  uint64_t bytes() const;
-  llvm::StringRef packet() const;
-  llvm::StringRef packetType() const;
-
-private:
-  ACIR_PROCESS_PIMPL(ProcessPacketDeserializePayload);
-};
 ACIR_DECLARE_STRING_PAYLOAD(ProcessTraceDecodePayload,
                             llvm::StringRef entry() const;
                             llvm::StringRef result() const;
@@ -587,11 +540,6 @@ private:
 class ProcessGeneratedCalleePayload {
 public:
   ProcessHelperRole role() const;
-  const ProcessRecordCreatePayload &recordCreate() const;
-  const ProcessRecordGetPayload &recordGet() const;
-  const ProcessRecordWithPayload &recordWith() const;
-  const ProcessPacketSerializePayload &packetSerialize() const;
-  const ProcessPacketDeserializePayload &packetDeserialize() const;
   const ProcessTraceDecodePayload &traceDecode() const;
   const ProcessQueueTrySendPayload &queueTrySend() const;
   const ProcessQueueTryRecvPayload &queueTryRecv() const;

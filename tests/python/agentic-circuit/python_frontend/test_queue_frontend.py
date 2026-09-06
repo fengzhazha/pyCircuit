@@ -2793,7 +2793,9 @@ def cycle(incoming: Left) -> Left:
         self.assertIn("%completed = ac.rule %issued depths [1] latencies [1]", lowered)
         self.assertIn('name "complete"', lowered)
         self.assertIn('stable_id "completed" domain "cycle"', lowered)
-        self.assertIn("type exact input_fact committed_input", lowered)
+        self.assertIn('stable_id "completed" domain "cycle" type exact {', lowered)
+        self.assertNotIn("input_fact", lowered)
+        self.assertNotIn("committed_input", lowered)
         self.assertIn(
             "ac.marker.obligation %v1 state pending resolver handshake",
             lowered,

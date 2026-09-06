@@ -10,7 +10,7 @@
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_count"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
@@ -26,7 +26,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_resource"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
@@ -42,7 +42,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_access"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
@@ -57,7 +57,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_index"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
@@ -72,7 +72,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "bad_fields"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
@@ -87,7 +87,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "duplicate"} {
   ac.table @state entry i8 entries 1 init 0 owner "/" stable_id "table/state"
   %input = ac.source depth 1 latency 1 : !ac.queue<i8>
-  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" guard "true" checks [] handshake "ready_valid_1x1_table" schedule "table_lexical_priority" effects ["input.consume", "output.produce", "table.replace:state"] {
+  %output = ac.firing %input depths [1] latencies [1] stable_id "bad" domain "cycle" {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
     ac.table.propose @state[%index] = %item mode "replace" write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>

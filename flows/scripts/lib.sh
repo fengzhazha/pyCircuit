@@ -138,7 +138,7 @@ pyc_pythonpath() {
 
   # Prefer editable install, but use the canonical in-tree package for
   # repository-local runs.
-  echo "${PYC_ROOT_DIR}/python/pycircuit/src:${PYC_ROOT_DIR}"
+  echo "${PYC_ROOT_DIR}/python/semantic-core/src:${PYC_ROOT_DIR}/python/pycircuit/src:${PYC_ROOT_DIR}"
 }
 
 pyc_out_root() {

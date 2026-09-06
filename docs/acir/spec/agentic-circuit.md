@@ -286,7 +286,8 @@ emits `ac.var.matches`. ACIR verifies input/result types, width bounds, and
 that `value` sets no bit outside `mask`. QueueGraph preserves the operation as
 `masked_match`, serializing both constants as exact-width lowercase hex strings
 so bit 63 is lossless. gfsim evaluates `(input & mask) == value`; PYC lowering
-uses only vendor-neutral `pyc.constant`, `pyc.and`, and `pyc.eq`.
+uses only vendor-neutral `pyc.constant`, `pyc.and`, and `pyc.cmp` with the
+`eq` predicate.
 
 The parser implementation is shared through the semantic core, but the Agentic
 surface deliberately enables only the basic grammar above. pyCircuit's existing
@@ -340,14 +341,12 @@ writable owners participate in prepare/publish/commit. This supports an ISQ
 whose readiness table update wakes one oldest-ready query instead of bulk
 rewriting every resident entry.
 
-The current single-condition rule subset also carries verifier-derived typed
-summary attributes for guard kind, Queue availability/capacity checks, effects,
-output-presence kind, state accesses, schedule kind, and lexical arbitration
-membership. These closed enums replace strings as the analysis vocabulary for
-the supported 0/1-output subset, while the old strings remain derived readable
-summaries. A `predicate` summary is not a path identity: general CFG and
-selected multi-output semantics require an SSA `!ac.var<i1>` presence value on
-each output and state proposal and remain a later contract.
+Rules and firings carry only verifier-derived typed summary attributes for
+guard kind, Queue availability/capacity checks, effects, output presence, state
+accesses, schedule kind, and lexical arbitration membership. SSA conditions
+and per-effect presence values identify the actual selected paths. Legacy
+guard/check/handshake/schedule/effect strings are unregistered canonical
+attributes and are rejected rather than retained as readable aliases.
 
 `ac.priority_encode(value, order="low")` is a semantic combinational helper.
 Its `.index` and `.valid` projections share one `ac.var.priority_encode` in
@@ -860,7 +859,7 @@ candidate and prepares only the selected owner; the input and selected state
 still publish through one atomic group. If both arms assign the same scalar
 owner, the compiler emits one `ac.var.select` value join followed by one
 unconditional state proposal. QueueGraph/gfsim use a ternary expression and PYC
-uses `pyc.mux`; the owner therefore retains one write slot and one commit.
+uses `pyc.select`; the owner therefore retains one write slot and one commit.
 If both arms assign the same persistent list, the compiler joins both value and
 index with typed `ac.var.select` operations, then emits one unconditional
 `ac.var.assign_element`. Each authored index must retain the existing exact
@@ -1218,9 +1217,13 @@ Invalid examples:
 ```mlir
 !ac.queue<!ac.var<i32>>
 !ac.var<!ac.queue<i32>>
-!ac.queue<!ac.list<i32>>
 !ac.queue<(i32) -> i32>
 ```
+
+The dormant `!ac.address`, `!ac.duration`, `!ac.rate`, `!ac.map`, `!ac.set`,
+`!ac.union`, `!ac.optional`, `!ac.list`, and `!ac.vector` spellings are
+unregistered hard errors. Aggregate values use the canonical struct, enum,
+tuple, and `!ac.value_array` forms instead.
 
 ### Static collection types
 
@@ -1228,13 +1231,10 @@ ACIR provides statically shaped collection types:
 
 ```mlir
 !ac.array<4 x !ac.queue<i32>>
-!ac.map<["cube", "scalar", "vector"], !ac.queue<i32>>
-!ac.set<4 x !ac.var<i16>>
 ```
 
-Array and set lengths MUST be positive. ACIR map keys are non-empty unique
-strings in strict lexicographic order. Collection elements MUST be Queue, Var,
-or another supported static collection with a valid fixed shape.
+Array lengths MUST be positive. Collection elements MUST be Queue, Var, or
+another supported static array with a valid fixed shape.
 
 ## ACIR operation contract
 
@@ -1410,18 +1410,41 @@ internal firing operation.
 
 ```mlir
 %output = ac.firing %input depths [1] latencies [1]
-    stable_id "top/increment" domain "cycle" guard "true" checks []
-    handshake "ready_valid_1x1" schedule "independent"
-    effects ["input.consume", "output.produce"] {
+    stable_id "top/increment" domain "cycle" {
 ^body(%value: !ac.var<i32>):
   ac.firing.yield %value : !ac.var<i32>
+} {
+  ac.activation_sources = [
+    {kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64},
+    {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}
+  ],
+  ac.arbitration_membership = [],
+  ac.checks_typed = [
+    {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind input_available>, ordinal = 0 : i64},
+    {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_check_kind output_capacity>, ordinal = 0 : i64}
+  ],
+  ac.effects_typed = [
+    {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind input_consume>, ordinal = 0 : i64},
+    {guard_kind = #ac<rule_guard_kind always>, kind = #ac<rule_effect_kind output_produce>, ordinal = 0 : i64}
+  ],
+  ac.guard_kind = #ac<rule_guard_kind always>,
+  ac.initially_active = false,
+  ac.output_presence = [{ordinal = 0 : i64, presence_kind = #ac<rule_output_presence_kind always>}],
+  ac.rule_footprints = [], ac.rule_priority = 0 : i64,
+  ac.schedule_kind = #ac<rule_schedule_kind independent>,
+  ac.state_accesses = [],
+  ac.transaction_resources = [
+    {kind = #ac<activation_resource_kind input_queue>, ordinal = 0 : i64},
+    {kind = #ac<activation_resource_kind output_queue>, ordinal = 0 : i64}
+  ]
 } : (!ac.queue<i32>) -> !ac.queue<i32>
 ```
 
-The stable identity, exact domain, functional guard, checks, handshake,
-schedule, and effect summary are all mandatory. No typed marker may survive
-into Frozen ACIR. Pure firings may become `ac.transform` only after the
-canonicalization pass proves that this complete contract is preserved.
+The stable identity, exact domain, typed summaries, SSA presence, footprints,
+and activation/transaction resources form the complete contract. No typed
+marker or legacy string summary may survive into Frozen ACIR. Pure firings may
+become `ac.transform` only after canonicalization proves that this contract is
+preserved.
 
 ### Frozen logical identity
 

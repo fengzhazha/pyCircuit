@@ -146,22 +146,43 @@ PYC semantic contracts.
   DavinciOO workload from tracked framework goldens instead of a consumer
   trace, verify two fork delivery-state bits, compile split dependency and
   DavinciOO translation units, and print exact-width gfsim values explicitly.
-- [ ] Run complete issue #39 closure, prepare `Closes #39`, merge upstream, and
+- [x] Run complete issue #39 closure, prepare `Closes #39`, merge upstream, and
   confirm the issue is closed before producing the consumer pin.
 
 #### Strict cleanup and consumer handoff sequence
 
-- [ ] Finish, review, merge, and confirm closure of upstream issue #39. Do not
+- [x] Finish, review, merge, and confirm closure of upstream issue #39. Do not
   begin issue #41 or consumer implementation before this gate.
-- [ ] Then complete upstream issue #41's non-vector primitive cleanup and
-  Decision 0199 typed-summary migration. Its vector section is superseded by
-  issue #42 and must not be implemented in the #41 change.
+- [ ] Complete Decision 0219 and upstream issue #41's non-vector primitive
+  cleanup:
+  - [x] Remove `ac.module.generated`, raw `ac.record.*`/`ac.packet.*`, and the
+    dormant ACIR declarations/types named by #41 while preserving canonical
+    `ac.var` aggregates, `!ac.value_array`, and topology `!ac.array`.
+  - [x] Complete Decision 0199 by deleting legacy rule/firing strings after
+    typed/SSA verifiers, footprints, activation, and QueueGraph consumers are
+    authoritative.
+  - [x] Rename canonical PYC `mux` to `select` and consolidate `eq/ult/slt`
+    into `cmp {predicate}` without compatibility aliases.
+  - [x] Remove `shli/lshri/ashri`; retain only SSA `shl/lshr/ashr`, with
+    Agentic unsigned `shr` lowering to `lshr`.
+  - [x] Add an exact machine-readable PYC inventory and generated coverage/
+    producer/emitter/consumer ledger; mark unchanged vector ops as #42-owned.
+  - [ ] Run #41 closure, admin-merge its independent PR, restore
+    `enforce_admins=true`, and confirm #41 closed.
+- [x] Delegate issue #41's vector section to issue #42; do not modify PYC
+  vector operations, lowering, emitters, runtime, or tests in the #41 change.
 - [ ] Then complete upstream issue #42's vector hard break: remove first-class
   PYC vector IR/backend/runtime behavior while retaining ACIR aggregate value
   types and scalarizing them before canonical PYC.
-- [ ] Only after #39, #41, and #42 are merged and closed, pin that pyCircuit
-  revision in the owning consumer repository and begin the DavinciOO Core.
-  pyCircuit retains only reusable framework code and gates.
+- [ ] Then complete issue #44: allow `ac.jit(system)` to bind structural
+  `ac.const` parameters while leaving ordinary typed parameters as inferred
+  runtime Queue inputs. Close the framework-owned multi-input/multi-output ROB-
+  and CMT-shaped ACIR→gfsim compatibility gates before producing a consumer
+  pin, including branch-local consume-and-classify and four-output
+  backpressure/state-retention behavior.
+- [ ] Only after #39, #41, #42, and #44 are merged and closed, pin that
+  pyCircuit revision in the owning consumer repository and begin the DavinciOO
+  Core. pyCircuit retains only reusable framework code and gates.
 
 - [x] Import the Agentic Circuit `main` history at
   `756002e2998b11dfe1fed14dc3d63cdad8be694c` with provenance intact.

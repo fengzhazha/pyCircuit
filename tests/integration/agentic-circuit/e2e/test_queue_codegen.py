@@ -944,7 +944,9 @@ int main() {{
             self.assertNotIn("ac.var.decl", frozen)
             self.assertNotIn("ac.var.read", frozen)
             self.assertNotIn("ac.var.assign", frozen)
-            self.assertIn('handshake "ready_valid_1x1_table"', frozen)
+            self.assertIn("kind = #ac<rule_check_kind input_available>", frozen)
+            self.assertIn("kind = #ac<rule_check_kind output_capacity>", frozen)
+            self.assertIn("ac.transaction_resources", frozen)
 
             harness = root / "harness.cpp"
             executable = root / "variable_accumulator"
@@ -1813,7 +1815,7 @@ int main() {{
             )
             self.assertEqual(0, generated.returncode, generated.stderr)
             frozen = acir.read_text(encoding="utf-8")
-            self.assertIn('handshake "ready_valid_1x0_table"', frozen)
+            self.assertIn("kind = #ac<rule_check_kind input_available>", frozen)
             self.assertNotIn("ac.sink", frozen)
             parsed_plan = json.loads(plan.read_text(encoding="utf-8"))
             firing = next(
@@ -1945,9 +1947,9 @@ int main() {{
             )
             self.assertEqual(0, generated.returncode, generated.stderr)
             frozen = acir.read_text(encoding="utf-8")
-            self.assertIn('guard "dynamic"', frozen)
+            self.assertIn("ac.guard_kind = #ac<rule_guard_kind predicate>", frozen)
             self.assertIn("ac.firing.condition", frozen)
-            self.assertIn('handshake "ready_valid_0x1_table"', frozen)
+            self.assertIn("kind = #ac<rule_check_kind output_capacity>", frozen)
 
             harness = root / "harness.cpp"
             executable = root / "state_driven_retire"
@@ -2089,8 +2091,8 @@ int main() {{
             self.assertEqual(0, generated.returncode, generated.stderr)
             frozen = acir.read_text(encoding="utf-8")
             self.assertEqual(2, frozen.count("ac.table.propose"))
-            self.assertIn("table.replace:tail", frozen)
-            self.assertIn("table.replace:entries", frozen)
+            self.assertIn("ac.table.propose @tail", frozen)
+            self.assertIn("ac.table.propose @entries", frozen)
             self.assertIn(
                 "gfsim::QueueStateTransition",
                 model.read_text(encoding="utf-8"),
@@ -2230,8 +2232,8 @@ int main() {{
             self.assertEqual(
                 4, frozen.count(" = ac.firing ") + frozen.count("  ac.firing ")
             )
-            self.assertIn('handshake "ready_valid_1x0_table"', frozen)
-            self.assertIn('handshake "ready_valid_0x1_table"', frozen)
+            self.assertIn("kind = #ac<rule_check_kind input_available>", frozen)
+            self.assertIn("kind = #ac<rule_check_kind output_capacity>", frozen)
             self.assertIn(
                 "gfsim::QueueStateTransition", model.read_text(encoding="utf-8")
             )
@@ -3936,9 +3938,18 @@ int main() {{
                 check=False,
             )
             self.assertEqual(0, generated.returncode, generated.stderr)
+            frozen = acir.read_text(encoding="utf-8")
             self.assertIn(
-                'handshake "ready_valid_2x1_table"',
-                acir.read_text(encoding="utf-8"),
+                "kind = #ac<rule_check_kind input_available>, ordinal = 0",
+                frozen,
+            )
+            self.assertIn(
+                "kind = #ac<rule_check_kind input_available>, ordinal = 1",
+                frozen,
+            )
+            self.assertIn(
+                "kind = #ac<rule_check_kind output_capacity>, ordinal = 0",
+                frozen,
             )
             self.assertIn(
                 "std::tuple<Entry, Delta>",
@@ -4085,7 +4096,18 @@ int main() {{
             )
             self.assertEqual(0, generated.returncode, generated.stderr)
             lowered = acir.read_text(encoding="utf-8")
-            self.assertIn('ac.rule_handshake = "ready_valid_2x1"', lowered)
+            self.assertIn(
+                "kind = #ac<rule_check_kind input_available>, ordinal = 0",
+                lowered,
+            )
+            self.assertIn(
+                "kind = #ac<rule_check_kind input_available>, ordinal = 1",
+                lowered,
+            )
+            self.assertIn(
+                "kind = #ac<rule_check_kind output_capacity>, ordinal = 0",
+                lowered,
+            )
             self.assertNotIn("ac.rule ", lowered)
             generated_cpp = model.read_text(encoding="utf-8")
             self.assertIn("gfsim::QueueAtomicTransform", generated_cpp)
@@ -4229,7 +4251,9 @@ int main() {{
             self.assertNotIn("ac.marker.", lowered)
             self.assertIn("ac.firing ", lowered)
             self.assertIn("ac.table.propose @rob", lowered)
-            self.assertIn('handshake "ready_valid_1x1_table"', lowered)
+            self.assertIn("kind = #ac<rule_check_kind input_available>", lowered)
+            self.assertIn("kind = #ac<rule_check_kind output_capacity>", lowered)
+            self.assertIn("ac.transaction_resources", lowered)
             document = json.loads(plan.read_text(encoding="utf-8"))
             firing = next(
                 block for block in document["blocks"] if block["kind"] == "firing"
@@ -5258,7 +5282,9 @@ int main() {{
             self.assertNotIn("ac.var.decl", frozen)
             for table in table_names:
                 self.assertIn(f"ac.table @{table}", frozen)
-            self.assertIn('handshake "ready_valid_1x1_table"', frozen)
+            self.assertIn("kind = #ac<rule_check_kind input_available>", frozen)
+            self.assertIn("kind = #ac<rule_check_kind output_capacity>", frozen)
+            self.assertIn("ac.transaction_resources", frozen)
             parsed_plan = json.loads(plan.read_text(encoding="utf-8"))
             self.assertEqual(1, len(parsed_plan["module_specializations"]))
             self.assertEqual(2, len(parsed_plan["module_instances"]))
