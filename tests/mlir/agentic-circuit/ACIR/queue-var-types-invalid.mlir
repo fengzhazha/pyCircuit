@@ -11,6 +11,9 @@
 // RUN: %not %acir_opt %t/map-order.mlir 2>&1 | %FileCheck %s --check-prefix=MAP-ORDER
 // RUN: %not %acir_opt %t/set-zero.mlir 2>&1 | %FileCheck %s --check-prefix=SET-ZERO
 // RUN: %not %acir_opt %t/set-payload.mlir 2>&1 | %FileCheck %s --check-prefix=SET-PAYLOAD
+// RUN: %not %acir_opt %t/value-array-zero.mlir 2>&1 | %FileCheck %s --check-prefix=VALUE-ARRAY-ZERO
+// RUN: %not %acir_opt %t/value-array-runtime.mlir 2>&1 | %FileCheck %s --check-prefix=VALUE-ARRAY-RUNTIME
+// RUN: %not %acir_opt %t/tuple-runtime.mlir 2>&1 | %FileCheck %s --check-prefix=TUPLE-RUNTIME
 
 // QUEUE-OF-VAR: error: queue payload must be an immutable ACIR value type
 // VAR-OF-QUEUE: error: var payload must be an immutable ACIR value type
@@ -24,6 +27,9 @@
 // MAP-ORDER: error: map keys must be non-empty and strictly lexicographic
 // SET-ZERO: error: set length must be positive
 // SET-PAYLOAD: error: set element must be a queue, var, or static collection
+// VALUE-ARRAY-ZERO: error: value_array length must be positive
+// VALUE-ARRAY-RUNTIME: error: value_array element must be an immutable ACIR value type
+// TUPLE-RUNTIME: error: var payload must be an immutable ACIR value type
 
 //--- queue-of-var.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
@@ -83,4 +89,19 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 //--- set-payload.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
   "builtin.unrealized_conversion_cast"() : () -> !ac.set<2 x i32>
+}
+
+//--- value-array-zero.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  "builtin.unrealized_conversion_cast"() : () -> !ac.value_array<0 x i8>
+}
+
+//--- value-array-runtime.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  "builtin.unrealized_conversion_cast"() : () -> !ac.value_array<2 x !ac.queue<i8>>
+}
+
+//--- tuple-runtime.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  "builtin.unrealized_conversion_cast"() : () -> !ac.var<tuple<i8, !ac.queue<i8>>>
 }

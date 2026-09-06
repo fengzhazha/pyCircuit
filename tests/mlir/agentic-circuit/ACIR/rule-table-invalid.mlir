@@ -1,11 +1,11 @@
 // RUN: %split_file %s %t
 // RUN: %not %acir_opt %t/outside.mlir 2>&1 | %FileCheck %s --check-prefix=OUTSIDE
-// RUN: %not %acir_opt %t/dynamic-bounds.mlir 2>&1 | %FileCheck %s --check-prefix=BOUNDS
+// RUN: %not %acir_opt %t/dynamic-bounds.mlir -ac-verify-value-constraints 2>&1 | %FileCheck %s --check-prefix=BOUNDS
 // RUN: %not %acir_opt %t/field-mode.mlir 2>&1 | %FileCheck %s --check-prefix=MODE
-// RUN: %not %acir_opt %t/type-mismatch.mlir 2>&1 | %FileCheck %s --check-prefix=TYPE
-// RUN: %not %acir_opt %t/unsafe-read.mlir 2>&1 | %FileCheck %s --check-prefix=READ-BOUNDS
+// RUN: %acir_opt %t/type-mismatch.mlir | %FileCheck %s --check-prefix=HETERO
+// RUN: %not %acir_opt %t/unsafe-read.mlir -ac-verify-value-constraints 2>&1 | %FileCheck %s --check-prefix=READ-BOUNDS
 // RUN: %not %acir_opt --verify-each=false --pass-pipeline='builtin.module(ac-canonicalize-pure-firings,ac-verify-rule-closure)' %t/forged-pure-firing.mlir 2>&1 | %FileCheck %s --check-prefix=FORGED
-// RUN: %not %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types,ac-infer-rule-effects,ac-materialize-rule-checks,ac-materialize-rule-handshake,ac-discharge-rule-obligations,ac-resolve-rule-schedule)' %t/write-conflict.mlir 2>&1 | %FileCheck %s --check-prefix=CONFLICT
+// RUN: %acir_opt --pass-pipeline='builtin.module(ac-infer-rule-types,ac-infer-rule-effects,ac-materialize-rule-checks,ac-materialize-rule-handshake,ac-discharge-rule-obligations,ac-resolve-rule-schedule)' %t/write-conflict.mlir | %FileCheck %s --check-prefix=SHARED-SCHEDULE
 
 //--- outside.mlir
 module attributes {ac.contract_epoch = "0.5"} {
@@ -37,7 +37,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<!ac.struct<@types::@Entry>>) -> !ac.queue<!ac.struct<@types::@Entry>>
   ac.sink %output : !ac.queue<!ac.struct<@types::@Entry>>
 }
-// BOUNDS: 'ac.table.propose' op dynamic rule Table index requires a full 2^N Table domain
+// BOUNDS: 'ac.table.propose' op cannot prove Table index is within [0, 2]; inferred interval[0,3]
 
 //--- field-mode.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "field_mode"} {
@@ -94,7 +94,11 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   }
   ac.sink %output : !ac.queue<!ac.struct<@types::@Entry>>
 }
-// CONFLICT: stateful rule phase one requires exclusive Table write ownership
+// SHARED-SCHEDULE: ac.rule
+// SHARED-SCHEDULE: ac.rule.footprints = [{access = "replace"
+// SHARED-SCHEDULE-SAME: resource = @table
+// SHARED-SCHEDULE: ac.rule.priority = 0 : i64
+// SHARED-SCHEDULE: ac.rule.schedule = "table_lexical_priority"
 
 //--- type-mismatch.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "type_mismatch"} {
@@ -114,7 +118,8 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<i16>) -> !ac.queue<i16>
   ac.sink %output : !ac.queue<i16>
 }
-// TYPE: 'ac.table.propose' op owning rule Queue payloads must match the Table Entry type
+// HETERO: ac.table.propose @table
+// HETERO: ac.rule.return %{{.*}} : !ac.var<i16>
 
 //--- unsafe-read.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "unsafe_read"} {
@@ -138,7 +143,7 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
   } : (!ac.queue<!ac.struct<@types::@Entry>>) -> !ac.queue<!ac.struct<@types::@Entry>>
   ac.sink %output : !ac.queue<!ac.struct<@types::@Entry>>
 }
-// READ-BOUNDS: 'ac.table.get' op dynamic rule Table index requires a full 2^N Table domain
+// READ-BOUNDS: 'ac.table.get' op cannot prove Table index is within [0, 1]; inferred interval[0,3]
 
 //--- forged-pure-firing.mlir
 module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.queue_graph_domain = "cycle", ac.system = "forged_pure"} {
@@ -150,10 +155,12 @@ module attributes {ac.contract_epoch = "0.5", ac.model_kind = "queue_graph", ac.
       effects ["input.consume", "output.produce"] {
   ^body(%item: !ac.var<i8>):
     %index = ac.var.constant 0 : i1 as !ac.var<i1>
+    %enabled = ac.var.constant true as !ac.var<i1>
+    ac.firing.condition %enabled : !ac.var<i1>
     ac.table.propose @table [%index] = %item mode "replace"
         write_fields ["$entry"] : !ac.var<i1>, !ac.var<i8>
     ac.firing.yield %item : !ac.var<i8>
-  } : (!ac.queue<i8>) -> !ac.queue<i8>
+  } {ac.rule_footprints = [{access = "replace", fields = ["$entry"], guard_kind = #ac<rule_guard_kind always>, index_kind = "static", resource = @table}], ac.rule_priority = 0 : i64} : (!ac.queue<i8>) -> !ac.queue<i8>
   ac.sink %output : !ac.queue<i8>
 }
 // FORGED: 'ac.firing' op has invalid phase-one guard/checks/handshake/schedule/effects contract

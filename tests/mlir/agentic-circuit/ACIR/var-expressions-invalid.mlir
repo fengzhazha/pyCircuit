@@ -22,6 +22,10 @@
 // RUN: %not %acir_opt %t/count-leading-zeros-width.mlir 2>&1 | %FileCheck %s --check-prefix=CLZ-WIDTH
 // RUN: %not %acir_opt %t/count-leading-zeros-input.mlir 2>&1 | %FileCheck %s --check-prefix=CLZ-INPUT
 // RUN: %not %acir_opt %t/count-zeros-direction.mlir 2>&1 | %FileCheck %s --check-prefix=ZERO-DIRECTION
+// RUN: %not %acir_opt %t/select-condition.mlir 2>&1 | %FileCheck %s --check-prefix=SELECT-CONDITION
+// RUN: %not %acir_opt %t/extract-range.mlir 2>&1 | %FileCheck %s --check-prefix=EXTRACT-RANGE
+// RUN: %not %acir_opt %t/concat-result.mlir 2>&1 | %FileCheck %s --check-prefix=CONCAT-RESULT
+// RUN: %not %acir_opt %t/insert-range.mlir 2>&1 | %FileCheck %s --check-prefix=INSERT-RANGE
 
 // CONSTANT: error: 'ac.var.constant' op attribute type must match Var element type
 // BINARY: error: use of value '%right' expects different type than prior uses
@@ -46,6 +50,10 @@
 // CLZ-WIDTH: error: 'ac.var.count_zeros' op result width must be ceil(log2(input_width + 1)) = 4
 // CLZ-INPUT: error: 'ac.var.count_zeros' op input width must be in [1, 64]
 // ZERO-DIRECTION: error: 'ac.var.count_zeros' op direction must be leading or trailing
+// SELECT-CONDITION: error: 'ac.var.select' op condition must be !ac.var<i1>
+// EXTRACT-RANGE: error: 'ac.var.extract' op slice must be non-empty and within the input width
+// CONCAT-RESULT: error: 'ac.var.concat' op result width must equal the sum of input widths
+// INSERT-RANGE: error: 'ac.var.insert' op inserted range must be within the base width
 
 //--- constant.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
@@ -153,6 +161,34 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
   %left = ac.var.constant 1 : i64 as !ac.var<i64>
   %right = ac.var.constant 2 : i64 as !ac.var<i64>
   %bad = ac.var.cmp "random" %left, %right : !ac.var<i64> -> !ac.var<i1>
+}
+
+//--- select-condition.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  %condition = ac.var.constant 1 : i8 as !ac.var<i8>
+  %left = ac.var.constant 2 : i8 as !ac.var<i8>
+  %right = ac.var.constant 3 : i8 as !ac.var<i8>
+  %bad = ac.var.select %condition, %left, %right : !ac.var<i8>, !ac.var<i8> -> !ac.var<i8>
+}
+
+//--- extract-range.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  %value = ac.var.constant 5 : i3 as !ac.var<i3>
+  %bad = ac.var.extract %value from 2 width 2 : !ac.var<i3> -> !ac.var<i2>
+}
+
+//--- concat-result.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  %left = ac.var.constant 5 : i3 as !ac.var<i3>
+  %right = ac.var.constant 17 : i5 as !ac.var<i5>
+  %bad = ac.var.concat %left, %right : !ac.var<i3>, !ac.var<i5> -> !ac.var<i7>
+}
+
+//--- insert-range.mlir
+builtin.module attributes {ac.contract_epoch = "0.5"} {
+  %base = ac.var.constant 5 : i3 as !ac.var<i3>
+  %value = ac.var.constant 3 : i2 as !ac.var<i2>
+  %bad = ac.var.insert %base, %value at 2 : !ac.var<i3>, !ac.var<i2> -> !ac.var<i3>
 }
 
 //--- binary.mlir

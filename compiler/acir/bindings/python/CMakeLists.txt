@@ -2,15 +2,20 @@ find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter Development.Module)
 
 set(ACIR_PYTHON_SOURCE_DIR
   "${ACIR_REPO_ROOT}/python/agentic-circuit/src/agentic_circuit")
+set(ACIR_SEMANTIC_CORE_SOURCE_DIR
+  "${ACIR_REPO_ROOT}/python/semantic-core/src/_pycircuit_semantics")
 set(ACIR_SCHEMA_SOURCE_DIR
   "${ACIR_REPO_ROOT}/schemas/agentic-circuit")
 set(ACIR_PYTHON_BUILD_PACKAGE_DIR
   "${ACIR_BINARY_DIR}/python/agentic_circuit")
+set(ACIR_SEMANTIC_CORE_BUILD_PACKAGE_DIR
+  "${ACIR_BINARY_DIR}/python/_pycircuit_semantics")
 set(ACIR_PYTHON_BUILD_DATA_DIR
   "${ACIR_PYTHON_BUILD_PACKAGE_DIR}/_data")
 
 foreach(_required_path IN ITEMS
     "${ACIR_PYTHON_SOURCE_DIR}"
+    "${ACIR_SEMANTIC_CORE_SOURCE_DIR}"
     "${ACIR_SCHEMA_SOURCE_DIR}")
   if(NOT IS_DIRECTORY "${_required_path}")
     message(FATAL_ERROR "required Agentic Circuit source is missing: ${_required_path}")
@@ -31,6 +36,12 @@ file(REMOVE_RECURSE "${ACIR_PYTHON_BUILD_DATA_DIR}")
 file(MAKE_DIRECTORY "${ACIR_PYTHON_BUILD_PACKAGE_DIR}")
 file(COPY "${ACIR_PYTHON_SOURCE_DIR}/"
   DESTINATION "${ACIR_PYTHON_BUILD_PACKAGE_DIR}"
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE)
+file(REMOVE_RECURSE "${ACIR_SEMANTIC_CORE_BUILD_PACKAGE_DIR}")
+file(MAKE_DIRECTORY "${ACIR_SEMANTIC_CORE_BUILD_PACKAGE_DIR}")
+file(COPY "${ACIR_SEMANTIC_CORE_SOURCE_DIR}/"
+  DESTINATION "${ACIR_SEMANTIC_CORE_BUILD_PACKAGE_DIR}"
   PATTERN "__pycache__" EXCLUDE
   PATTERN "*.pyc" EXCLUDE)
 file(MAKE_DIRECTORY
@@ -70,6 +81,11 @@ set_target_properties(agentic_circuit_native PROPERTIES
 install(
   DIRECTORY "${ACIR_PYTHON_SOURCE_DIR}/"
   DESTINATION "${ACIR_PYTHON_INSTALL_DIR}/agentic_circuit"
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE)
+install(
+  DIRECTORY "${ACIR_SEMANTIC_CORE_SOURCE_DIR}/"
+  DESTINATION "${ACIR_PYTHON_INSTALL_DIR}/_pycircuit_semantics"
   PATTERN "__pycache__" EXCLUDE
   PATTERN "*.pyc" EXCLUDE)
 install(

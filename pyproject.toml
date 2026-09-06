@@ -30,6 +30,7 @@ classifiers = [
 dependencies = [
     "click>=8.0.0",
     "pyyaml>=6.0",
+    "pycircuit-semantic-core==6.0.0",
 ]
 
 [project.urls]
@@ -119,7 +120,12 @@ disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["python/pycircuit/src", "python/agentic-circuit/src", "."]
+pythonpath = [
+    "python/semantic-core/src",
+    "python/pycircuit/src",
+    "python/agentic-circuit/src",
+    ".",
+]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]

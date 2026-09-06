@@ -33,7 +33,7 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 //--- duplicate-enumerant.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.type_scope"() <{sym_name = "types"}> ({
-    "ac.enum"() <{sym_name = "Mode", enumerants = ["read", "read"]}> : () -> ()
+    ac.enum @Mode enumerants ["read", "read"]
   }) : () -> ()
 }
 
@@ -47,7 +47,7 @@ builtin.module attributes {ac.contract_epoch = "0.5"} {
 //--- wrong-kind.mlir
 builtin.module attributes {ac.contract_epoch = "0.5"} {
   "ac.type_scope"() <{sym_name = "types"}> ({
-    "ac.enum"() <{sym_name = "Mode", enumerants = ["read"]}> : () -> ()
+    ac.enum @Mode enumerants ["read"]
     "ac.transaction"() <{sym_name = "Holder", fields = [{name = "mode", type = !ac.struct<@types::@Mode>}]}> : () -> ()
   }) {dlti.dl_spec = #dlti.dl_spec<!ac.enum<@types::@Mode> = {abi_alignment = 1 : i64, endianness = "little", preferred_alignment = 1 : i64, size = 1 : i64}>} : () -> ()
 }

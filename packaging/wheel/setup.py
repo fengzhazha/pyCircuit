@@ -53,6 +53,7 @@ setup(
     install_requires=[
         "click>=8.0.0",
         "pyyaml>=6.0",
+        f"pycircuit-semantic-core=={os.environ['PYC_WHEEL_VERSION']}",
     ],
     packages=find_namespace_packages(
         include=["pycircuit", "pycircuit.*"], exclude=["pycircuit._toolchain*"]

@@ -30,8 +30,10 @@ type (and, for cycle-aware signals, its cycle tag).
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+
+from _pycircuit_semantics import BitfieldLayout
 
 from .hw import Module, Reg, Wire, cat
 
@@ -176,55 +178,27 @@ class BitfieldSpec:
 
     width: int
     fields: Mapping[str, tuple[int, int]]
+    _layout: BitfieldLayout = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
-        w = int(self.width)
-        if w <= 0:
-            raise ValueError("BitfieldSpec width must be > 0")
-        if not self.fields:
-            raise ValueError("BitfieldSpec requires at least one field")
-        norm: dict[str, tuple[int, int]] = {}
-        for raw_name, rng in self.fields.items():
-            name = str(raw_name).strip()
-            if not name:
-                raise ValueError("bitfield field name must be non-empty")
-            if name in norm:
-                raise ValueError(f"duplicate bitfield field {name!r}")
-            try:
-                msb, lsb = int(rng[0]), int(rng[1])
-            except (TypeError, IndexError, ValueError) as exc:
-                raise ValueError(
-                    f"bitfield field {name!r} range must be a (msb, lsb) pair, got {rng!r}"
-                ) from exc
-            if lsb < 0:
-                raise ValueError(f"bitfield field {name!r} lsb must be >= 0")
-            if msb < lsb:
-                raise ValueError(
-                    f"bitfield field {name!r} requires msb >= lsb, got ({msb}, {lsb})"
-                )
-            if msb >= w:
-                raise ValueError(
-                    f"bitfield field {name!r} msb {msb} out of range for width {w}"
-                )
-            norm[name] = (msb, lsb)
-        object.__setattr__(self, "width", w)
-        object.__setattr__(self, "fields", dict(norm))
+        layout = BitfieldLayout(self.width, self.fields)
+        object.__setattr__(self, "width", layout.width)
+        object.__setattr__(self, "fields", layout.fields)
+        object.__setattr__(self, "_layout", layout)
+
+    @property
+    def fingerprint(self) -> str:
+        return self._layout.fingerprint
 
     def _field(self, name: str) -> tuple[int, int]:
-        try:
-            return self.fields[name]
-        except KeyError:
-            raise KeyError(
-                f"unknown bitfield {name!r}; known fields: {sorted(self.fields)}"
-            ) from None
+        return self._layout.field(name)
 
     def field_slices(self) -> dict[str, tuple[int, int]]:
         """Return ``name -> (lsb, width)`` (parity with ``spec.StructSpec``)."""
-        return {n: (lsb, msb - lsb + 1) for n, (msb, lsb) in self.fields.items()}
+        return self._layout.field_slices()
 
     def field_width(self, name: str) -> int:
-        msb, lsb = self._field(name)
-        return msb - lsb + 1
+        return self._layout.field_width(name)
 
     def _check_signal(self, signal: object) -> object:
         signal = _unwrap_base(signal)
@@ -307,17 +281,10 @@ class BitfieldSpec:
         base = self._check_signal(signal)
         if not fields:
             return base
-        writes: list[tuple[int, int, str, object]] = []
-        for name, value in fields.items():
-            msb, lsb = self._field(name)
-            writes.append((lsb, msb, name, value))
-        writes.sort(key=lambda w: w[0])
-        for i in range(1, len(writes)):
-            prev_msb = writes[i - 1][1]
-            if writes[i][0] <= prev_msb:
-                raise ValueError(
-                    f"update writes overlap: {writes[i - 1][2]!r} and {writes[i][2]!r}"
-                )
+        writes = [
+            (lsb, msb, name, fields[name])
+            for lsb, msb, name in self._layout.checked_writes(fields)
+        ]
 
         pieces: list[object] = []
         pos = self.width - 1
@@ -334,6 +301,7 @@ class BitfieldSpec:
         return {
             "kind": "bitfield",
             "width": self.width,
+            "fingerprint": self.fingerprint,
             "fields": {n: [msb, lsb] for n, (msb, lsb) in self.fields.items()},
         }
 

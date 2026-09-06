@@ -19,6 +19,7 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
+#include <cctype>
 #include <map>
 #include <set>
 #include <tuple>
@@ -992,6 +993,54 @@ std::string detail::computeTopologyDigest(ModuleOp model) {
   return llvm::toHex(sha.final(), /*LowerCase=*/true);
 }
 
+namespace {
+
+std::string sha256Fingerprint(StringRef value) {
+  llvm::SHA256 sha;
+  sha.update(value);
+  return "sha256:" + llvm::toHex(sha.final(), /*LowerCase=*/true);
+}
+
+bool isSha256Fingerprint(StringRef value) {
+  if (!value.consume_front("sha256:") || value.size() != 64)
+    return false;
+  return llvm::all_of(value, [](char character) {
+    return std::isxdigit(static_cast<unsigned char>(character)) &&
+           !std::isupper(static_cast<unsigned char>(character));
+  });
+}
+
+std::string printWithoutQueueGraphFingerprints(ac::ModuleOp definition) {
+  Operation *copy = definition->clone();
+  copy->walk([](Operation *operation) {
+    operation->removeAttr("ac.definition_fingerprint");
+    operation->removeAttr("ac.specialization");
+  });
+  std::string serialized;
+  llvm::raw_string_ostream stream(serialized);
+  copy->print(stream);
+  stream.flush();
+  copy->destroy();
+  return serialized;
+}
+
+} // namespace
+
+std::string
+detail::computeQueueGraphDefinitionFingerprint(ac::ModuleOp definition) {
+  return sha256Fingerprint(printWithoutQueueGraphFingerprints(definition));
+}
+
+std::string detail::computeQueueGraphSpecializationFingerprint(
+    ac::ModuleOp definition, DictionaryAttr staticArguments) {
+  std::string serialized = computeQueueGraphDefinitionFingerprint(definition);
+  serialized.append("\nstatic_args=");
+  llvm::raw_string_ostream stream(serialized);
+  stream << staticArguments;
+  stream.flush();
+  return sha256Fingerprint(serialized);
+}
+
 LogicalResult verifyFrozenFlatQueueGraph(ModuleOp model) {
   auto contractEpoch = model->getAttrOfType<StringAttr>("ac.contract_epoch");
   auto modelKind = model->getAttrOfType<StringAttr>("ac.model_kind");
@@ -1018,6 +1067,123 @@ LogicalResult verifyFrozenFlatQueueGraph(ModuleOp model) {
     return model.emitError("malformed flat QueueGraph freeze evidence");
   if (digest.getValue() != detail::computeTopologyDigest(model))
     return model.emitError("frozen flat QueueGraph digest mismatch");
+  return success();
+}
+
+LogicalResult verifyFrozenStructuredQueueGraph(ModuleOp model) {
+  auto contractEpoch = model->getAttrOfType<StringAttr>("ac.contract_epoch");
+  auto modelKind = model->getAttrOfType<StringAttr>("ac.model_kind");
+  auto domain = model->getAttrOfType<StringAttr>("ac.queue_graph_domain");
+  if (!contractEpoch || contractEpoch.getValue() != "0.5" || !modelKind ||
+      modelKind.getValue() != "queue_graph" || !domain ||
+      domain.getValue() != "cycle")
+    return model.emitError(
+        "frozen structured QueueGraph requires epoch 0.5, model kind "
+        "queue_graph, and exact cycle domain");
+  if (model.getOps<ac::SystemOp>().empty() ||
+      model.getOps<ac::ModuleOp>().empty())
+    return model.emitError(
+        "structured QueueGraph requires ac.system and ac.module definitions");
+  if (!model.getOps<ac::ModuleExternOp>().empty() ||
+      !model.getOps<ac::ModuleGeneratedOp>().empty())
+    return model.emitError(
+        "structured QueueGraph first slice requires materialized modules");
+  if (failed(ac::verifyGraphStructure(model)))
+    return failure();
+
+  ac::SystemOp selected;
+  unsigned selectedCount = 0;
+  for (ac::SystemOp system : model.getOps<ac::SystemOp>())
+    if (system.getSelected()) {
+      selected = system;
+      ++selectedCount;
+    }
+  if (selectedCount != 1)
+    return model.emitError(
+        "structured QueueGraph requires exactly one selected ac.system");
+  auto frozenSystem =
+      model->getAttrOfType<FlatSymbolRefAttr>("ac.frozen_system");
+  if (!frozenSystem || frozenSystem.getValue() != selected.getSymName())
+    return model.emitError(
+        "structured QueueGraph frozen system identity is missing or stale");
+
+  SymbolTable symbols(model);
+  auto root = dyn_cast_or_null<ac::ModuleOp>(
+      symbols.lookup(selected.getRootAttr().getValue()));
+  if (!root)
+    return selected.emitOpError(
+        "structured QueueGraph root must resolve to a materialized module");
+  if (!root.getFunctionType().getInputs().empty())
+    return root.emitOpError(
+        "structured QueueGraph root module cannot borrow input Queues");
+
+  for (ac::ModuleOp definition : model.getOps<ac::ModuleOp>()) {
+    for (Type type : definition.getFunctionType().getInputs())
+      if (!isa<ac::QueueType>(type))
+        return definition.emitOpError(
+            "structured QueueGraph module inputs must be ac.queue values");
+    for (Type type : definition.getFunctionType().getResults())
+      if (!isa<ac::QueueType>(type))
+        return definition.emitOpError(
+            "structured QueueGraph module results must be ac.queue values");
+    auto definitionFingerprint =
+        definition->getAttrOfType<StringAttr>("ac.definition_fingerprint");
+    auto rootSpecialization =
+        definition->getAttrOfType<StringAttr>("ac.specialization");
+    if (!definitionFingerprint ||
+        !isSha256Fingerprint(definitionFingerprint.getValue()) ||
+        definitionFingerprint.getValue() !=
+            detail::computeQueueGraphDefinitionFingerprint(definition))
+      return definition.emitOpError(
+          "QueueGraph definition fingerprint is missing or stale");
+    if (definition == root) {
+      if (!rootSpecialization ||
+          rootSpecialization.getValue() !=
+              detail::computeQueueGraphSpecializationFingerprint(
+                  definition,
+                  Builder(model.getContext()).getDictionaryAttr({})))
+        return definition.emitOpError(
+            "QueueGraph root specialization fingerprint is missing or stale");
+    } else if (rootSpecialization) {
+      return definition.emitOpError(
+          "non-root QueueGraph definition cannot carry one global "
+          "specialization fingerprint");
+    }
+    for (Operation &child : definition.getBody().front()) {
+      if (!isa<ac::ScopeOp, ac::InstanceOp, ac::ReturnOp>(child))
+        return child.emitOpError(
+            "structured QueueGraph module body permits scopes, instances, "
+            "and ac.return only");
+      auto instance = dyn_cast<ac::InstanceOp>(child);
+      if (!instance)
+        continue;
+      auto target = dyn_cast_or_null<ac::ModuleOp>(
+          symbols.lookup(instance.getDefinitionAttr().getValue()));
+      auto specialization =
+          instance->getAttrOfType<StringAttr>("ac.specialization");
+      if (!target || !specialization ||
+          !isSha256Fingerprint(specialization.getValue()) ||
+          specialization.getValue() !=
+              detail::computeQueueGraphSpecializationFingerprint(
+                  target, instance.getStaticArgs()))
+        return instance.emitOpError(
+            "QueueGraph specialization fingerprint is missing or stale");
+    }
+  }
+
+  auto frozen = model->getAttrOfType<BoolAttr>("ac.topology_frozen");
+  auto epoch = model->getAttrOfType<StringAttr>("ac.freeze_epoch");
+  auto owners = model->getAttrOfType<ArrayAttr>("ac.frozen_owners");
+  auto digest = model->getAttrOfType<StringAttr>("ac.topology_digest");
+  if (!frozen || !frozen.getValue() || !epoch || epoch.getValue() != "0.5" ||
+      !owners || !digest || digest.getValue().size() != 64)
+    return model.emitError("malformed structured QueueGraph freeze evidence");
+  FailureOr<ArrayAttr> expectedOwners = detail::buildFrozenOwnerManifest(model);
+  if (failed(expectedOwners) || owners != *expectedOwners)
+    return model.emitError(
+        "structured QueueGraph frozen owner manifest mismatch");
+  if (digest.getValue() != detail::computeTopologyDigest(model))
+    return model.emitError("frozen structured QueueGraph digest mismatch");
   return success();
 }
 

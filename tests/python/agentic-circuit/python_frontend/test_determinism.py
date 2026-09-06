@@ -39,6 +39,7 @@ EXACT_PUBLIC_API = {
     "Flow",
     "Endpoint",
     "source",
+    "matches",
     "priority_encode",
     "sink",
     "observe",
@@ -217,6 +218,16 @@ def frontend_test_ledger() -> dict[str, CoverageRow]:
         "Flow": annotation_row,
         "Endpoint": annotation_row,
         "source": CoverageRow((public_import,), (marker_negative,)),
+        "matches": CoverageRow(
+            (
+                "python_frontend.test_queue_frontend."
+                "QueueFrontendTest.test_masked_match_emits_exact_canonical_unsigned_attributes",
+            ),
+            (
+                "python_frontend.test_queue_frontend."
+                "QueueFrontendTest.test_masked_match_rejects_nonstatic_malformed_or_mistyped_patterns",
+            ),
+        ),
         "priority_encode": CoverageRow((public_import,), (marker_negative,)),
         "sink": CoverageRow((public_import,), (marker_negative,)),
         "observe": CoverageRow((public_import,), (marker_negative,)),

@@ -54,6 +54,14 @@ def ACIR_VectorType : ACIR_Type<"Vector", "vector"> {
   let genVerifyDecl = 1;
 }
 
+// An immutable fixed-length payload value. This is deliberately distinct from
+// ac.array, which is a static collection of Queue/Var topology objects.
+def ACIR_ValueArrayType : ACIR_Type<"ValueArray", "value_array"> {
+  let parameters = (ins "int64_t":$length, "mlir::Type":$elementType);
+  let assemblyFormat = "`<` $length `x` $elementType `>`";
+  let genVerifyDecl = 1;
+}
+
 def ACIR_VarType : ACIR_Type<"Var", "var"> {
   let parameters = (ins "mlir::Type":$elementType);
   let assemblyFormat = "`<` $elementType `>`";

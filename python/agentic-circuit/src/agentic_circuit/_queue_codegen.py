@@ -5,6 +5,14 @@ from __future__ import annotations
 import ast
 from dataclasses import dataclass
 
+from _pycircuit_semantics import (
+    BitsType,
+    BoolType,
+    StructType,
+    ValueType,
+    parse_bitmask_checked,
+)
+
 from ._queue_frontend import (
     CollectionBinding,
     Payload,
@@ -12,20 +20,20 @@ from ._queue_frontend import (
     QueueFrontendError,
     QueueProgram,
     StaticQueueCollection,
+    TableBinding,
     _decorator_name,
     parse_queue_program,
 )
 
 
-def _cpp_type(acir_type: str) -> str:
-    if acir_type.startswith("i") and acir_type[1:].isdigit():
-        width = int(acir_type[1:])
-        if width <= 64:
-            return f"gfsim::UInt<{width}>"
-    prefix = "!ac.struct<@types::@"
-    if acir_type.startswith(prefix) and acir_type.endswith(">"):
-        return acir_type[len(prefix) : -1]
-    raise QueueFrontendError(f"ACLOWER-TYPE-MISMATCH: no C++ type for {acir_type}")
+def _cpp_type(value_type: ValueType) -> str:
+    if isinstance(value_type, (BitsType, BoolType)):
+        return f"gfsim::UInt<{value_type.bit_width()}>"
+    if isinstance(value_type, StructType):
+        return value_type.name
+    raise QueueFrontendError(
+        f"ACLOWER-TYPE-MISMATCH: no C++ type for {value_type.canonical()}"
+    )
 
 
 class _CppExpression:
@@ -34,6 +42,7 @@ class _CppExpression:
         argument: str,
         state_names: dict[str, str] | None = None,
         *,
+        argument_type: ValueType | None = None,
         candidates: dict[str, object] | None = None,
         selections: dict[str, object] | None = None,
         candidate_refs: dict[str, str] | None = None,
@@ -43,6 +52,7 @@ class _CppExpression:
         require_shared_refs: bool = False,
     ) -> None:
         self.argument = argument
+        self.argument_type = argument_type
         self.state_names = state_names or {}
         self.candidates = candidates or {}
         self.selections = selections or {}
@@ -51,6 +61,60 @@ class _CppExpression:
         self.table_entries = table_entries or {}
         self.table_names = table_names or {}
         self.require_shared_refs = require_shared_refs
+
+    def value_type(self, node: ast.expr) -> ValueType:
+        if isinstance(node, ast.Name) and node.id == self.argument:
+            if self.argument_type is None:
+                raise QueueFrontendError(
+                    "ACLOWER-TYPE-MISMATCH: expression root type is unavailable"
+                )
+            return self.argument_type
+        if isinstance(node, ast.Attribute):
+            parent = self.value_type(node.value)
+            if not isinstance(parent, StructType):
+                raise QueueFrontendError(
+                    "ACLOWER-TYPE-MISMATCH: field access requires a struct value"
+                )
+            try:
+                return parent.field(node.attr).type
+            except KeyError as error:
+                raise QueueFrontendError(
+                    f"ACLOWER-TYPE-MISMATCH: unknown field {node.attr!r}"
+                ) from error
+        if isinstance(node, ast.BinOp) and isinstance(
+            node.op,
+            (
+                ast.Add,
+                ast.Sub,
+                ast.Mult,
+                ast.BitAnd,
+                ast.BitOr,
+                ast.BitXor,
+                ast.LShift,
+                ast.RShift,
+            ),
+        ):
+            left = self.value_type(node.left)
+            right = (
+                left
+                if isinstance(node.right, ast.Constant)
+                and type(node.right.value) is int
+                else self.value_type(node.right)
+            )
+            if left != right:
+                raise QueueFrontendError(
+                    "ACLOWER-TYPE-MISMATCH: binary operands must match"
+                )
+            return left
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Invert):
+            return self.value_type(node.operand)
+        if isinstance(node, ast.Constant) and type(node.value) is bool:
+            return BoolType()
+        if isinstance(node, ast.Constant) and type(node.value) is int:
+            return BitsType(64)
+        raise QueueFrontendError(
+            "ACLOWER-TYPE-MISMATCH: cannot infer expression value type"
+        )
 
     def emit(self, node: ast.expr) -> str:
         if isinstance(node, ast.Name) and node.id == self.argument:
@@ -95,6 +159,41 @@ class _CppExpression:
             if node.value is False:
                 return "false"
             return str(node.value)
+        if (
+            isinstance(node, ast.Call)
+            and _decorator_name(node.func).rsplit(".", 1)[-1] == "matches"
+        ):
+            if len(node.args) != 2 or node.keywords:
+                raise QueueFrontendError(
+                    "ACLOWER-UNSUPPORTED-CONSTRUCT: matches requires two "
+                    "positional arguments"
+                )
+            pattern_node = node.args[1]
+            if not (
+                isinstance(pattern_node, ast.Constant)
+                and type(pattern_node.value) is str
+            ):
+                raise QueueFrontendError(
+                    "ACLOWER-UNSUPPORTED-CONSTRUCT: matches pattern must be "
+                    "a compile-time str"
+                )
+            value_type = self.value_type(node.args[0])
+            if not isinstance(value_type, BitsType):
+                raise QueueFrontendError(
+                    "ACLOWER-TYPE-MISMATCH: matches requires a bits value"
+                )
+            try:
+                mask, expected = parse_bitmask_checked(
+                    pattern_node.value,
+                    width=value_type.width,
+                    extended=False,
+                )
+            except (TypeError, ValueError) as error:
+                raise QueueFrontendError(
+                    f"ACLOWER-UNSUPPORTED-CONSTRUCT: {error}"
+                ) from error
+            value = self.emit(node.args[0])
+            return f"(({value} & {mask}) == {expected})"
         if (
             isinstance(node, ast.Call)
             and _decorator_name(node.func).rsplit(".", 1)[-1] == "popcount"
@@ -287,13 +386,15 @@ class _CppExpression:
         )
 
 
-def _policy_body(queue: QueueBinding) -> list[str]:
+def _policy_body(queue: QueueBinding, argument_type: ValueType) -> list[str]:
     assert queue.argument is not None and queue.expression is not None
-    return _expression_policy_body(queue.argument, queue.expression)
+    return _expression_policy_body(queue.argument, queue.expression, argument_type)
 
 
-def _expression_policy_body(argument: str, node: ast.expr) -> list[str]:
-    expression = _CppExpression(argument)
+def _expression_policy_body(
+    argument: str, node: ast.expr, argument_type: ValueType | None = None
+) -> list[str]:
+    expression = _CppExpression(argument, argument_type=argument_type)
     if (
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
@@ -392,7 +493,7 @@ class _Fanout:
     source: str
     outputs: tuple[str, ...]
     consumers: tuple[str, ...]
-    payload: str
+    payload: ValueType
     scope: tuple[str, ...]
 
 
@@ -572,7 +673,6 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
     candidates_by_name = {candidate.name: candidate for candidate in program.candidates}
     selections_by_name = {selection.name: selection for selection in program.selections}
     table_entries = {table.name: table.entries for table in program.tables}
-    payloads_by_name = {payload.name: payload for payload in program.payloads}
 
     def table_merge_policy(
         policy_name: str, table: TableBinding, write_fields: tuple[str, ...]
@@ -582,12 +682,12 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             ordinals = (0,)
             assignments = ("    target = value;",)
         else:
-            payload_name = table.entry_type.removeprefix(
-                "!ac.struct<@types::@"
-            ).removesuffix(">")
-            payload = payloads_by_name[payload_name]
+            if not isinstance(table.entry_type, StructType):
+                raise QueueFrontendError(
+                    "ACLOWER-TYPE-MISMATCH: field merge requires a struct Table"
+                )
             field_ordinals = {
-                name: index for index, (name, _) in enumerate(payload.fields)
+                field.name: index for index, field in enumerate(table.entry_type.fields)
             }
             ordinals = tuple(field_ordinals[field] for field in write_fields)
             assignments = tuple(
@@ -778,7 +878,7 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             (
                 f"struct {queue.name}_policy {{",
                 f"  {payload} operator()(const {payload} &item) const {{",
-                *_policy_body(queue),
+                *_policy_body(queue, queues_by_name[queue.input_name].payload),
                 "  }",
                 "};",
                 "",
@@ -792,7 +892,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
                 if queue.name == route.input_name
             )
         )
-        expression = _CppExpression(route.argument).emit(route.selector)
+        expression = _CppExpression(
+            route.argument,
+            argument_type=queues_by_name[route.input_name].payload,
+        ).emit(route.selector)
         lines.extend(
             (
                 f"struct route_{index}_policy {{",
@@ -815,14 +918,18 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             (
                 f"struct feedback_{index}_update_policy {{",
                 f"  {payload} operator()(const {payload} &item) const {{",
-                *_expression_policy_body(feedback.argument, feedback.update),
+                *_expression_policy_body(
+                    feedback.argument,
+                    feedback.update,
+                    queues_by_name[feedback.input_name].payload,
+                ),
                 "  }",
                 "};",
                 "",
                 f"struct feedback_{index}_condition_policy {{",
                 f"  bool operator()(const {payload} &item) const {{",
                 "    return "
-                f"{_CppExpression(feedback.argument).emit(feedback.condition)};",
+                f"{_CppExpression(feedback.argument, argument_type=queues_by_name[feedback.input_name].payload).emit(feedback.condition)};",
                 "  }",
                 "};",
                 "",
@@ -830,7 +937,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
         )
     for index, reorder in enumerate(program.reorders):
         payload = _cpp_type(queues_by_name[reorder.input_name].payload)
-        expression = _CppExpression(reorder.argument).emit(reorder.key)
+        expression = _CppExpression(
+            reorder.argument,
+            argument_type=queues_by_name[reorder.input_name].payload,
+        ).emit(reorder.key)
         lines.extend(
             (
                 f"struct reorder_{index}_key_policy {{",
@@ -849,7 +959,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             ("resource", dependency.resource),
             ("cost", dependency.cost),
         ):
-            expression = _CppExpression(dependency.argument).emit(expression_node)
+            expression = _CppExpression(
+                dependency.argument,
+                argument_type=queues_by_name[dependency.input_name].payload,
+            ).emit(expression_node)
             lines.extend(
                 (
                     f"struct dependency_{index}_{suffix}_policy {{",
@@ -862,7 +975,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             )
     for index, credit in enumerate(program.credits):
         payload = _cpp_type(queues_by_name[credit.input_name].payload)
-        expression = _CppExpression(credit.argument).emit(credit.cost)
+        expression = _CppExpression(
+            credit.argument,
+            argument_type=queues_by_name[credit.input_name].payload,
+        ).emit(credit.cost)
         lines.extend(
             (
                 f"struct credit_{index}_cost_policy {{",
@@ -882,7 +998,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             ("data", data_type, memory.data),
         )
         for suffix, result_type, expression_node in policies:
-            expression = _CppExpression(memory.argument).emit(expression_node)
+            expression = _CppExpression(
+                memory.argument,
+                argument_type=queues_by_name[memory.input_name].payload,
+            ).emit(expression_node)
             lines.extend(
                 (
                     f"struct memory_{index}_{suffix}_policy {{",
@@ -942,9 +1061,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
                 )
             )
             for ordinal, request in enumerate(requests):
-                expression = _CppExpression(request.argument).emit(
-                    getattr(request, expression_name)
-                )
+                expression = _CppExpression(
+                    request.argument,
+                    argument_type=queues_by_name[request.input_name].payload,
+                ).emit(getattr(request, expression_name))
                 lines.append(
                     f"    case {ordinal}: return static_cast<{result_type}>({expression});"
                 )
@@ -978,6 +1098,7 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
         predicate = _CppExpression(
             candidate.argument,
             state_names,
+            argument_type=table.entry_type,
             table_entries=table_entries,
             table_names={candidate.table: "table"},
         ).emit(candidate.predicate)
@@ -1003,7 +1124,10 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
             key = "0"
         else:
             assert selection.argument is not None
-            key = _CppExpression(selection.argument).emit(selection.key)
+            key = _CppExpression(
+                selection.argument,
+                argument_type=table.entry_type,
+            ).emit(selection.key)
         policy = {
             "first": "First",
             "min": "Min",
@@ -1038,6 +1162,11 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
         expression = _CppExpression(
             read.argument or "__state",
             state_names,
+            argument_type=(
+                None
+                if read.input_name is None
+                else queues_by_name[read.input_name].payload
+            ),
             candidates=candidates_by_name,
             selections=selections_by_name,
             candidate_refs=candidate_refs,
@@ -1106,6 +1235,11 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
         )
         argument = write.argument or ""
         expression_context = dict(
+            argument_type=(
+                None
+                if write.input_name is None
+                else queues_by_name[write.input_name].payload
+            ),
             candidates=candidates_by_name,
             selections=selections_by_name,
             candidate_refs=candidate_refs,
@@ -1172,6 +1306,7 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
         table = tables_by_name[write.table]
         entry = _cpp_type(table.entry_type)
         expression_context = dict(
+            argument_type=table.entry_type,
             candidates=candidates_by_name,
             selections=selections_by_name,
             candidate_refs=candidate_refs,
@@ -1921,7 +2056,7 @@ def lower_queue_program_to_cpp(program: QueueProgram) -> str:
 
 def _emit_payload(payload: Payload) -> list[str]:
     lines = [f"struct {payload.name} {{"]
-    for name, typ in payload.fields:
+    for name, typ in payload.field_descriptors:
         lines.append(f"  {_cpp_type(typ)} {name}{{}};")
     lines.extend(("};", ""))
     return lines

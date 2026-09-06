@@ -63,6 +63,7 @@ The canonical pyCircuit 6 source installation is:
 ```bash
 git clone https://github.com/PTO-ISA/pyCircuit.git
 cd pyCircuit
+python3 -m pip install -e "python/semantic-core"
 python3 -m pip install -e ".[dev,docs]"
 pre-commit install
 bash flows/scripts/pyc build
@@ -72,6 +73,7 @@ Install the Agentic Circuit distribution from the same checkout when using
 ACPy, ACIR, ACSim, or gfsim:
 
 ```bash
+python3 -m pip install -e "python/semantic-core"
 python3 -m pip install -e "python/agentic-circuit[test]"
 agentic-circuit --help
 ```
@@ -332,6 +334,7 @@ trace, and gate contracts use `libpyc6_runtime`, `PYC6TRC3`, and
 
 ```text
 pyCircuit/
+├── python/semantic-core/        # Shared immutable value/layout semantics
 ├── python/pycircuit/src/pycircuit/  # Python language frontend
 ├── python/agentic-circuit/       # Agentic Circuit Python distribution
 ├── compiler/mlir/                # pyc dialect, passes, pycc, and emitters

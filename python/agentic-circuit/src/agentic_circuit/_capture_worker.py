@@ -14,6 +14,11 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    import _pycircuit_semantics
+except ModuleNotFoundError:
+    _pycircuit_semantics = None
+
 from ._canonical_json import JsonValue, canonical_json_bytes
 from ._capabilities import schema_root
 from ._diagnostics import Diagnostic, FixIt, RelatedLocation, SourceSpan
@@ -119,7 +124,7 @@ def _request_json(request: CaptureWorkerRequest, output: Path) -> dict[str, Json
         "workspace": request.workspace.resolve().as_posix(),
         "entry": request.entry.resolve().as_posix(),
         "system": request.system,
-        "static_arguments": {key: value for key, value in request.static_arguments},
+        "static_arguments": dict(request.static_arguments),
         "component_roots": [
             path.resolve().relative_to(request.workspace.resolve()).as_posix()
             for path in request.component_roots
@@ -132,12 +137,15 @@ def run_capture_worker(request: CaptureWorkerRequest) -> CaptureWorkerResult:
     # Namespace-package path order is the import authority chosen by the
     # parent process. Preserve it so the isolated worker cannot prefer a stale
     # build/install copy merely because its path sorts before the source tree.
-    package_parents = os.pathsep.join(
-        dict.fromkeys(
-            str(Path(location).resolve().parent)
-            for location in sys.modules["agentic_circuit"].__path__
+    import_roots = [
+        str(Path(location).resolve().parent)
+        for location in sys.modules["agentic_circuit"].__path__
+    ]
+    if _pycircuit_semantics is not None:
+        import_roots.append(
+            str(Path(_pycircuit_semantics.__file__).resolve().parent.parent)
         )
-    )
+    package_parents = os.pathsep.join(dict.fromkeys(import_roots))
     bootstrap = (
         "import os,runpy,sys;"
         "sys.path[:0]=sys.argv.pop(1).split(os.pathsep);"
@@ -165,8 +173,7 @@ def run_capture_worker(request: CaptureWorkerRequest) -> CaptureWorkerResult:
                     os.fspath(request_path),
                 ),
                 stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 timeout=request.timeout,
                 check=False,
                 env=environment,

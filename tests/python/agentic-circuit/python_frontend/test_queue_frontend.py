@@ -12,6 +12,72 @@ def pipeline() -> None:
     sink(output_queue)
 """
 
+INFERRED_MODULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.module
+def increment(value: ac.u8) -> ac.u8:
+    return value + 1
+
+@ac.system
+def pipeline(left: ac.u8, right: ac.u8) -> tuple[ac.u8, ac.u8]:
+    left_result = increment(left)
+    right_result = increment(right)
+    return left_result, right_result
+"""
+
+INFERRED_NESTED_MODULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.module
+def increment(value: ac.u8) -> ac.u8:
+    return value + 1
+
+@ac.module
+def wrapper(value: ac.u8) -> ac.u8:
+    return increment(value)
+
+@ac.system
+def pipeline(left: ac.u8, right: ac.u8) -> tuple[ac.u8, ac.u8]:
+    left_result = wrapper(left)
+    right_result = wrapper(right)
+    return left_result, right_result
+"""
+
+INFERRED_STATEFUL_MODULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.module
+def accumulator(value: ac.u8) -> ac.u8:
+    total: ac.u8 = 0
+    total = total + value
+    return total
+
+@ac.system
+def pipeline(left: ac.u8, right: ac.u8) -> tuple[ac.u8, ac.u8]:
+    left_total = accumulator(left)
+    right_total = accumulator(right)
+    return left_total, right_total
+"""
+
+INFERRED_MULTI_STATE_MODULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.module
+def tally(value: ac.u8) -> ac.u8:
+    count: ac.u8 = 0
+    total: ac.u8 = 0
+    count = count + 1
+    total = total + value
+    return total + count
+
+@ac.system
+def pipeline(left: ac.u8, right: ac.u8) -> tuple[ac.u8, ac.u8]:
+    left_result = tally(left)
+    right_result = tally(right)
+    return left_result, right_result
+"""
+
 POPCOUNT_SOURCE = """
 import agentic_circuit as ac
 from agentic_circuit import sink, source, struct, system
@@ -299,6 +365,236 @@ def pipeline() -> None:
     ac.sink(output_queue)
 """
 
+BIT_OPERATION_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Item:
+    value: ac.bits[17]
+    low: ac.bits[5]
+    joined: ac.bits[8]
+    updated: ac.bits[17]
+
+@ac.rule
+def transform(item):
+    return item.with_fields(
+        low=item.value[0:5],
+        joined=ac.concat(item.value[5:8], item.value[0:5]),
+        updated=ac.insert(item.value, item.value[5:8], lsb=9),
+    )
+
+@ac.system
+def bits_pipeline(item: Item) -> Item:
+    result = transform(item)
+    return result
+"""
+
+MASKED_MATCH_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Item:
+    opcode: ac.bits[4]
+    enabled: bool
+    matched: bool
+
+@ac.rule
+def decode(item):
+    return item.with_fields(
+        matched=ac.matches(item.opcode, "10x1"),
+    )
+
+@ac.system
+def masked_decode_pipeline(item: Item) -> Item:
+    result = decode(item)
+    return result
+"""
+
+BITFIELD_SOURCE = """
+import agentic_circuit as ac
+
+INSTR = ac.BitfieldSpec(width=32, fields={
+    "opcode": (31, 26),
+    "rd": (25, 21),
+    "imm17": (20, 4),
+    "mode": (3, 1),
+    "low25": (24, 0),
+})
+
+@ac.struct
+class Item:
+    word: ac.bits[32]
+    opcode: ac.bits[6]
+    opcode_rd: ac.bits[11]
+    immediate: ac.bits[17]
+    mode: ac.bits[3]
+    rd: ac.bits[5]
+    low25: ac.bits[25]
+    updated: ac.bits[32]
+
+@ac.rule
+def decode(item):
+    return item.with_fields(
+        opcode=INSTR(item.word).opcode,
+        opcode_rd=INSTR(item.word)["opcode", "rd"],
+        immediate=INSTR.view(item.word).imm17,
+        updated=INSTR.update(item.word, mode=item.mode, rd=item.rd),
+    )
+
+@ac.system
+def bitfield_pipeline(incoming: Item) -> Item:
+    result = decode(incoming)
+    return result
+"""
+
+NESTED_STRUCT_SOURCE = """
+from __future__ import annotations
+
+import agentic_circuit as ac
+
+@ac.struct
+class Packet:
+    header: Header
+    payload: ac.bits[17]
+
+@ac.struct
+class Header:
+    opcode: ac.bits[6]
+    mode: ac.bits[3]
+
+@ac.rule
+def advance(item):
+    return item.with_fields(
+        header=item.header.with_fields(mode=item.header.mode + 1),
+    )
+
+@ac.system
+def nested_struct_pipeline(incoming: Packet) -> Packet:
+    updated = advance(incoming)
+    return updated
+"""
+
+ENUM_PAYLOAD_SOURCE = """
+from __future__ import annotations
+
+from enum import Enum
+import agentic_circuit as ac
+
+class Mode(Enum):
+    IDLE = 0
+    RUN = 1
+    WAIT = 2
+
+@ac.struct
+class Header:
+    opcode: ac.bits[6]
+    mode: Mode
+
+@ac.struct
+class Packet:
+    header: Header
+    payload: ac.bits[17]
+    matched: bool
+
+@ac.rule
+def classify(item):
+    return item.with_fields(
+        header=item.header.with_fields(mode=Mode.RUN),
+        matched=item.header.mode == Mode.WAIT,
+    )
+
+@ac.system
+def enum_payload_pipeline(incoming: Packet) -> Packet:
+    updated = classify(incoming)
+    return updated
+"""
+
+AGGREGATE_PAYLOAD_SOURCE = """
+from __future__ import annotations
+
+import agentic_circuit as ac
+
+@ac.struct
+class AggregatePacket:
+    pair: tuple[ac.bits[3], ac.bits[5]]
+    lanes: ac.array[4, ac.bits[4]]
+    selected: ac.bits[4]
+
+@ac.rule
+def rotate(item):
+    return item.with_fields(
+        pair=(item.pair[0] + 1, item.pair[1] + 1),
+        lanes=(item.lanes[1], item.lanes[2], item.lanes[3], item.lanes[0]),
+        selected=item.lanes[2],
+    )
+
+@ac.system
+def aggregate_payload_pipeline(incoming: AggregatePacket) -> AggregatePacket:
+    updated = rotate(incoming)
+    return updated
+"""
+
+BOOL_U1_SOURCE = """
+from __future__ import annotations
+
+import agentic_circuit as ac
+
+@ac.struct
+class LogicalBitPair:
+    logical: bool
+    bit: ac.u1
+
+@ac.rule
+def flip(item):
+    return item.with_fields(
+        logical=not item.logical,
+        bit=~item.bit,
+    )
+
+@ac.system
+def bool_u1_pipeline(incoming: LogicalBitPair) -> LogicalBitPair:
+    updated = flip(incoming)
+    return updated
+"""
+
+BOOL_U1_COMPARISON_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class LogicalBitPair:
+    logical: bool
+    bit: ac.u1
+    matched: bool
+
+@ac.system
+def bool_u1_compare() -> None:
+    incoming = ac.source(LogicalBitPair)
+    outgoing = incoming.apply(
+        lambda item: item.with_fields(matched=item.bit == item.logical)
+    )
+    ac.sink(outgoing)
+"""
+
+BOOL_U1_MODULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.module
+def bit_identity(value: ac.u1) -> ac.u1:
+    return value
+
+@ac.module
+def bit_state(value: bool) -> ac.u1:
+    saved: ac.u1 = 0
+    saved = value
+    return saved
+
+@ac.system
+def bool_u1_modules(incoming: bool) -> bool:
+    identity_result = bit_identity(incoming)
+    state_result = bit_state(identity_result)
+    return state_result
+"""
+
 SCALAR_BIT_SOURCE = """
 import agentic_circuit as ac
 
@@ -354,6 +650,367 @@ def pair() -> None:
     ac.sink(right_next)
 """
 
+MULTI_INPUT_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.rule
+def add(left, right):
+    return left + right
+
+@ac.system
+def pair() -> None:
+    left = ac.source(int)
+    right = ac.source(int)
+    summed = add(left, right)
+    ac.sink(summed)
+"""
+
+INFERRED_BOUNDARY_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.rule
+def increment(value):
+    return value + 1
+
+@ac.system
+def pipeline(value: ac.u8) -> ac.u8:
+    result = increment(value)
+    return result
+"""
+
+INFERRED_MULTI_BOUNDARY_SOURCE = """
+import agentic_circuit as ac
+
+@ac.rule
+def combine(left, right):
+    return left + right
+
+@ac.rule
+def forward(value):
+    return value
+
+@ac.system
+def pipeline(left: ac.u8, right: ac.u8) -> tuple[ac.u8, ac.u8]:
+    combined = combine(left, right)
+    forwarded = forward(right)
+    return combined, forwarded
+"""
+
+VARIABLE_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.rule
+def accumulate(count, value):
+    count = count + value
+    return count
+
+@ac.system
+def accumulator() -> None:
+    count: ac.u8 = 0
+    incoming = ac.source(ac.u8, depth=2)
+    outgoing = accumulate(count, incoming)
+    ac.sink(outgoing)
+"""
+
+STRUCT_VARIABLE_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class State:
+    value: ac.u8
+    valid: bool
+
+@ac.rule
+def update(state, incoming):
+    state = state.with_fields(value=state.value + incoming.value, valid=True)
+    return state
+
+@ac.system
+def accumulator() -> None:
+    state: State = 0
+    incoming = ac.source(State, depth=2)
+    outgoing = update(state, incoming)
+    ac.sink(outgoing)
+"""
+
+INDEXED_VARIABLE_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    value: ac.u8
+
+@ac.rule
+def replace(entries, incoming):
+    old = entries[incoming.index]
+    entries[incoming.index] = incoming
+    return old
+
+@ac.system
+def indexed_state(incoming: Entry) -> Entry:
+    entries: list[Entry] = [0] * 4
+    outgoing = replace(entries, incoming)
+    return outgoing
+"""
+
+LIST_FIND_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    age: ac.u8
+    value: ac.u8
+    valid: bool
+
+@ac.rule
+def issue(entries):
+    selected = ac.find(
+        entries,
+        where=lambda entry: entry.valid,
+        key=lambda entry: entry.age,
+    )
+    if selected.valid:
+        entries[selected.index] = selected.value.with_fields(valid=False)
+        return selected.value
+
+@ac.system
+def issue_queue() -> Entry:
+    entries: list[Entry] = [0] * 4
+    issued = issue(entries)
+    return issued
+"""
+
+LIST_FIND_CAPTURE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    age: ac.u8
+    src0_tag: ac.u6
+    src1_tag: ac.u6
+    valid: bool
+
+@ac.struct
+class Wakeup:
+    tag: ac.u6
+
+@ac.rule
+def wake(ready_tags, wakeup):
+    ready_tags[wakeup.tag] = True
+
+@ac.rule
+def issue(entries, ready_tags):
+    selected = ac.find(
+        entries,
+        where=lambda entry: (
+            entry.valid
+            and ready_tags[entry.src0_tag]
+            and ready_tags[entry.src1_tag]
+        ),
+        key=lambda entry: entry.age,
+    )
+    if selected.valid:
+        entries[selected.index] = selected.value.with_fields(valid=False)
+        return selected.value
+
+@ac.system
+def issue_queue(wakeup: Wakeup) -> Entry:
+    entries: list[Entry] = [0] * 4
+    ready_tags: list[bool] = [False] * 64
+    wake(ready_tags, wakeup)
+    issued = issue(entries, ready_tags)
+    return issued
+"""
+
+LIST_FIND_KEY_CAPTURE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    tag: ac.u2
+    valid: bool
+
+@ac.rule
+def issue(entries, priorities):
+    selected = ac.find(
+        entries,
+        where=lambda entry: entry.valid,
+        key=lambda entry: priorities[entry.tag],
+    )
+    if selected.valid:
+        entries[selected.index] = selected.value.with_fields(valid=False)
+        return selected.value
+
+@ac.system
+def issue_queue() -> Entry:
+    entries: list[Entry] = [0] * 4
+    priorities: list[ac.u2] = [0] * 4
+    issued = issue(entries, priorities)
+    return issued
+"""
+
+CONSUME_ONLY_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    generation: ac.u8
+    value: ac.u8
+
+@ac.rule
+def complete(entries, completion):
+    old = entries[completion.index]
+    if old.generation != completion.generation:
+        return
+    entries[completion.index] = completion
+
+@ac.system
+def completion_port(completion: Entry) -> None:
+    entries: list[Entry] = [0] * 4
+    complete(entries, completion)
+"""
+
+READ_ONLY_SCALAR_CONDITIONAL_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u1
+    epoch: ac.u8
+
+@ac.rule
+def complete(epoch, entries, completion):
+    old = entries[completion.index]
+    if old.epoch != completion.epoch:
+        return
+    if old.epoch != epoch:
+        return
+    entries[completion.index] = completion
+
+@ac.system
+def completion_port(completion: Entry) -> None:
+    epoch: ac.u8 = 0
+    entries: list[Entry] = [0] * 2
+    complete(epoch, entries, completion)
+"""
+
+STATE_DRIVEN_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u1
+    value: ac.u7
+    valid: bool
+
+@ac.rule
+def retire(entries):
+    old = entries[0]
+    if old.valid:
+        entries[0] = old.with_fields(valid=False)
+        return old
+
+@ac.system
+def retirement_port() -> Entry:
+    entries: list[Entry] = [0] * 2
+    retired = retire(entries)
+    return retired
+"""
+
+MULTI_STATE_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u2
+    value: ac.u8
+
+@ac.rule
+def allocate(tail, entries, incoming):
+    entries[tail] = incoming
+    tail = tail + 1
+    return incoming
+
+@ac.system
+def multi_state_allocate(incoming: Entry) -> Entry:
+    tail: ac.u2 = 0
+    entries: list[Entry] = [0] * 4
+    allocated = allocate(tail, entries, incoming)
+    return allocated
+"""
+
+BRANCH_LOCAL_STATE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Command:
+    select_right: bool
+    value: ac.u8
+
+@ac.rule
+def route(left, right, command):
+    if command.select_right:
+        right = command.value
+    else:
+        left = command.value
+
+@ac.system
+def branch_state(command: Command) -> None:
+    left: ac.u8 = 0
+    right: ac.u8 = 0
+    route(left, right, command)
+"""
+
+INDEXED_BRANCH_JOIN_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Command:
+    select_right: bool
+    left_index: ac.u2
+    right_index: ac.u2
+    value: ac.u8
+
+@ac.rule
+def update(entries, command):
+    if command.select_right:
+        entries[command.right_index] = command.value
+    else:
+        entries[command.left_index] = command.value + 1
+
+@ac.system
+def indexed_branch_join(command: Command) -> None:
+    entries: list[ac.u8] = [0] * 4
+    update(entries, command)
+"""
+
+OPTIONAL_OUTPUT_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Event:
+    emit: bool
+    value: ac.u8
+
+@ac.rule
+def filter_event(count, event):
+    count = count + 1
+    if event.emit:
+        return event
+    return
+
+@ac.system
+def optional_output(event: Event) -> Event:
+    count: ac.u8 = 0
+    filtered = filter_event(count, event)
+    return filtered
+"""
+
 STATEFUL_RULE_SOURCE = """
 import agentic_circuit as ac
 
@@ -373,6 +1030,33 @@ def table_rule() -> None:
     rob = ac.table[2, Entry](init=0)
     incoming = ac.source(Entry, depth=2)
     outgoing = install(rob, incoming)
+    ac.sink(outgoing)
+"""
+
+STATEFUL_MULTI_INPUT_RULE_SOURCE = """
+import agentic_circuit as ac
+
+@ac.struct
+class Entry:
+    index: ac.u1
+    value: ac.u7
+
+@ac.struct
+class Delta:
+    amount: ac.u7
+
+@ac.rule
+def install(rob, entry, delta):
+    old = rob[entry.index]
+    rob[entry.index] = entry.with_fields(value=entry.value + delta.amount)
+    return old
+
+@ac.system
+def table_rule() -> None:
+    rob = ac.table[2, Entry](init=0)
+    incoming = ac.source(Entry, depth=2)
+    deltas = ac.source(Delta, depth=2)
+    outgoing = install(rob, incoming, deltas)
     ac.sink(outgoing)
 """
 
@@ -1581,7 +2265,10 @@ class QueueFrontendTest(unittest.TestCase):
             lower_queue_source,
         )
 
-        lowered = lower_queue_source(STATIC_CONTROL_SOURCE, "pipeline")
+        lowered = lower_queue_source(
+            STATIC_CONTROL_SOURCE.replace("range(2)", "range(1 + 1)"),
+            "pipeline",
+        )
         self.assertIn('ac.name = "selected"', lowered)
         self.assertNotIn("unreachable", lowered)
         self.assertIn("ac.sink %lanes__0", lowered)
@@ -1591,6 +2278,28 @@ class QueueFrontendTest(unittest.TestCase):
                 STATIC_CONTROL_SOURCE.replace("if True:", "if input_queue:"),
                 "pipeline",
             )
+
+    def test_static_range_expansion_uses_the_shared_deterministic_cap(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        template = """
+import agentic_circuit as ac
+
+@ac.system
+def pipeline() -> None:
+    incoming = ac.source(int)
+    for index in range(EXTENT):
+        if False:
+            ac.sink(incoming)
+    ac.sink(incoming)
+"""
+        accepted = lower_queue_source(template.replace("EXTENT", "10000"), "pipeline")
+        self.assertEqual(1, accepted.count("ac.sink %incoming"))
+        with self.assertRaisesRegex(QueueFrontendError, r"\[0, 10000\]"):
+            lower_queue_source(template.replace("EXTENT", "10001"), "pipeline")
 
     def test_user_opcode_definition_is_rejected(self) -> None:
         from agentic_circuit._queue_frontend import (
@@ -1647,6 +2356,273 @@ def pipeline() -> None:
         self.assertIn("ac.var.constant 1 : i3 as !ac.var<i3>", lowered)
         self.assertIn("size = 24 : i64", lowered)
 
+    def test_payload_parser_retains_recursive_type_descriptors_before_mlir(
+        self,
+    ) -> None:
+        from _pycircuit_semantics import BitsType, BoolType, StructType
+        from agentic_circuit._queue_frontend import parse_queue_program
+
+        program = parse_queue_program(BIT_WIDTH_SOURCE, "pipeline")
+        payload = next(item for item in program.payloads if item.name == "BitBundle")
+
+        self.assertIsInstance(payload.descriptor, StructType)
+        self.assertIsInstance(payload.descriptor.field("left").type, BitsType)
+        self.assertEqual(3, payload.descriptor.field("left").type.bit_width())
+        self.assertIsInstance(payload.descriptor.field("priority_valid").type, BitsType)
+        self.assertEqual(payload.acir_type, "!ac.struct<@types::@BitBundle>")
+
+        rule_program = parse_queue_program(RULE_ROB_SOURCE, "rob")
+        entry = next(item for item in rule_program.payloads if item.name == "Entry")
+        self.assertIsInstance(entry.descriptor.field("done").type, BoolType)
+
+    def test_queue_program_semantic_types_are_scope_independent_descriptors(
+        self,
+    ) -> None:
+        from _pycircuit_semantics import BitsType, BoolType, StructType, ValueType
+        from agentic_circuit._queue_frontend import parse_queue_program
+
+        first = parse_queue_program(BIT_WIDTH_SOURCE, "pipeline")
+        second = parse_queue_program(BIT_WIDTH_SOURCE, "pipeline")
+        first_payload = next(
+            item.descriptor for item in first.payloads if item.name == "BitBundle"
+        )
+        second_payload = next(
+            item.descriptor for item in second.payloads if item.name == "BitBundle"
+        )
+        self.assertIsInstance(first_payload, StructType)
+        self.assertEqual(first_payload, second_payload)
+        self.assertIsNot(first_payload, second_payload)
+        self.assertEqual(first_payload.fingerprint, second_payload.fingerprint)
+        self.assertTrue(
+            all(isinstance(queue.payload, ValueType) for queue in first.queues)
+        )
+        self.assertEqual(first_payload, first.queues[0].payload)
+
+        logical = BoolType()
+        bit = BitsType(1)
+        self.assertNotEqual(logical, bit)
+        self.assertEqual("i1", logical.mlir())
+        self.assertEqual("i1", bit.mlir())
+
+        memory = parse_queue_program(MEMORY_SOURCE, "pipeline")
+        self.assertIsInstance(memory.memory_instances[0].data_type, BitsType)
+        table = parse_queue_program(TABLE_SOURCE, "pipeline")
+        self.assertIsInstance(table.tables[0].entry_type, StructType)
+        slot = parse_queue_program(SLOT_TABLE_SOURCE, "pipeline")
+        self.assertIsInstance(slot.slots[0].payload, StructType)
+        state = parse_queue_program(VARIABLE_RULE_SOURCE, "accumulator")
+        self.assertIsInstance(state.variables[0].value_type, BitsType)
+        self.assertTrue(
+            all(
+                isinstance(owner.value_type, ValueType)
+                for queue in state.queues
+                for owner in queue.rule_state_owners
+            )
+        )
+
+    def test_bool_and_u1_identity_survives_expression_lowering(self) -> None:
+        from _pycircuit_semantics import BitsType, BoolType
+        from agentic_circuit._queue_frontend import (
+            lower_queue_source,
+            parse_queue_program,
+        )
+
+        program = parse_queue_program(BOOL_U1_SOURCE, "bool_u1_pipeline")
+        descriptor = program.payloads[0].descriptor
+        logical = descriptor.field("logical").type
+        bit = descriptor.field("bit").type
+        self.assertIsInstance(logical, BoolType)
+        self.assertIsInstance(bit, BitsType)
+        self.assertNotEqual(logical, bit)
+        self.assertEqual("i1", logical.mlir())
+        self.assertEqual("i1", bit.mlir())
+
+        lowered = lower_queue_source(BOOL_U1_SOURCE, "bool_u1_pipeline")
+        self.assertEqual(1, lowered.count("ac.var.not"))
+        self.assertEqual(1, lowered.count('ac.var.cmp "eq"'))
+
+    def test_epoch_05_bool_u1_compatibility_remains_backend_consistent(self) -> None:
+        from agentic_circuit._queue_codegen import lower_queue_program_to_cpp
+        from agentic_circuit._queue_frontend import (
+            lower_queue_source,
+            parse_queue_program,
+        )
+
+        program = parse_queue_program(BOOL_U1_COMPARISON_SOURCE, "bool_u1_compare")
+        lowered = lower_queue_source(BOOL_U1_COMPARISON_SOURCE, "bool_u1_compare")
+        generated = lower_queue_program_to_cpp(program)
+        self.assertIn('ac.var.cmp "eq"', lowered)
+        self.assertIn("item.bit == item.logical", generated)
+
+        modules = lower_queue_source(BOOL_U1_MODULE_SOURCE, "bool_u1_modules")
+        self.assertIn("ac.module @bit_identity", modules)
+        self.assertIn("ac.module @bit_state", modules)
+        self.assertEqual(2, modules.count("ac.instance"))
+        self.assertIn("ac.var.assign @saved", modules)
+
+    def test_nested_struct_fields_lower_through_recursive_descriptors(self) -> None:
+        from _pycircuit_semantics import BitsType, StructType
+        from agentic_circuit._queue_frontend import (
+            lower_queue_source,
+            parse_queue_program,
+        )
+
+        program = parse_queue_program(NESTED_STRUCT_SOURCE, "nested_struct_pipeline")
+        packet = next(item for item in program.payloads if item.name == "Packet")
+        header = packet.descriptor.field("header").type
+
+        self.assertIsInstance(header, StructType)
+        self.assertIsInstance(header.field("mode").type, BitsType)
+        self.assertEqual(26, packet.descriptor.bit_width())
+
+        lowered = lower_queue_source(NESTED_STRUCT_SOURCE, "nested_struct_pipeline")
+        self.assertIn('{name = "header", type = !ac.struct<@types::@Header>}', lowered)
+        self.assertIn('ac.var.get %item field "header"', lowered)
+        self.assertIn('field "mode"', lowered)
+        self.assertIn("!ac.var<!ac.struct<@types::@Header>>", lowered)
+
+    def test_recursive_struct_cycle_fails_before_acir(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        source = """
+from __future__ import annotations
+import agentic_circuit as ac
+
+@ac.struct
+class Left:
+    right: Right
+
+@ac.struct
+class Right:
+    left: Left
+
+@ac.system
+def cycle(incoming: Left) -> Left:
+    return incoming
+"""
+        with self.assertRaisesRegex(QueueFrontendError, "recursive struct cycle"):
+            lower_queue_source(source, "cycle")
+
+    def test_standard_python_enum_lowers_as_nominal_nested_value(self) -> None:
+        from _pycircuit_semantics import EnumType
+        from agentic_circuit._queue_frontend import (
+            lower_queue_source,
+            parse_queue_program,
+        )
+
+        program = parse_queue_program(ENUM_PAYLOAD_SOURCE, "enum_payload_pipeline")
+        mode = next(item for item in program.enums if item.name == "Mode")
+        packet = next(item for item in program.payloads if item.name == "Packet")
+        header = packet.descriptor.field("header").type
+
+        self.assertIsInstance(mode.descriptor, EnumType)
+        self.assertEqual(("IDLE", "RUN", "WAIT"), mode.descriptor.enumerants)
+        self.assertEqual(mode.descriptor, header.field("mode").type)
+
+        lowered = lower_queue_source(ENUM_PAYLOAD_SOURCE, "enum_payload_pipeline")
+        self.assertIn("ac.enum @Mode", lowered)
+        self.assertIn('enumerants ["IDLE", "RUN", "WAIT"]', lowered)
+        self.assertIn('ac.var.enum @types::@Mode "RUN"', lowered)
+        self.assertIn('ac.var.enum @types::@Mode "WAIT"', lowered)
+        self.assertIn('ac.var.cmp "eq"', lowered)
+        self.assertIn("!ac.var<!ac.enum<@types::@Mode>>", lowered)
+
+    def test_enum_values_require_contiguous_encoding_and_equality_comparison(
+        self,
+    ) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        sparse = ENUM_PAYLOAD_SOURCE.replace("WAIT = 2", "WAIT = 3")
+        with self.assertRaisesRegex(QueueFrontendError, "contiguous from zero"):
+            lower_queue_source(sparse, "enum_payload_pipeline")
+
+        ordered = ENUM_PAYLOAD_SOURCE.replace(
+            "item.header.mode == Mode.WAIT", "item.header.mode < Mode.WAIT"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "only equality"):
+            lower_queue_source(ordered, "enum_payload_pipeline")
+
+    def test_tuple_and_value_array_lower_as_structural_aggregate_values(self) -> None:
+        from _pycircuit_semantics import ArrayType, TupleType
+        from agentic_circuit._queue_frontend import (
+            lower_queue_source,
+            parse_queue_program,
+        )
+
+        program = parse_queue_program(
+            AGGREGATE_PAYLOAD_SOURCE, "aggregate_payload_pipeline"
+        )
+        packet = next(
+            item for item in program.payloads if item.name == "AggregatePacket"
+        )
+        self.assertIsInstance(packet.descriptor.field("pair").type, TupleType)
+        self.assertIsInstance(packet.descriptor.field("lanes").type, ArrayType)
+        self.assertEqual(28, packet.descriptor.bit_width())
+
+        lowered = lower_queue_source(
+            AGGREGATE_PAYLOAD_SOURCE, "aggregate_payload_pipeline"
+        )
+        self.assertIn("type = tuple<i3, i5>", lowered)
+        self.assertIn("type = !ac.value_array<4 x i4>", lowered)
+        self.assertEqual(7, lowered.count("ac.var.element"))
+        self.assertEqual(1, lowered.count("ac.var.tuple"))
+        self.assertEqual(1, lowered.count("ac.var.array"))
+
+    def test_tuple_and_value_array_require_static_exact_shapes(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        short = AGGREGATE_PAYLOAD_SOURCE.replace(
+            "item.lanes[3], item.lanes[0]", "item.lanes[3]"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "literal arity"):
+            lower_queue_source(short, "aggregate_payload_pipeline")
+
+        out_of_range = AGGREGATE_PAYLOAD_SOURCE.replace(
+            "selected=item.lanes[2]", "selected=item.lanes[4]"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "index is out of range"):
+            lower_queue_source(out_of_range, "aggregate_payload_pipeline")
+
+        dynamic = AGGREGATE_PAYLOAD_SOURCE.replace(
+            "ac.array[4, ac.bits[4]]", "ac.array[WIDTH, ac.bits[4]]"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "static"):
+            lower_queue_source(dynamic, "aggregate_payload_pipeline")
+
+        overflowing = AGGREGATE_PAYLOAD_SOURCE.replace(
+            "ac.array[4, ac.bits[4]]",
+            "ac.array[2305843009213693953, ac.bits[8]]",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, r"width must be in \[1, 64\]"):
+            lower_queue_source(overflowing, "aggregate_payload_pipeline")
+
+    def test_constraint_proven_shapes_render_concrete_acir_attributes(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        source = (
+            AGGREGATE_PAYLOAD_SOURCE.replace(
+                "tuple[ac.bits[3], ac.bits[5]]",
+                "tuple[ac.bits[1 + 2], ac.bits[2 + 3]]",
+            )
+            .replace("ac.array[4, ac.bits[4]]", "ac.array[2 + 2, ac.bits[2 + 2]]")
+            .replace("selected=item.lanes[2]", "selected=item.lanes[1 + 1]")
+        )
+        lowered = lower_queue_source(source, "aggregate_payload_pipeline")
+
+        self.assertIn("type = tuple<i3, i5>", lowered)
+        self.assertIn("type = !ac.value_array<4 x i4>", lowered)
+        self.assertIn("ac.var.element %v", lowered)
+        self.assertIn(" at 2 : !ac.var<!ac.value_array<4 x i4>>", lowered)
+
     def test_bit_operations_require_identical_widths(self) -> None:
         from agentic_circuit._queue_frontend import (
             QueueFrontendError,
@@ -1679,6 +2655,136 @@ def pipeline() -> None:
             with self.subTest(invalid=invalid):
                 with self.assertRaisesRegex(QueueFrontendError, r"\[1, 64\]"):
                     lower_queue_source(source, "pipeline")
+
+    def test_static_bits_extract_concat_and_insert_lower_exact_widths(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        source = BIT_OPERATION_SOURCE.replace(
+            "item.value[0:5]", "item.value[0 + 0:2 + 3]"
+        ).replace("lsb=9", "lsb=4 + 5")
+        lowered = lower_queue_source(source, "bits_pipeline")
+        self.assertIn("ac.var.extract", lowered)
+        self.assertIn("from 0 width 5", lowered)
+        self.assertIn("ac.var.concat", lowered)
+        self.assertIn("-> !ac.var<i8>", lowered)
+        self.assertIn("ac.var.insert", lowered)
+        self.assertIn("at 9", lowered)
+
+    def test_static_bits_reject_dynamic_or_out_of_range_operations(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        dynamic = BIT_OPERATION_SOURCE.replace("item.value[0:5]", "item.value[0:]")
+        with self.assertRaisesRegex(QueueFrontendError, "static integers"):
+            lower_queue_source(dynamic, "bits_pipeline")
+
+        out_of_range = BIT_OPERATION_SOURCE.replace("lsb=9", "lsb=16")
+        with self.assertRaisesRegex(QueueFrontendError, "out of range"):
+            lower_queue_source(out_of_range, "bits_pipeline")
+
+    def test_masked_match_emits_exact_canonical_unsigned_attributes(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(MASKED_MATCH_SOURCE, "masked_decode_pipeline")
+        self.assertIn(
+            "ac.var.matches %v0 mask 13 value 9 : !ac.var<i4> -> !ac.var<i1>",
+            lowered,
+        )
+
+    def test_masked_match_rejects_nonstatic_malformed_or_mistyped_patterns(
+        self,
+    ) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid_sources = (
+            (
+                MASKED_MATCH_SOURCE.replace('"10x1"', '"10" + "x1"'),
+                "compile-time str",
+            ),
+            (MASKED_MATCH_SOURCE.replace('"10x1"', "item.opcode"), "compile-time str"),
+            (MASKED_MATCH_SOURCE.replace('"10x1"', '"10?1"'), "invalid"),
+            (MASKED_MATCH_SOURCE.replace('"10x1"', '"10x"'), "width 3"),
+            (
+                MASKED_MATCH_SOURCE.replace(
+                    'ac.matches(item.opcode, "10x1")',
+                    'ac.matches(item.enabled, "x")',
+                ),
+                "requires a bits value",
+            ),
+            (
+                MASKED_MATCH_SOURCE.replace(
+                    'ac.matches(item.opcode, "10x1")',
+                    'ac.matches(item.opcode, pattern="10x1")',
+                ),
+                "two positional arguments",
+            ),
+        )
+        for source, diagnostic in invalid_sources:
+            with self.subTest(diagnostic=diagnostic):
+                with self.assertRaisesRegex(QueueFrontendError, diagnostic):
+                    lower_queue_source(source, "masked_decode_pipeline")
+
+        for extended in ("10X1", "10-1", "10 1", "10_1", "1(0)x"):
+            with self.subTest(extended=extended):
+                source = MASKED_MATCH_SOURCE.replace('"10x1"', repr(extended))
+                with self.assertRaisesRegex(QueueFrontendError, "invalid"):
+                    lower_queue_source(source, "masked_decode_pipeline")
+
+    def test_bitfield_views_and_updates_lower_to_existing_bit_operations(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(BITFIELD_SOURCE, "bitfield_pipeline")
+
+        self.assertIn("ac.bitfield @INSTR width 32", lowered)
+        self.assertRegex(lowered, r'fingerprint "sha256:[0-9a-f]{64}"')
+        self.assertIn("from 26 width 6", lowered)
+        self.assertIn("from 21 width 5", lowered)
+        self.assertIn("from 4 width 17", lowered)
+        self.assertIn('ac.bitfield_fields = ["opcode", "rd"]', lowered)
+        self.assertIn("at 1", lowered)
+        self.assertIn("at 21", lowered)
+        self.assertNotIn("ac.bitfield.read", lowered)
+        self.assertNotIn("ac.bitfield.update", lowered)
+
+    def test_bitfield_declaration_overlap_is_legal_but_update_overlap_rejects(
+        self,
+    ) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = BITFIELD_SOURCE.replace(
+            "mode=item.mode, rd=item.rd",
+            "rd=item.rd, low25=item.low25",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "overlap"):
+            lower_queue_source(invalid, "bitfield_pipeline")
+
+    def test_bitfield_schema_and_field_use_fail_closed(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        dynamic = BITFIELD_SOURCE.replace("width=32", "width=WIDTH", 1)
+        with self.assertRaisesRegex(QueueFrontendError, "static literals"):
+            lower_queue_source(dynamic, "bitfield_pipeline")
+
+        unknown = BITFIELD_SOURCE.replace(
+            "INSTR(item.word).opcode", "INSTR(item.word).missing", 1
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "unknown bitfield"):
+            lower_queue_source(unknown, "bitfield_pipeline")
+
+        mismatched = BITFIELD_SOURCE.replace("word: ac.bits[32]", "word: ac.bits[31]")
+        with self.assertRaisesRegex(QueueFrontendError, "does not match"):
+            lower_queue_source(mismatched, "bitfield_pipeline")
 
     def test_rule_frontend_emits_typed_markers_before_mlir_lowering(self) -> None:
         from agentic_circuit._queue_frontend import lower_queue_source
@@ -1720,6 +2826,336 @@ def pipeline() -> None:
         self.assertIn('stable_id "left_next"', lowered)
         self.assertIn('stable_id "right_next"', lowered)
 
+    def test_multi_input_rule_keeps_queue_atomicity_below_python_surface(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(MULTI_INPUT_RULE_SOURCE, "pair")
+        self.assertIn("%summed = ac.rule %left, %right", lowered)
+        self.assertIn(
+            "^rule(%item0: !ac.var<i64>, %item1: !ac.var<i64>):",
+            lowered,
+        )
+        self.assertIn("ac.var.add %item0, %item1", lowered)
+        self.assertNotIn(".pop", lowered)
+        self.assertNotIn(".push", lowered)
+        self.assertNotIn("ready_valid", lowered)
+        self.assertNotIn("atomic", lowered)
+
+    def test_system_parameters_and_return_infer_boundaries(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_BOUNDARY_RULE_SOURCE, "pipeline")
+        self.assertIn("%value = ac.source", lowered)
+        self.assertIn("%result = ac.rule %value", lowered)
+        self.assertIn("ac.sink %result", lowered)
+        self.assertNotIn("source(", INFERRED_BOUNDARY_RULE_SOURCE)
+        self.assertNotIn("sink(", INFERRED_BOUNDARY_RULE_SOURCE)
+
+    def test_system_tuple_return_infers_multiple_output_boundaries(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_MULTI_BOUNDARY_SOURCE, "pipeline")
+        self.assertIn("%left = ac.source", lowered)
+        self.assertIn("%right = ac.source", lowered)
+        self.assertEqual(2, lowered.count("ac.sink %"))
+
+    def test_inferred_system_boundary_checks_result_contract(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        wrong_arity = INFERRED_MULTI_BOUNDARY_SOURCE.replace(
+            "return combined, forwarded", "return combined"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "return arity"):
+            lower_queue_source(wrong_arity, "pipeline")
+
+        wrong_type = INFERRED_BOUNDARY_RULE_SOURCE.replace("-> ac.u8", "-> ac.u7")
+        with self.assertRaisesRegex(QueueFrontendError, "payload"):
+            lower_queue_source(wrong_type, "pipeline")
+
+    def test_lexical_scalar_state_lowers_to_generic_ac_var(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(VARIABLE_RULE_SOURCE, "accumulator")
+        self.assertIn(
+            'ac.var.decl @count type i8 init 0 : i8 owner "/" stable_id "var/count"',
+            lowered,
+        )
+        self.assertIn("%outgoing = ac.rule %incoming", lowered)
+        self.assertIn("ac.var.read @count", lowered)
+        self.assertIn("ac.var.assign @count", lowered)
+        self.assertNotIn("ac.table", lowered)
+        self.assertNotIn("ready_valid", lowered)
+
+    def test_lexical_struct_state_uses_the_same_ac_var_family(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(STRUCT_VARIABLE_RULE_SOURCE, "accumulator")
+        self.assertIn("ac.var.decl @state type !ac.struct<@types::@State>", lowered)
+        self.assertIn("init 0 : i64", lowered)
+        self.assertIn("ac.var.read @state", lowered)
+        self.assertIn("ac.var.assign @state", lowered)
+        self.assertNotIn("ac.table", lowered)
+
+    def test_persistent_list_uses_indexed_ac_var_operations(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INDEXED_VARIABLE_RULE_SOURCE, "indexed_state")
+        self.assertIn("ac.var.decl @entries type !ac.struct<@types::@Entry>", lowered)
+        self.assertIn('stable_id "var/entries" shape [4]', lowered)
+        self.assertIn("ac.var.read_element @entries", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertNotIn("ac.table @entries", lowered)
+
+    def test_persistent_list_requires_static_zero_shape(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = INDEXED_VARIABLE_RULE_SOURCE.replace("[0] * 4", "[1] * 4")
+        with self.assertRaisesRegex(QueueFrontendError, "persistent list"):
+            lower_queue_source(invalid, "indexed_state")
+
+    def test_persistent_list_find_lowers_to_generic_ac_var_selection(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(LIST_FIND_RULE_SOURCE, "issue_queue")
+        self.assertIn("ac.var.match @entries predicate", lowered)
+        self.assertIn("ac.var.match.yield", lowered)
+        self.assertIn('count 1 policy "min"', lowered)
+        self.assertIn("ac.var.choose.yield", lowered)
+        self.assertIn("ac.var.read_element @entries", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertNotIn("ac.table", lowered)
+
+    def test_persistent_list_find_rejects_non_list_state(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = LIST_FIND_RULE_SOURCE.replace(
+            "entries: list[Entry] = [0] * 4", "entries: Entry = 0"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "find requires"):
+            lower_queue_source(invalid, "issue_queue")
+
+    def test_find_predicate_captures_a_read_only_persistent_list(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(LIST_FIND_CAPTURE_SOURCE, "issue_queue")
+        self.assertIn("ac.var.decl @ready_tags type i1 init false", lowered)
+        self.assertIn("ac.var.match @entries predicate", lowered)
+        self.assertEqual(2, lowered.count("ac.var.read_element @ready_tags"))
+        self.assertIn("ac.var.assign_element @ready_tags", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertNotIn("ac.table", lowered)
+
+    def test_find_key_captures_a_read_only_persistent_list(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(LIST_FIND_KEY_CAPTURE_SOURCE, "issue_queue")
+        self.assertIn("ac.var.decl @priorities type i2 init 0", lowered)
+        self.assertIn("ac.var.choose @entries", lowered)
+        self.assertIn('count 1 policy "min" key {', lowered)
+        self.assertEqual(1, lowered.count("ac.var.read_element @priorities"))
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertNotIn("ac.table", lowered)
+
+    def test_outputless_rule_infers_consume_only_state_transaction(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(CONSUME_ONLY_RULE_SOURCE, "completion_port")
+        self.assertIn("ac.rule %completion depths [] latencies []", lowered)
+        self.assertIn("ac.var.read_element @entries", lowered)
+        self.assertIn("ac.var.constant true as !ac.var<i1>", lowered)
+        self.assertIn("ac.rule.condition", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertIn(" when %", lowered)
+        self.assertIn("ac.rule.return", lowered)
+        self.assertNotIn("ac.marker.obligation", lowered)
+        self.assertNotIn("ac.sink", lowered)
+
+    def test_outputless_rule_cannot_be_assigned(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = CONSUME_ONLY_RULE_SOURCE.replace(
+            "    complete(entries, completion)",
+            "    result = complete(entries, completion)",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "outputless rule"):
+            lower_queue_source(invalid, "completion_port")
+
+    def test_conditional_effect_infers_read_only_scalar_state(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(
+            READ_ONLY_SCALAR_CONDITIONAL_SOURCE, "completion_port"
+        )
+        self.assertIn("ac.var.read @epoch", lowered)
+        self.assertNotIn("ac.var.assign @epoch", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertIn(" when %", lowered)
+        self.assertIn("ac.var.mul", lowered)
+        self.assertIn(
+            'ac.rule %completion depths [] latencies [] name "complete"',
+            lowered,
+        )
+
+    def test_early_return_chain_must_remain_contiguous(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = READ_ONLY_SCALAR_CONDITIONAL_SOURCE.replace(
+            "    if old.epoch != epoch:\n",
+            "    checkpoint = old.epoch\n    if old.epoch != epoch:\n",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "contiguous serial guard"):
+            lower_queue_source(invalid, "completion_port")
+
+    def test_early_return_chain_must_precede_state_effects(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = CONSUME_ONLY_RULE_SOURCE.replace(
+            "    if old.generation != completion.generation:\n",
+            "    entries[completion.index] = completion\n"
+            "    if old.generation != completion.generation:\n",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "precede state effects"):
+            lower_queue_source(invalid, "completion_port")
+
+    def test_state_driven_rule_infers_typed_functional_condition(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(STATE_DRIVEN_RULE_SOURCE, "retirement_port")
+        self.assertIn("%retired = ac.rule  depths [1] latencies [1]", lowered)
+        self.assertIn("ac.rule.condition", lowered)
+        self.assertIn("ac.var.read_element @entries", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertNotIn("ac.source", lowered)
+
+    def test_guarded_rule_requires_boolean_condition(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = STATE_DRIVEN_RULE_SOURCE.replace("if old.valid:", "if old.value:")
+        with self.assertRaisesRegex(QueueFrontendError, "condition must lower to bool"):
+            lower_queue_source(invalid, "retirement_port")
+
+    def test_one_rule_can_propose_multiple_persistent_state_updates(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(MULTI_STATE_RULE_SOURCE, "multi_state_allocate")
+        self.assertIn("ac.var.decl @tail type i2", lowered)
+        self.assertIn("ac.var.decl @entries type !ac.struct<@types::@Entry>", lowered)
+        self.assertIn("ac.var.read @tail", lowered)
+        self.assertIn("ac.var.assign_element @entries", lowered)
+        self.assertIn("ac.var.assign @tail", lowered)
+        self.assertEqual(2, lowered.count("ac.var.assign"))
+
+    def test_if_else_infers_complementary_branch_local_state_presence(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(BRANCH_LOCAL_STATE_SOURCE, "branch_state")
+        self.assertIn("ac.var.assign @right", lowered)
+        self.assertIn("ac.var.assign @left", lowered)
+        self.assertEqual(2, lowered.count(" when %"))
+        self.assertIn("ac.rule.condition", lowered)
+        self.assertIn('ac.var.cmp "eq"', lowered)
+        self.assertNotIn("ac.table", lowered)
+        self.assertNotIn("atomic", lowered)
+
+    def test_if_else_same_owner_uses_one_typed_value_join(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        source = BRANCH_LOCAL_STATE_SOURCE.replace(
+            "        left = command.value", "        right = command.value"
+        )
+        lowered = lower_queue_source(source, "branch_state")
+        self.assertIn("ac.var.select", lowered)
+        self.assertEqual(1, lowered.count("ac.var.assign @right"))
+        self.assertNotIn("ac.var.assign @left", lowered)
+
+    def test_if_else_indexed_owner_joins_index_and_value(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INDEXED_BRANCH_JOIN_SOURCE, "indexed_branch_join")
+        self.assertEqual(2, lowered.count("ac.var.select"))
+        self.assertEqual(1, lowered.count("ac.var.assign_element @entries"))
+        self.assertNotIn(" when %", lowered)
+
+    def test_optional_output_has_independent_ssa_presence(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(OPTIONAL_OUTPUT_SOURCE, "optional_output")
+        self.assertIn("ac.rule.condition", lowered)
+        self.assertIn("ac.var.assign @count", lowered)
+        self.assertIn("ac.rule.output %item when %", lowered)
+        self.assertIn("ac.rule.return %rule_ready", lowered)
+        self.assertNotIn("ready_valid", lowered)
+
+    def test_multi_state_rule_requires_persistent_arguments_first(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = MULTI_STATE_RULE_SOURCE.replace(
+            "def allocate(tail, entries, incoming):",
+            "def allocate(tail, incoming, entries):",
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "must precede"):
+            lower_queue_source(invalid, "multi_state_allocate")
+
+    def test_multi_input_rule_requires_one_queue_per_parameter(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = MULTI_INPUT_RULE_SOURCE.replace(
+            "summed = add(left, right)", "summed = add(left)"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "one Queue per"):
+            lower_queue_source(invalid, "pair")
+
+    def test_multi_input_rule_accepts_mixed_queue_payloads(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        source = MULTI_INPUT_RULE_SOURCE.replace(
+            "return left + right", "return left"
+        ).replace("right = ac.source(int)", "right = ac.source(ac.u7)")
+        lowered = lower_queue_source(source, "pair")
+        self.assertIn(
+            "^rule(%item0: !ac.var<i64>, %item1: !ac.var<i7>):",
+            lowered,
+        )
+
+    def test_multi_input_rule_rejects_duplicate_queue_arguments(self) -> None:
+        from agentic_circuit._queue_frontend import (
+            QueueFrontendError,
+            lower_queue_source,
+        )
+
+        invalid = MULTI_INPUT_RULE_SOURCE.replace(
+            "summed = add(left, right)", "summed = add(left, left)"
+        )
+        with self.assertRaisesRegex(QueueFrontendError, "distinct Queue"):
+            lower_queue_source(invalid, "pair")
+
     def test_stateful_rule_keeps_table_assignment_below_python_surface(self) -> None:
         from agentic_circuit._queue_frontend import lower_queue_source
 
@@ -1741,17 +3177,94 @@ def pipeline() -> None:
         reused_lowered = lower_queue_source(reused, "table_rule")
         self.assertEqual(1, reused_lowered.count("ac.table.get @rob"))
 
-    def test_stateful_rule_dynamic_index_requires_full_bit_domain(self) -> None:
+    def test_stateful_multi_input_rule_emits_one_atomic_firing_intent(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(STATEFUL_MULTI_INPUT_RULE_SOURCE, "table_rule")
+        self.assertIn("%outgoing = ac.rule %incoming, %deltas", lowered)
+        self.assertIn(
+            "^rule(%item0: !ac.var<!ac.struct<@types::@Entry>>, "
+            "%item1: !ac.var<!ac.struct<@types::@Delta>>):",
+            lowered,
+        )
+        self.assertIn("ac.table.propose @rob", lowered)
+        self.assertNotIn("ready_valid", lowered)
+        self.assertNotIn(".pop", lowered)
+        self.assertNotIn(".push", lowered)
+
+    def test_stateful_rule_defers_nonconstant_index_proof_to_mlir(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        u2_into_five = STATEFUL_RULE_SOURCE.replace(
+            "index: ac.u1", "index: ac.u2"
+        ).replace("ac.table[2, Entry]", "ac.table[5, Entry]")
+        u3_into_five = u2_into_five.replace("index: ac.u2", "index: ac.u3")
+
+        for source, index_type in ((u2_into_five, "i2"), (u3_into_five, "i3")):
+            lowered = lower_queue_source(source, "table_rule")
+            self.assertIn(f"ac.table.get @rob [%v1] : !ac.var<{index_type}>", lowered)
+            self.assertIn("ac.table.propose @rob [%v0] = %item", lowered)
+
+    def test_persistent_var_defers_nonconstant_index_proof_to_mlir(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        five_entries = INDEXED_VARIABLE_RULE_SOURCE.replace("[0] * 4", "[0] * 5")
+        u3_into_five = five_entries.replace("index: ac.u2", "index: ac.u3")
+        for source, index_type in ((five_entries, "i2"), (u3_into_five, "i3")):
+            lowered = lower_queue_source(source, "indexed_state")
+            self.assertIn(
+                f"ac.var.read_element @entries[%v0] : !ac.var<{index_type}>",
+                lowered,
+            )
+            self.assertIn(
+                f"ac.var.assign_element @entries[%v2] = %item : !ac.var<{index_type}>",
+                lowered,
+            )
+
+    def test_stateful_rule_rejects_only_disproven_constant_expression_index(
+        self,
+    ) -> None:
         from agentic_circuit._queue_frontend import (
             QueueFrontendError,
             lower_queue_source,
         )
 
-        invalid = STATEFUL_RULE_SOURCE.replace(
-            "ac.table[2, Entry]", "ac.table[3, Entry]"
+        constant = STATEFUL_RULE_SOURCE.replace(
+            "rob[entry.index]", "rob[0 + 1]"
+        ).replace("ac.table[2, Entry]", "ac.table[3, Entry]")
+        lowered = lower_queue_source(constant, "table_rule")
+        self.assertEqual(2, lowered.count("ac.var.add"))
+        self.assertIn("ac.table.get @rob [%v5]", lowered)
+
+        out_of_range = constant.replace("rob[0 + 1]", "rob[1 + 2]")
+        with self.assertRaisesRegex(QueueFrontendError, "index is out of range"):
+            lower_queue_source(out_of_range, "table_rule")
+
+    def test_expression_facts_use_typed_bit_transfer_for_and_mask(self) -> None:
+        import ast
+
+        from _pycircuit_semantics import BitsType, StructType, ValueField, prove_within
+        from agentic_circuit._queue_frontend import Payload, _ExpressionEmitter
+
+        payload_type = StructType("Entry", (ValueField("index", BitsType(3)),))
+        emitter = _ExpressionEmitter(
+            {"Entry": Payload(payload_type)}, "item", payload_type
         )
-        with self.assertRaisesRegex(QueueFrontendError, r"full 2\^N Table"):
-            lower_queue_source(invalid, "table_rule")
+        result, result_type = emitter.emit(
+            ast.parse("item.index & 3", mode="eval").body
+        )
+
+        self.assertEqual(BitsType(3), result_type)
+        self.assertTrue(
+            prove_within(emitter.constraint_for_result(result, result_type), 0, 3)
+        )
+        shifted, shifted_type = emitter.emit(
+            ast.parse("item.index >> 1", mode="eval").body
+        )
+        self.assertEqual(BitsType(3), shifted_type)
+        self.assertTrue(
+            prove_within(emitter.constraint_for_result(shifted, shifted_type), 0, 3)
+        )
 
     def test_explicit_fork_lowers_to_decoupled_fanout(self) -> None:
         from agentic_circuit._queue_frontend import lower_queue_source
@@ -1826,6 +3339,66 @@ def pipeline() -> None:
                 SOURCE.replace("lambda item: item", "lambda item: unknown(item)"),
                 "pipeline",
             )
+
+    def test_typed_module_calls_lower_to_structured_reusable_acir(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_MODULE_SOURCE, "pipeline")
+        self.assertIn("ac.system @pipeline root @Top", lowered)
+        self.assertIn("ac.module @increment", lowered)
+        self.assertEqual(lowered.count("ac.instance"), 2)
+        self.assertIn("ac.instance @left_result of @increment", lowered)
+        self.assertIn("ac.instance @right_result of @increment", lowered)
+        self.assertNotIn("ac.system =", lowered)
+        self.assertNotIn("source(", lowered)
+        self.assertNotIn("sink(", lowered)
+
+    def test_host_result_mode_preserves_root_queue_returns(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(
+            INFERRED_MODULE_SOURCE, "pipeline", host_results=True
+        )
+        self.assertIn("ac.module @Top() -> (!ac.queue<i8>, !ac.queue<i8>)", lowered)
+        self.assertIn(
+            "ac.return %left_result, %right_result : !ac.queue<i8>, !ac.queue<i8>",
+            lowered,
+        )
+        self.assertNotIn("ac.sink", lowered)
+
+    def test_nested_module_call_preserves_parent_child_structure(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_NESTED_MODULE_SOURCE, "pipeline")
+        self.assertIn("ac.module @increment", lowered)
+        self.assertIn("ac.module @wrapper", lowered)
+        self.assertIn("ac.instance @result of @increment", lowered)
+        self.assertEqual(2, lowered.count(" of @wrapper"))
+
+    def test_stateful_module_uses_only_lexical_ac_var_ir(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_STATEFUL_MODULE_SOURCE, "pipeline")
+        self.assertIn("ac.module @accumulator", lowered)
+        self.assertIn("ac.var.decl @total", lowered)
+        self.assertIn("ac.var.read @total", lowered)
+        self.assertIn("ac.var.assign @total", lowered)
+        self.assertIn('owner "/body" stable_id "var/body/total"', lowered)
+        self.assertEqual(2, lowered.count(" of @accumulator"))
+        self.assertNotIn("ac.table", lowered)
+
+    def test_module_multiple_lexical_states_remain_one_atomic_rule(self) -> None:
+        from agentic_circuit._queue_frontend import lower_queue_source
+
+        lowered = lower_queue_source(INFERRED_MULTI_STATE_MODULE_SOURCE, "pipeline")
+        self.assertEqual(2, lowered.count("ac.var.decl"))
+        self.assertEqual(2, lowered.count("ac.var.read"))
+        self.assertEqual(2, lowered.count("ac.var.assign"))
+        self.assertIn("ac.var.assign @count", lowered)
+        self.assertIn("ac.var.assign @total", lowered)
+        self.assertEqual(1, lowered.count("ac.rule %borrowed"))
+        self.assertEqual(2, lowered.count(" of @tally"))
+        self.assertNotIn("ac.table", lowered)
 
 
 if __name__ == "__main__":

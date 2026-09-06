@@ -43,6 +43,7 @@ jobs:
           set -euo pipefail
           requested="${REQUESTED_VERSION#v}"
           project="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          semantic="$(python3 -c 'import tomllib; print(tomllib.load(open("python/semantic-core/pyproject.toml", "rb"))["project"]["version"])')"
           if [[ ! "${requested}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.a-zA-Z0-9+-]*)?$ ]]; then
             echo "invalid release version: ${requested}" >&2
             exit 1
@@ -51,11 +52,16 @@ jobs:
             echo "release version ${requested} does not match pyproject.toml ${project}" >&2
             exit 1
           fi
+          if [[ "${requested}" != "${semantic}" ]]; then
+            echo "release version ${requested} does not match semantic core ${semantic}" >&2
+            exit 1
+          fi
 
       - name: Install Python, LLVM, and simulation dependencies
         shell: bash
         run: |
           set -euxo pipefail
+          python -m pip install -e "python/semantic-core"
           python -m pip install -e ".[dev,docs]"
           python -m pip install -e "python/agentic-circuit[test]"
           sudo apt-get update
@@ -148,12 +154,17 @@ jobs:
           set -euo pipefail
           requested="${REQUESTED_VERSION#v}"
           project="$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+          semantic="$(python3 -c 'import tomllib; print(tomllib.load(open("python/semantic-core/pyproject.toml", "rb"))["project"]["version"])')"
           if [[ ! "${requested}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.a-zA-Z0-9+-]*)?$ ]]; then
             echo "invalid release version: ${requested}" >&2
             exit 1
           fi
           if [[ "${requested}" != "${project}" ]]; then
             echo "release version ${requested} does not match pyproject.toml ${project}" >&2
+            exit 1
+          fi
+          if [[ "${requested}" != "${semantic}" ]]; then
+            echo "release version ${requested} does not match semantic core ${semantic}" >&2
             exit 1
           fi
           echo "version=${requested}" >> "${GITHUB_OUTPUT}"
@@ -214,6 +225,9 @@ jobs:
 
           mkdir -p dist
           mv ".pycircuit_out/toolchain/build/${PKG}.tar.gz" "dist/${PKG}.tar.gz"
+
+          python3 -m pip wheel --no-deps --wheel-dir "$PWD/dist" \
+            "$PWD/python/semantic-core"
 
           python3 packaging/wheel/create_wheel.py \
             --install-dir "$PWD/.pycircuit_out/toolchain/install" \

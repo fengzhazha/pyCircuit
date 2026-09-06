@@ -40,10 +40,18 @@ resume_from="${AC_GATE_RESUME_FROM:-g0}"
 if [[ "${resume_from}" != "g0" && "${resume_from}" != "g2" ]]; then
   pyc_die "AC_GATE_RESUME_FROM must be g0 or g2"
 fi
+if [[ "${resume_from}" == "g0" ]]; then
+  completed_lanes='["AC G0", "AC G1", "AC G2"]'
+  completion_message="Agentic Circuit G0/G1/G2 closure passed"
+else
+  completed_lanes='["AC G2"]'
+  completion_message="Agentic Circuit G2 closure passed (G0/G1 explicitly skipped)"
+fi
 
 if [[ ! -x "${venv}/bin/python" ]]; then
   python3 -m venv "${venv}"
 fi
+"${venv}/bin/python" -m pip install -e "${PYC_ROOT_DIR}/python/semantic-core"
 "${venv}/bin/python" -m pip install -e "${ac_python}[test]"
 
 if [[ "${resume_from}" == "g0" ]]; then
@@ -82,11 +90,11 @@ if [[ "${resume_from}" == "g0" ]]; then
   (
     cd "${PYC_ROOT_DIR}"
     env -u AC_GATE_TOOLCHAIN_ROOT \
-      PYTHONPATH="${ac_python}/src:${ac_test_python}:${ac_build}/python" \
+      PYTHONPATH="${PYC_ROOT_DIR}/python/semantic-core/src:${ac_python}/src:${ac_test_python}:${ac_build}/python" \
       "${venv}/bin/python" -m unittest discover \
         -s tests/python/agentic-circuit/python_frontend -p 'test_*.py'
     env -u AC_GATE_TOOLCHAIN_ROOT \
-      PYTHONPATH="${ac_python}/src:${ac_test_python}:${ac_build}/python" \
+      PYTHONPATH="${PYC_ROOT_DIR}/python/semantic-core/src:${ac_python}/src:${ac_test_python}:${ac_build}/python" \
       "${venv}/bin/python" -m unittest discover \
         -s tests/python/agentic-circuit/cli -p 'test_*.py'
     PYTHONPATH="${site_packages}" \
@@ -121,7 +129,7 @@ verilator="$(command -v verilator || true)"
 [[ -n "${cxx}" ]] || pyc_die "C++ compiler is required for AC G2"
 [[ -n "${verilator}" ]] || pyc_die "Verilator is required for AC G2"
 
-for case_name in arbiter atomic-transform bit-widths popcount; do
+for case_name in arbiter atomic-transform bit-widths masked-match popcount; do
   case_dir="${gate_out_dir}/${case_name}"
   if [[ -e "${case_dir}" ]]; then
     pyc_die "AC G2 output already exists: ${case_dir}"
@@ -148,10 +156,17 @@ done
 PYC_TOOLCHAIN_ROOT="${toolchain}" \
 ACIR_OPT="${acir_opt}" \
 ACIR_QUEUE_PYCGEN="${pycgen}" \
-PYTHONPATH="${ac_python}/src:${ac_build}/python" \
+PYTHONPATH="${PYC_ROOT_DIR}/python/semantic-core/src:${ac_python}/src:${ac_build}/python" \
   "${venv}/bin/python" \
   "${PYC_ROOT_DIR}/tests/integration/agentic-circuit/e2e/test_pyc_backend.py" \
-  PycBackendTest.test_rule_retirement_builds_pyc_and_verilog -v
+  PycBackendTest.test_rule_retirement_builds_pyc_and_verilog \
+  PycBackendTest.test_bitfield_scalar_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  PycBackendTest.test_masked_decode_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  PycBackendTest.test_nested_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  PycBackendTest.test_nominal_enum_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  PycBackendTest.test_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  PycBackendTest.test_recursive_aggregate_payload_is_cycle_equivalent_in_pyc_cpp_and_verilog \
+  -v
 
 pyc_log "pyCircuit 6 root contracts and documentation"
 (
@@ -175,11 +190,12 @@ cat > "${docs_gate_dir}/agentic_circuit_summary.json" <<EOF
   "run_id": "${gate_run_id}",
   "script": "run_agentic_circuit.sh",
   "status": "pass",
-  "lanes": ["AC G0", "AC G1", "AC G2"],
+  "lanes": ${completed_lanes},
+  "resume_from": "${resume_from}",
   "contract_epoch": "0.5",
   "pyc_interface": "pyc6",
-  "cases": ["arbiter", "atomic-transform", "bit-widths", "popcount", "rule-retirement"]
+  "cases": ["arbiter", "atomic-transform", "bit-widths", "masked-match", "popcount", "rule-retirement", "bitfield", "masked-decode", "nested-payload", "enum-payload", "aggregate-payload", "recursive-aggregate-payload"]
 }
 EOF
 
-pyc_log "Agentic Circuit G0/G1/G2 closure passed"
+pyc_log "${completion_message}"

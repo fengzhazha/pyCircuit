@@ -1,5 +1,6 @@
 add_acir_library(ACIRTransforms SOURCES
   VerifyModel.cpp
+  VerifyValueConstraints.cpp
   FreezeTopology.cpp
   CanonicalizeModel.cpp
   ResolveBindings.cpp
@@ -7,6 +8,7 @@ add_acir_library(ACIRTransforms SOURCES
   VerifyACIRFile.cpp
   LowerProcessState.cpp
   LowerRules.cpp
+  LowerVariables.cpp
 )
 add_dependencies(ACIRTransforms ACIRTransformsIncGen)
 target_link_libraries(ACIRTransforms PUBLIC

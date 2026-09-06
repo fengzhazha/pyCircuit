@@ -24,6 +24,11 @@ cmake --preset dev-llvm22
 cmake --build --preset dev-llvm22
 ```
 
+The bootstrap installs the repository-internal `pycircuit-semantic-core`
+distribution before Agentic Circuit. It contains the immutable type/layout
+semantics shared with the pyCircuit frontend; neither public namespace imports
+the other.
+
 Use `release-llvm22` for a release configuration. The exact upstream release,
 commit, archive digest, supported host triples, and version policy are recorded
 in [`toolchains/agentic-circuit/llvm.lock.json`](../../toolchains/agentic-circuit/llvm.lock.json).

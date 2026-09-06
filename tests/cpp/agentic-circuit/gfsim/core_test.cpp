@@ -2443,6 +2443,7 @@ public:
   }
   bool hasPendingCommit() const override { return pending_; }
   bool validate() const { return true; }
+  void arm() { pending_ = true; }
 
   uint64_t commitCount = 0;
 
@@ -2450,6 +2451,24 @@ private:
   std::vector<ObjectId> &workLog_;
   bool commitOnWork_ = false;
   bool pending_ = false;
+};
+
+class ClosureDispatchObject : public SimObject {
+public:
+  ClosureDispatchObject(ObjectId id, std::vector<ObjectId> &workLog,
+                        CommittingDispatchObject &resource)
+      : SimObject(ObjectKind::Scheduler, "closure_worker", id),
+        workLog_(workLog), resource_(resource) {}
+
+  void doWork(Epoch) override {
+    workLog_.push_back(id());
+    resource_.arm();
+  }
+  bool validate() const { return true; }
+
+private:
+  std::vector<ObjectId> &workLog_;
+  CommittingDispatchObject &resource_;
 };
 
 class RepeatedCommitDispatchObject : public SimObject {
@@ -2621,6 +2640,39 @@ TEST(GfsimSystemTest, ActivationPlanRejectsNonCanonicalTargets) {
   EXPECT_FALSE(system.setActivationPlan(offsets, targets));
   EXPECT_EQ(system.terminationResult().diagnosticCode,
             "invalid_activation_plan");
+}
+
+TEST(GfsimSystemTest, WorkClosureXfersResourcesWithoutInvokingTheirWork) {
+  SimSystem system("closure");
+  std::vector<ObjectId> workLog;
+  CommittingDispatchObject resource(1, workLog, false);
+  ClosureDispatchObject worker(0, workLog, resource);
+  std::array rows = {makeDispatchRow(&worker), makeDispatchRow(&resource)};
+  constexpr std::array<uint32_t, 3> offsets = {0, 1, 1};
+  constexpr std::array<ObjectId, 1> targets = {1};
+  ASSERT_TRUE(system.setDispatchTable(rows));
+  ASSERT_TRUE(system.setWorkClosurePlan(offsets, targets));
+  ASSERT_TRUE(system.scheduleWork(0, {0, 0}));
+
+  EXPECT_FALSE(system.step());
+  EXPECT_EQ(workLog, (std::vector<ObjectId>{0}));
+  EXPECT_EQ(resource.commitCount, 1u);
+  EXPECT_EQ(system.workInvocationCount(), 1u);
+  EXPECT_EQ(system.workClosureTraversalCount(), 1u);
+}
+
+TEST(GfsimSystemTest, ExternalQueueXferCommitsWithoutQueueWork) {
+  SimSystem system("external_xfer");
+  SimQueue<uint32_t> queue("input", 0, nullptr, 1);
+  std::array rows = {makeDispatchRow(&queue)};
+  ASSERT_TRUE(system.setDispatchTable(rows));
+  ASSERT_TRUE(system.scheduleExternalXfer(queue.id()));
+  ASSERT_TRUE(queue.proposePush(7));
+
+  EXPECT_FALSE(system.step());
+  ASSERT_EQ(queue.committedSize(), 1u);
+  EXPECT_EQ(queue.committedValues().front(), 7u);
+  EXPECT_EQ(system.workInvocationCount(), 0u);
 }
 
 TEST(GfsimSystemTest, WorkPhaseReadsOneImmutableCommittedSnapshot) {

@@ -194,7 +194,7 @@ if(ACIR_BUILD_TESTING)
 
   set(_ACIR_PYTHON_TEST_ENVIRONMENT
     "AGENTIC_CIRCUIT_TEST_BUILD_DIR=${ACIR_BINARY_DIR}"
-    "PYTHONPATH=${ACIR_REPO_ROOT}/python/agentic-circuit/src:${ACIR_BINARY_DIR}/python"
+    "PYTHONPATH=${ACIR_REPO_ROOT}/python/semantic-core/src:${ACIR_REPO_ROOT}/python/agentic-circuit/src:${ACIR_BINARY_DIR}/python"
   )
   add_test(
     NAME WorkspaceE2ETests
@@ -231,6 +231,71 @@ if(ACIR_BUILD_TESTING)
     WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
     TIMEOUT 60
     LABELS "e2e;rule;gfsim"
+    ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
+  )
+  add_test(
+    NAME BitfieldE2ETests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${ACIR_REPO_ROOT}/tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      "QueueCodegenTest.test_bitfield_decode_runs_through_frozen_queuegraph_and_gfsim"
+      -v
+  )
+  set_tests_properties(BitfieldE2ETests PROPERTIES
+    WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
+    TIMEOUT 60
+    LABELS "e2e;gfsim;bitfield"
+    ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
+  )
+  add_test(
+    NAME NestedPayloadE2ETests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${ACIR_REPO_ROOT}/tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      "QueueCodegenTest.test_nested_payload_runs_with_dependency_ordered_cpp_types"
+      -v
+  )
+  set_tests_properties(NestedPayloadE2ETests PROPERTIES
+    WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
+    TIMEOUT 60
+    LABELS "e2e;gfsim;nested-payload"
+    ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
+  )
+  add_test(
+    NAME EnumPayloadE2ETests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${ACIR_REPO_ROOT}/tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      "QueueCodegenTest.test_nominal_enum_nested_payload_runs_in_gfsim"
+      -v
+  )
+  set_tests_properties(EnumPayloadE2ETests PROPERTIES
+    WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
+    TIMEOUT 60
+    LABELS "e2e;gfsim;enum-payload"
+    ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
+  )
+  add_test(
+    NAME AggregatePayloadE2ETests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${ACIR_REPO_ROOT}/tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      "QueueCodegenTest.test_tuple_and_value_array_payload_runs_packed_in_gfsim"
+      -v
+  )
+  set_tests_properties(AggregatePayloadE2ETests PROPERTIES
+    WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
+    TIMEOUT 60
+    LABELS "e2e;gfsim;aggregate-payload"
+    ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
+  )
+  add_test(
+    NAME RecursiveAggregatePayloadE2ETests
+    COMMAND "${Python3_EXECUTABLE}"
+      "${ACIR_REPO_ROOT}/tests/integration/agentic-circuit/e2e/test_queue_codegen.py"
+      "QueueCodegenTest.test_recursive_nominal_aggregate_payload_runs_packed_in_gfsim"
+      -v
+  )
+  set_tests_properties(RecursiveAggregatePayloadE2ETests PROPERTIES
+    WORKING_DIRECTORY "${ACIR_REPO_ROOT}"
+    TIMEOUT 60
+    LABELS "e2e;gfsim;aggregate-payload;recursive-payload"
     ENVIRONMENT "${_ACIR_PYTHON_TEST_ENVIRONMENT}"
   )
   add_test(

@@ -5,14 +5,21 @@ from __future__ import annotations
 
 import argparse
 import os
-from pathlib import Path
 import subprocess
+import sys
 import tempfile
+from pathlib import Path
 
-from agentic_circuit._queue_codegen import lower_queue_program_to_cpp
-from agentic_circuit._queue_frontend import (
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+_SEMANTIC_CORE = _REPO_ROOT / "python" / "semantic-core" / "src"
+if _SEMANTIC_CORE.is_dir() and str(_SEMANTIC_CORE) not in sys.path:
+    sys.path.insert(0, str(_SEMANTIC_CORE))
+
+from agentic_circuit._queue_codegen import lower_queue_program_to_cpp  # noqa: E402
+from agentic_circuit._queue_frontend import (  # noqa: E402
     RULE_LOWERING_PIPELINE,
-    lower_queue_program,
+    QueueFrontendError,
+    lower_queue_source,
     parse_queue_program,
 )
 
@@ -43,6 +50,11 @@ def main() -> int:
     parser.add_argument("--acir-opt", type=Path)
     parser.add_argument("--queue-plan-tool", type=Path)
     parser.add_argument("--queue-cxxgen-tool", type=Path)
+    parser.add_argument(
+        "--host-results",
+        action="store_true",
+        help="preserve typed system results as host-dequeued root Queues",
+    )
     arguments = parser.parse_args()
     artifact_options = (
         arguments.acir_output,
@@ -58,13 +70,28 @@ def main() -> int:
             "--acir-output, --plan-output, --acir-opt, --queue-plan-tool, and "
             "--queue-cxxgen-tool must be provided together"
         )
-    program = parse_queue_program(
-        arguments.source.read_text(encoding="utf-8"), arguments.system
+    source_text = arguments.source.read_text(encoding="utf-8")
+    raw_acir = lower_queue_source(
+        source_text, arguments.system, host_results=arguments.host_results
     )
-    has_rules = any(queue.rule_name is not None for queue in program.queues)
-    if has_rules and arguments.acir_output is None:
-        parser.error("@ac.rule C++ generation requires the native MLIR tool options")
-    generated = "" if has_rules else lower_queue_program_to_cpp(program)
+    try:
+        program = parse_queue_program(source_text, arguments.system)
+    except QueueFrontendError:
+        program = None
+    requires_native = (
+        program is None
+        or bool(program.effect_rules)
+        or any(queue.rule_name is not None for queue in program.queues)
+    )
+    if requires_native and arguments.acir_output is None:
+        parser.error(
+            "@ac.rule/@ac.module C++ generation requires the native MLIR tool options"
+        )
+    if requires_native:
+        generated = ""
+    else:
+        assert program is not None
+        generated = lower_queue_program_to_cpp(program)
     canonical_acir: str | None = None
     queue_plan: str | None = None
     if arguments.acir_output is not None:
@@ -73,7 +100,7 @@ def main() -> int:
         assert arguments.queue_cxxgen_tool is not None
         with tempfile.TemporaryDirectory() as directory:
             raw = Path(directory) / "model.ac.mlir"
-            raw.write_text(lower_queue_program(program), encoding="utf-8")
+            raw.write_text(raw_acir, encoding="utf-8")
             optimized = subprocess.run(
                 (
                     str(arguments.acir_opt),

@@ -47,6 +47,9 @@ config.substitutions.append(
     ("%acir_queue_cxxgen", os.path.join(tools_dir, "acir-queue-cxxgen"))
 )
 config.substitutions.append(
+    ("%acir_queue_plan", os.path.join(tools_dir, "acir-queue-plan"))
+)
+config.substitutions.append(
     ("%acir_queue_pycgen", os.path.join(tools_dir, "acir-queue-pycgen"))
 )
 config.substitutions.append(("%FileCheck", os.path.join(llvm_tools_dir, "FileCheck")))

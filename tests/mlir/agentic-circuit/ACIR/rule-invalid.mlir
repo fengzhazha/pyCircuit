@@ -5,6 +5,7 @@
 // RUN: %not %acir_opt %t/value-marker.mlir 2>&1 | %FileCheck %s --check-prefix=VALUE
 // RUN: %not %acir_opt %t/obligation-marker.mlir 2>&1 | %FileCheck %s --check-prefix=OBLIGATION
 // RUN: %not %acir_opt %t/domain.mlir 2>&1 | %FileCheck %s --check-prefix=DOMAIN
+// RUN: %not %acir_opt %t/output-ordinal.mlir 2>&1 | %FileCheck %s --check-prefix=OUTPUT-ORDINAL
 
 //--- rule-arity.mlir
 module attributes {ac.contract_epoch = "0.5"} {
@@ -16,7 +17,7 @@ module attributes {ac.contract_epoch = "0.5"} {
     ac.rule.return %item, %item : !ac.var<i32>, !ac.var<i32>
   } : (!ac.queue<i32>) -> (!ac.queue<i32>, !ac.queue<i32>)
 }
-// RULE: 'ac.rule' op phase-one rule requires exactly one input and one output
+// RULE: 'ac.rule' op rule currently supports at most one output
 
 //--- return-parent.mlir
 module attributes {ac.contract_epoch = "0.5"} {
@@ -83,3 +84,18 @@ module attributes {ac.contract_epoch = "0.5"} {
   } : (!ac.queue<i32>) -> !ac.queue<i32>
 }
 // DOMAIN: 'ac.rule' op phase-one rule requires exact time domain 'cycle'
+
+//--- output-ordinal.mlir
+module attributes {ac.contract_epoch = "0.5"} {
+  %input = "builtin.unrealized_conversion_cast"() : () -> !ac.queue<i32>
+  %output = ac.rule %input depths [1] latencies [1]
+      name "bad" stable_id "bad" domain "cycle"
+      type exact input_fact committed_input {
+  ^body(%item: !ac.var<i32>):
+    %true = ac.var.constant true as !ac.var<i1>
+    ac.rule.condition %true : !ac.var<i1>
+    ac.rule.output %item when %true ordinal 1 : !ac.var<i32>, !ac.var<i1>
+    ac.rule.return %item : !ac.var<i32>
+  } : (!ac.queue<i32>) -> !ac.queue<i32>
+}
+// OUTPUT-ORDINAL: 'ac.rule.output' op ordinal must name one rule output

@@ -401,8 +401,12 @@ llvm::Error runStage(CompilerStage stage, const CompilerRequest &request,
                                                                    : "fast";
     build.passPipeline = {
         "acir-verify",
+        "ac-verify-value-constraints",
+        "ac-lower-variable-state",
+        "ac-verify-value-constraints",
         "ac-infer-rule-types",
         "ac-infer-rule-effects",
+        "ac-infer-rule-activation",
         "ac-materialize-rule-checks",
         "ac-materialize-rule-handshake",
         "ac-discharge-rule-obligations",

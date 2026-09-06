@@ -1,0 +1,4 @@
+pytest -q tests/unit/test_semantic_core.py tests/test_bitfield_view.py
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit:.pycircuit_out/acir/dev-llvm22/python .pycircuit_out/agentic-circuit/venv/bin/python -m unittest discover -s tests/python/agentic-circuit/python_frontend -p 'test_*.py'
+PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit .pycircuit_out/agentic-circuit/venv/bin/python tests/integration/agentic-circuit/e2e/test_queue_codegen.py -q
+PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src .pycircuit_out/agentic-circuit/venv/bin/python tests/integration/agentic-circuit/e2e/test_pyc_backend.py -q

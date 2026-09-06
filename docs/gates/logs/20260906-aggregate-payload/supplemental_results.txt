@@ -1,0 +1,32 @@
+full Queue/gfsim integration
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src .pycircuit_out/venv-llvm22/bin/python -m pytest -q tests/integration/agentic-circuit/e2e/test_queue_codegen.py
+exit: 0
+result: 32 passed, 1 skipped in 45.10s
+
+full PYC C++/Verilator integration
+command: ACIR_QUEUE_PYCGEN=.pycircuit_out/acir/dev-llvm22/bin/acir-queue-pycgen PYC_TOOLCHAIN_ROOT=.pycircuit_out/toolchain/install PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/integration/agentic-circuit/e2e .pycircuit_out/agentic-circuit/venv/bin/python -m unittest test_pyc_backend -v
+exit: 0
+result: Ran 17 tests in 63.891s; OK
+
+Agentic contract suite
+command: PYTHONPATH=python/semantic-core/src:python/agentic-circuit/src:tests/python/agentic-circuit:.pycircuit_out/acir/dev-llvm22/python .pycircuit_out/agentic-circuit/venv/bin/python -m unittest discover -s tests/python/agentic-circuit/contracts -p 'test_*.py'
+exit: 0
+result: Ran 37 tests in 4.944s; OK
+
+repository contract and IR coverage
+commands:
+  .pycircuit_out/contracts-venv/bin/python tools/agentic-circuit/check-contracts.py
+  .pycircuit_out/agentic-circuit/venv/bin/python tools/agentic-circuit/check-ir-coverage.py
+exit: 0
+results:
+  repository contracts: OK (12 public schemas, 36 stdlib components, epoch 0.5, LLVM 22.1.8)
+  IR coverage: OK (ACIR and ACSim manifests match ODS, positive+negative lit coverage complete, ledger current)
+
+format and source checks
+commands:
+  ruff check examples/agentic-circuit/pipelines/aggregate_payload_pipeline.py examples/agentic-circuit/pipelines/recursive_aggregate_payload_pipeline.py tests/integration/agentic-circuit/e2e/test_queue_codegen.py tests/integration/agentic-circuit/e2e/test_pyc_backend.py tests/python/agentic-circuit/python_frontend/test_queue_frontend.py
+  ruff format --check examples/agentic-circuit/pipelines/aggregate_payload_pipeline.py examples/agentic-circuit/pipelines/recursive_aggregate_payload_pipeline.py tests/integration/agentic-circuit/e2e/test_queue_codegen.py tests/integration/agentic-circuit/e2e/test_pyc_backend.py tests/python/agentic-circuit/python_frontend/test_queue_frontend.py
+  clang-format --dry-run --Werror compiler/acir/lib/CodeGen/QueueGraphPlan.cpp compiler/acir/lib/CodeGen/QueueGraphGenerator.cpp tests/cpp/agentic-circuit/CodeGen/QueueGraphPlanTest.cpp tests/cpp/agentic-circuit/Dialect/ACIR/OpsTest.cpp
+  git diff --check
+exit: 0
+result: all scoped lint, format, and diff checks passed
